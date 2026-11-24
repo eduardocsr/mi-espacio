@@ -267,6 +267,41 @@ export class WorkspaceService {
     this.router.navigate(['/bienvenida']);
   }
 
+  /**
+   * Purgado de seguridad: elimina completamente los datos locales (IndexedDB, localStorage y perfiles)
+   * del navegador actual para uso en computadoras compartidas o cibercafés.
+   * Los datos sincronizados en Google Cloud permanecen intactos en la cuenta del usuario.
+   */
+  async purgeLocalData(): Promise<void> {
+    // 1. Limpiar estado en memoria
+    this.clearInMemoryWorkspace();
+
+    // 2. Desconectar y revocar sesión de Firebase Auth
+    await this.firebaseSync.logout();
+
+    // 3. Purgar base de datos local IndexedDB
+    await this.storage.purgeAllLocalData();
+
+    // 4. Limpiar todas las claves de localStorage de la aplicación
+    if (typeof window !== 'undefined') {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('mi_espacio') || key.startsWith('snapshot_'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    }
+
+    // 5. Limpiar perfiles y sesión activa
+    this.authSession.logout();
+    this.authSession.savedProfiles.set([]);
+
+    // 6. Redirigir a bienvenida
+    this.router.navigate(['/bienvenida']);
+  }
+
   clearInMemoryWorkspace(): void {
     this.folders.set([]);
     this.notes.set([]);

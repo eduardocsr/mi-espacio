@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
   LucideAngularModule,
@@ -15,27 +16,40 @@ import {
   LogIn,
   LogOut,
   User as UserIcon,
-  RefreshCw
+  RefreshCw,
+  Trash2,
+  Key,
+  Eye,
+  EyeOff,
+  X,
+  ShieldCheck
 } from 'lucide-angular';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { AuthSessionService } from '../../core/services/auth-session.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
+import { AiConfigService } from '../../core/services/ai-config.service';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule],
   templateUrl: './topbar.component.html'
 })
 export class TopbarComponent {
   readonly workspace = inject(WorkspaceService);
   readonly authSession = inject(AuthSessionService);
   readonly feedback = inject(UiFeedbackService);
+  readonly aiConfig = inject(AiConfigService);
   private readonly router = inject(Router);
 
   // User menu state
   readonly isUserMenuOpen = signal<boolean>(false);
   readonly isActionInProgress = signal<boolean>(false);
+
+  // Gemini API Key modal state
+  readonly showApiKeyModal = signal<boolean>(false);
+  readonly apiKeyInput = signal<string>('');
+  readonly showApiKeyPassword = signal<boolean>(false);
 
   // Icons
   readonly MenuIcon = Menu;
@@ -51,6 +65,12 @@ export class TopbarComponent {
   readonly LogOutIcon = LogOut;
   readonly UserIcon = UserIcon;
   readonly RefreshCwIcon = RefreshCw;
+  readonly Trash2Icon = Trash2;
+  readonly KeyIcon = Key;
+  readonly EyeIcon = Eye;
+  readonly EyeOffIcon = EyeOff;
+  readonly XIcon = X;
+  readonly ShieldCheckIcon = ShieldCheck;
 
   toggleMobileMenu(): void {
     this.workspace.isMobileMenuOpen.update(v => !v);
@@ -156,5 +176,54 @@ export class TopbarComponent {
     } finally {
       this.isActionInProgress.set(false);
     }
+  }
+
+  async purgeLocalData(): Promise<void> {
+    const confirmed = await this.feedback.confirm({
+      title: 'Limpiar datos locales de este equipo',
+      message: '¿Deseas eliminar todo el almacenamiento local (IndexedDB, perfiles y caché) de este navegador? Tus notas sincronizadas en Google Cloud permanecerán seguras en tu cuenta.',
+      confirmLabel: 'Limpiar equipo',
+      tone: 'danger'
+    });
+    if (!confirmed) return;
+
+    this.isActionInProgress.set(true);
+    try {
+      this.closeUserMenu();
+      await this.workspace.purgeLocalData();
+      this.feedback.success('Todos los datos locales de este navegador han sido eliminados de forma segura.');
+    } catch {
+      this.feedback.error('Ocurrió un error al limpiar los datos locales.');
+    } finally {
+      this.isActionInProgress.set(false);
+    }
+  }
+
+  openApiKeyModal(): void {
+    this.apiKeyInput.set(this.aiConfig.apiKey());
+    this.showApiKeyPassword.set(false);
+    this.showApiKeyModal.set(true);
+    this.closeUserMenu();
+  }
+
+  closeApiKeyModal(): void {
+    this.showApiKeyModal.set(false);
+  }
+
+  toggleApiKeyPasswordVisibility(): void {
+    this.showApiKeyPassword.update(v => !v);
+  }
+
+  saveApiKey(): void {
+    this.aiConfig.setApiKey(this.apiKeyInput());
+    this.feedback.success('API Key de Gemini guardada de forma segura en este navegador (localStorage).');
+    this.closeApiKeyModal();
+  }
+
+  removeApiKey(): void {
+    this.aiConfig.removeApiKey();
+    this.apiKeyInput.set('');
+    this.feedback.info('API Key de Gemini eliminada de este navegador.');
+    this.closeApiKeyModal();
   }
 }

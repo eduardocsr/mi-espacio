@@ -463,4 +463,28 @@ export class IndexedStorageService {
       }
     });
   }
+
+  /**
+   * Purgado de seguridad: borra completamente la base de datos de IndexedDB del equipo
+   * para proteger la privacidad en computadoras compartidas o de acceso público.
+   */
+  async purgeAllLocalData(): Promise<void> {
+    try {
+      if (this.dbPromise) {
+        const db = await this.dbPromise;
+        db.close();
+        this.dbPromise = null;
+      }
+      if (typeof window !== 'undefined' && window.indexedDB) {
+        await new Promise<void>((resolve) => {
+          const req = window.indexedDB.deleteDatabase(this.dbName);
+          req.onsuccess = () => resolve();
+          req.onerror = () => resolve();
+          req.onblocked = () => resolve();
+        });
+      }
+    } catch (err) {
+      console.warn('Advertencia al purgar IndexedDB:', err);
+    }
+  }
 }

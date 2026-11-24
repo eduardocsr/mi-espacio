@@ -55,6 +55,8 @@ export class FirebaseSyncService {
 
   private unsubscribeCloudListener: Unsubscribe | null = null;
   private isApplyingRemoteUpdate = false;
+  // Token OAuth mantenido exclusivamente en memoria volátil (nunca persistido en disco/localStorage)
+  private currentAccessToken: string | null = null;
 
   constructor() {
     this.app = initializeApp(firebaseConfig);
@@ -78,14 +80,22 @@ export class FirebaseSyncService {
   }
 
   // =========================================================================
-  // AUTENTICACIÓN CON GOOGLE
+  // AUTENTICACIÓN CON GOOGLE (PRINCIPIO DE MENOR PRIVILEGIO / OWASP)
   // =========================================================================
 
   async loginWithGoogle(): Promise<User | null> {
     try {
       const provider = new GoogleAuthProvider();
+      // Alcance mínimo estricto: solo acceso a archivos propios/creados por la app, nunca acceso amplio a Drive
+      provider.addScope('https://www.googleapis.com/auth/drive.file');
       provider.setCustomParameters({ prompt: 'select_account' });
+      
       const result = await signInWithPopup(this.auth, provider);
+      
+      // Token en memoria volátil únicamente (nunca escrito en localStorage ni IndexedDB)
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      this.currentAccessToken = credential?.accessToken || null;
+
       this.currentUser.set(result.user);
       this.syncState.set('synced');
       return result.user;
@@ -102,6 +112,17 @@ export class FirebaseSyncService {
         this.unsubscribeCloudListener();
         this.unsubscribeCloudListener = null;
       }
+
+      // Revocar token OAuth de Google si está disponible en memoria antes de cerrar
+      if (this.currentAccessToken && typeof window !== 'undefined' && (window as any).google?.accounts?.oauth2?.revoke) {
+        try {
+          (window as any).google.accounts.oauth2.revoke(this.currentAccessToken, () => {});
+        } catch (e) {
+          console.warn('OAuth revoke notice:', e);
+        }
+      }
+      this.currentAccessToken = null;
+
       await signOut(this.auth);
       this.currentUser.set(null);
       this.syncState.set('local_only');
