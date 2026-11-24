@@ -555,6 +555,7 @@ export class WorkspaceService {
       favorite: false,
       status: 'Borrador',
       comments: [],
+      attachments: [],
       createdAt: now,
       updatedAt: now
     };

@@ -7,6 +7,15 @@ export interface NoteFolder {
 
 export type NoteStatus = 'Borrador' | 'En progreso' | 'Finalizado';
 
+export interface NoteAttachment {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  url: string; // Data URL o URL en la nube
+  uploadedAt: string;
+}
+
 export interface Note {
   id: string;
   title: string;
@@ -18,6 +27,7 @@ export interface Note {
   status: NoteStatus;
   reminderAt?: string;
   comments: string[];
+  attachments?: NoteAttachment[];
   createdAt: string;
   updatedAt: string;
 }

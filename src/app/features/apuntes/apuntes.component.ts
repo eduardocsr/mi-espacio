@@ -12,6 +12,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import {
   LucideAngularModule,
   FileText,
@@ -52,7 +53,9 @@ import {
   Clock,
   Check,
   Image as ImageIcon,
-  Paperclip
+  Paperclip,
+  Download,
+  X
 } from 'lucide-angular';
 
 import { Editor } from '@tiptap/core';
@@ -69,7 +72,7 @@ import Image from '@tiptap/extension-image';
 import { common, createLowlight } from 'lowlight';
 
 import { WorkspaceService } from '../../core/services/workspace.service';
-import { Note, NoteFolder, NoteStatus } from '../../core/models/workspace.models';
+import { Note, NoteFolder, NoteStatus, NoteAttachment } from '../../core/models/workspace.models';
 import { compressImageToDataUrl } from '../../core/utils/image-compressor';
 
 const lowlight = createLowlight(common);
@@ -194,6 +197,7 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   readonly workspace = inject(WorkspaceService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly sanitizer = inject(DomSanitizer);
 
   readonly editorHost = viewChild<ElementRef<HTMLDivElement>>('editorHost');
   private loadedNoteId: string | null = null;
@@ -235,8 +239,11 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   readonly InfoIcon = Info;
   readonly ImageIcon = ImageIcon;
   readonly PaperclipIcon = Paperclip;
+  readonly DownloadIcon = Download;
+  readonly XIcon = X;
 
   readonly isUploadingMedia = signal<boolean>(false);
+  readonly activePdfPreview = signal<{ name: string; safeUrl: SafeResourceUrl; rawUrl: string } | null>(null);
   readonly TagIcon = Tag;
   readonly ClockIcon = Clock;
   readonly CheckIcon = Check;
@@ -434,6 +441,13 @@ export class ApuntesComponent implements OnInit, OnDestroy {
         Image.configure({
           inline: false,
           allowBase64: true
+        }),
+        Link.configure({
+          openOnClick: false,
+          autolink: true,
+          HTMLAttributes: {
+            class: 'text-[#74566E] dark:text-[#9D7B96] underline font-semibold hover:opacity-80 transition-opacity'
+          }
         })
       ],
       content: initialContent,
@@ -633,6 +647,12 @@ export class ApuntesComponent implements OnInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
     const file = input.files[0];
+    const note = this.currentNote();
+    if (!note) {
+      alert('Por favor selecciona o crea una nota primero.');
+      return;
+    }
+
     try {
       this.isUploadingMedia.set(true);
       let attachmentUrl = '';
@@ -642,7 +662,7 @@ export class ApuntesComponent implements OnInit, OnDestroy {
         const attachment = await this.workspace.firebaseSync.uploadDocument(file);
         attachmentUrl = attachment.url;
       } catch (storageError) {
-        console.warn('Firebase Storage no disponible (CORS o 404). Usando fallback local para el archivo.', storageError);
+        console.warn('Firebase Storage no disponible (CORS o 404). Usando guardado local para el archivo.', storageError);
         
         // Si el archivo es menor a 10 MB, lo adjuntamos como Data URL descargable
         if (file.size <= 10 * 1024 * 1024) {
@@ -653,26 +673,43 @@ export class ApuntesComponent implements OnInit, OnDestroy {
         }
       }
 
+      // 1. Registrar en la lista de attachments de la nota
+      const newAttachment: NoteAttachment = {
+        id: 'att-' + Date.now(),
+        name: file.name,
+        size: file.size,
+        type: file.type || (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream'),
+        url: attachmentUrl,
+        uploadedAt: new Date().toISOString()
+      };
+
+      const existingAttachments = note.attachments || [];
+      const updatedAttachments = [...existingAttachments, newAttachment];
+      this.workspace.updateNote(note.id, { attachments: updatedAttachments });
+
+      // 2. Insertar referencia con estilo en el editor
       const sizeKb = (file.size / 1024).toFixed(1);
       const isZipOrRar = file.name.endsWith('.zip') || file.name.endsWith('.rar') || file.name.endsWith('.7z');
-      const icon = isZipOrRar ? '📦' : '📎';
+      const icon = isZipOrRar ? '📦' : (file.name.toLowerCase().endsWith('.pdf') ? '📕' : '📎');
 
-      // Insertar enlace al documento en el editor con opción de descarga
-      const linkHtml = `<p>${icon} <a href="${attachmentUrl}" download="${file.name}" target="_blank" rel="noopener noreferrer"><strong>${file.name}</strong> (${sizeKb} KB)</a></p>`;
+      const linkHtml = `<p>${icon} <strong>${file.name}</strong> (${sizeKb} KB)</p>`;
       this.editor?.chain().focus().insertContent(linkHtml).run();
 
-      // Guardar cambio en la nota de inmediato
       const json = this.editor?.getJSON();
       const text = this.editor?.getText();
-      const note = this.currentNote();
-      if (note && json) {
+      if (json) {
         this.workspace.updateNote(note.id, { contentJson: json, plainText: text });
       }
 
       if (isFallback) {
-        this.showToast(`Archivo "${file.name}" adjuntado a la nota.`);
+        this.showToast(`Archivo "${file.name}" adjuntado con visor disponible.`);
       } else {
         this.showToast(`Archivo "${file.name}" subido a la nube.`);
+      }
+
+      // 3. Si es un PDF, abrir automáticamente el visor para previsualizarlo de inmediato
+      if (file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf') {
+        this.openAttachment(newAttachment);
       }
     } catch (err: any) {
       console.error('Error al adjuntar archivo:', err);
@@ -685,6 +722,69 @@ export class ApuntesComponent implements OnInit, OnDestroy {
       this.isUploadingMedia.set(false);
       input.value = '';
     }
+  }
+
+  openAttachment(att: NoteAttachment): void {
+    const isPdf = att.type === 'application/pdf' || att.name.toLowerCase().endsWith('.pdf');
+    let blobUrl = att.url;
+    if (att.url.startsWith('data:')) {
+      const blob = this.dataUrlToBlob(att.url);
+      blobUrl = URL.createObjectURL(blob);
+    }
+
+    if (isPdf) {
+      const safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(blobUrl);
+      this.activePdfPreview.set({
+        name: att.name,
+        safeUrl,
+        rawUrl: blobUrl
+      });
+    } else {
+      this.downloadAttachment(att);
+    }
+  }
+
+  downloadAttachment(att: { name: string; url: string }): void {
+    let downloadUrl = att.url;
+    if (att.url.startsWith('data:')) {
+      const blob = this.dataUrlToBlob(att.url);
+      downloadUrl = URL.createObjectURL(blob);
+    }
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = att.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  openInNewTab(url: string): void {
+    window.open(url, '_blank');
+  }
+
+  closePdfPreview(): void {
+    this.activePdfPreview.set(null);
+  }
+
+  removeAttachment(attId: string): void {
+    const note = this.currentNote();
+    if (!note || !note.attachments) return;
+    if (confirm('¿Eliminar este archivo adjunto de la nota?')) {
+      const updated = note.attachments.filter(a => a.id !== attId);
+      this.workspace.updateNote(note.id, { attachments: updated });
+      this.showToast('Archivo adjunto eliminado');
+    }
+  }
+
+  private dataUrlToBlob(dataUrl: string): Blob {
+    const parts = dataUrl.split(',');
+    const mime = parts[0].match(/:(.*?);/)?.[1] || 'application/octet-stream';
+    const binary = atob(parts[1]);
+    const array = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      array[i] = binary.charCodeAt(i);
+    }
+    return new Blob([array], { type: mime });
   }
 
   private readFileAsDataUrl(file: File): Promise<string> {
