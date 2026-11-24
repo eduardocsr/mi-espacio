@@ -1,0 +1,285 @@
+@if (workspace.isSearchOpen()) {
+  <div class="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4">
+    <!-- Backdrop -->
+    <div 
+      class="fixed inset-0 bg-[#231F20]/25 dark:bg-black/70 backdrop-blur-sm transition-opacity"
+      (click)="close()">
+    </div>
+
+    <!-- Dialog -->
+    <div 
+      class="relative w-full max-w-2xl bg-white dark:bg-[#19181E] rounded-2xl shadow-2xl border border-[#EAE2DE] dark:border-[#2A2832] overflow-hidden flex flex-col max-h-[80vh] z-10 animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Search Input Bar -->
+      <div class="flex items-center gap-3 px-4 py-3.5 border-b border-[#EAE2DE] dark:border-[#2A2832]">
+        <lucide-icon [img]="SearchIcon" [size]="20" [strokeWidth]="1.75" class="text-[#74566E] dark:text-[#9D7B96] shrink-0"></lucide-icon>
+        <input
+          #searchInput
+          type="text"
+          [value]="workspace.searchQuery()"
+          (input)="onSearchChange($any($event.target).value)"
+          placeholder="Buscar notas, tareas, recordatorios o comandos..."
+          class="w-full bg-transparent text-[#231F20] dark:text-[#F3EFEA] placeholder-[#635B5E]/60 text-base focus:outline-none leading-normal"
+        />
+        <div class="flex items-center gap-1.5 shrink-0">
+          <kbd class="px-2 py-0.5 text-xs font-mono rounded border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#635B5E] dark:text-[#9D7B96]">
+            ESC
+          </kbd>
+          <button 
+            type="button" 
+            (click)="close()" 
+            class="p-1 hover:bg-[#FAF7F5] dark:hover:bg-[#121115] rounded-lg text-[#635B5E] transition-colors"
+            aria-label="Cerrar buscador">
+            <lucide-icon [img]="XIcon" [size]="18" [strokeWidth]="1.75"></lucide-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Results or Quick Actions -->
+      <div class="p-3 overflow-y-auto space-y-4">
+        @if (workspace.searchQuery().trim()) {
+          @let results = workspace.searchResults();
+
+          <!-- Notas encontradas -->
+          @if (results.notes.length > 0) {
+            <div>
+              <div class="text-xs font-semibold uppercase tracking-wider text-[#635B5E] dark:text-neutral-400 px-3 py-1.5">
+                Notas ({{ results.notes.length }})
+              </div>
+              <div class="space-y-1">
+                @for (note of results.notes; track note.id) {
+                  <button
+                    type="button"
+                    (click)="navigateTo('/apuntes', note.id)"
+                    class="w-full flex items-center justify-between p-2.5 rounded-xl text-left hover:bg-[#FAF7F5] dark:hover:bg-[#121115] transition-colors group">
+                    <div class="flex items-center gap-3 min-w-0">
+                      <div class="p-1.5 rounded-lg bg-[#EFEAF6] text-[#5B447A] dark:bg-[#74566E]/20 dark:text-[#9D7B96] shrink-0">
+                        <lucide-icon [img]="FileTextIcon" [size]="16" [strokeWidth]="1.75"></lucide-icon>
+                      </div>
+                      <div class="truncate">
+                        <div class="text-sm font-medium text-[#231F20] dark:text-[#F3EFEA] group-hover:text-[#74566E] dark:group-hover:text-[#9D7B96]">
+                          {{ note.title }}
+                        </div>
+                        <div class="text-xs text-[#635B5E] dark:text-neutral-400 truncate">
+                          {{ note.plainText || 'Nota sin texto adicional' }}
+                        </div>
+                      </div>
+                    </div>
+                    <span class="text-xs px-2 py-0.5 rounded-md bg-[#FAF7F5] dark:bg-[#2A2832] text-[#635B5E] dark:text-neutral-300 shrink-0 ml-2">
+                      {{ note.status }}
+                    </span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Tareas encontradas -->
+          @if (results.tasks.length > 0) {
+            <div>
+              <div class="text-xs font-semibold uppercase tracking-wider text-[#635B5E] dark:text-neutral-400 px-3 py-1.5">
+                Tareas ({{ results.tasks.length }})
+              </div>
+              <div class="space-y-1">
+                @for (task of results.tasks; track task.id) {
+                  <button
+                    type="button"
+                    (click)="navigateTo('/tareas')"
+                    class="w-full flex items-center justify-between p-2.5 rounded-xl text-left hover:bg-[#FAF7F5] dark:hover:bg-[#121115] transition-colors group">
+                    <div class="flex items-center gap-3 min-w-0">
+                      <div class="p-1.5 rounded-lg bg-[#E6F3EC] text-[#246A49] dark:bg-[#246A49]/20 shrink-0">
+                        <lucide-icon [img]="CheckCircle2Icon" [size]="16" [strokeWidth]="1.75"></lucide-icon>
+                      </div>
+                      <div class="truncate">
+                        <div class="text-sm font-medium text-[#231F20] dark:text-[#F3EFEA] group-hover:text-[#74566E] dark:group-hover:text-[#9D7B96]">
+                          {{ task.title }}
+                        </div>
+                        <div class="text-xs text-[#635B5E] dark:text-neutral-400">
+                          {{ task.projectTag }} • Vencimiento: {{ task.dueDate || 'Sin fecha' }}
+                        </div>
+                      </div>
+                    </div>
+                    <span 
+                      class="text-xs px-2 py-0.5 rounded-md font-medium shrink-0 ml-2"
+                      [ngClass]="{
+                        'bg-[#FDECEC] text-[#9B2C2C]': task.priority === 'Alta',
+                        'bg-[#FDF0E6] text-[#8C4A19]': task.priority === 'Media',
+                        'bg-[#E6F3EC] text-[#246A49]': task.priority === 'Baja'
+                      }">
+                      {{ task.priority }}
+                    </span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Recordatorios encontrados -->
+          @if (results.reminders.length > 0) {
+            <div>
+              <div class="text-xs font-semibold uppercase tracking-wider text-[#635B5E] dark:text-neutral-400 px-3 py-1.5">
+                Recordatorios ({{ results.reminders.length }})
+              </div>
+              <div class="space-y-1">
+                @for (reminder of results.reminders; track reminder.id) {
+                  <button
+                    type="button"
+                    (click)="navigateTo('/recordatorios')"
+                    class="w-full flex items-center justify-between p-2.5 rounded-xl text-left hover:bg-[#FAF7F5] dark:hover:bg-[#121115] transition-colors group">
+                    <div class="flex items-center gap-3 min-w-0">
+                      <div class="p-1.5 rounded-lg bg-[#E8F1FA] text-[#265B8A] dark:bg-[#265B8A]/20 shrink-0">
+                        <lucide-icon [img]="BellIcon" [size]="16" [strokeWidth]="1.75"></lucide-icon>
+                      </div>
+                      <div class="truncate">
+                        <div class="text-sm font-medium text-[#231F20] dark:text-[#F3EFEA] group-hover:text-[#74566E] dark:group-hover:text-[#9D7B96]">
+                          {{ reminder.title }}
+                        </div>
+                        <div class="text-xs text-[#635B5E] dark:text-neutral-400">
+                          {{ reminder.category }} • {{ reminder.date }} a las {{ reminder.time }}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          @if (results.notes.length === 0 && results.tasks.length === 0 && results.reminders.length === 0) {
+            <div class="py-12 text-center">
+              <div class="text-sm text-[#635B5E] dark:text-neutral-400">
+                No se encontraron resultados para "<span class="font-medium text-[#231F20] dark:text-[#F3EFEA]">{{ workspace.searchQuery() }}</span>"
+              </div>
+              <p class="text-xs text-[#635B5E]/80 mt-1">Intenta con otra palabra clave o crea un nuevo elemento.</p>
+            </div>
+          }
+        } @else {
+          <!-- Acciones Rápidas cuando no hay texto -->
+          <div>
+            <div class="text-xs font-semibold uppercase tracking-wider text-[#635B5E] dark:text-neutral-400 px-3 py-1.5">
+              Acciones rápidas
+            </div>
+            <div class="space-y-1">
+              <button
+                type="button"
+                (click)="createNewNote()"
+                class="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#FAF7F5] dark:hover:bg-[#121115] transition-colors group text-left">
+                <div class="p-1.5 rounded-lg bg-[#74566E]/10 text-[#74566E] dark:text-[#9D7B96]">
+                  <lucide-icon [img]="PlusIcon" [size]="16" [strokeWidth]="1.75"></lucide-icon>
+                </div>
+                <div class="flex-1">
+                  <div class="text-sm font-medium text-[#231F20] dark:text-[#F3EFEA]">
+                    Crear nueva nota
+                  </div>
+                  <div class="text-xs text-[#635B5E] dark:text-neutral-400">
+                    Abre el editor de apuntes con una página en blanco
+                  </div>
+                </div>
+                <lucide-icon [img]="ArrowRightIcon" [size]="14" [strokeWidth]="1.75" class="text-[#635B5E] opacity-0 group-hover:opacity-100 transition-opacity"></lucide-icon>
+              </button>
+
+              <button
+                type="button"
+                (click)="createNewTask()"
+                class="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#FAF7F5] dark:hover:bg-[#121115] transition-colors group text-left">
+                <div class="p-1.5 rounded-lg bg-[#246A49]/10 text-[#246A49]">
+                  <lucide-icon [img]="CheckCircle2Icon" [size]="16" [strokeWidth]="1.75"></lucide-icon>
+                </div>
+                <div class="flex-1">
+                  <div class="text-sm font-medium text-[#231F20] dark:text-[#F3EFEA]">
+                    Crear nueva tarea en Kanban
+                  </div>
+                  <div class="text-xs text-[#635B5E] dark:text-neutral-400">
+                    Añade un pendiente al tablero
+                  </div>
+                </div>
+                <lucide-icon [img]="ArrowRightIcon" [size]="14" [strokeWidth]="1.75" class="text-[#635B5E] opacity-0 group-hover:opacity-100 transition-opacity"></lucide-icon>
+              </button>
+
+              <button
+                type="button"
+                (click)="toggleTheme()"
+                class="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#FAF7F5] dark:hover:bg-[#121115] transition-colors group text-left">
+                <div class="p-1.5 rounded-lg bg-[#8C4A19]/10 text-[#8C4A19]">
+                  @if (workspace.theme() === 'light') {
+                    <lucide-icon [img]="MoonIcon" [size]="16" [strokeWidth]="1.75"></lucide-icon>
+                  } @else {
+                    <lucide-icon [img]="SunIcon" [size]="16" [strokeWidth]="1.75"></lucide-icon>
+                  }
+                </div>
+                <div class="flex-1">
+                  <div class="text-sm font-medium text-[#231F20] dark:text-[#F3EFEA]">
+                    Cambiar a Modo {{ workspace.theme() === 'light' ? 'Oscuro' : 'Claro' }}
+                  </div>
+                  <div class="text-xs text-[#635B5E] dark:text-neutral-400">
+                    Alternar la apariencia visual de la aplicación
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Navegación directa -->
+          <div>
+            <div class="text-xs font-semibold uppercase tracking-wider text-[#635B5E] dark:text-neutral-400 px-3 py-1.5">
+              Navegar a
+            </div>
+            <div class="grid grid-cols-2 gap-1.5">
+              <button
+                type="button"
+                (click)="navigateTo('/inicio')"
+                class="flex items-center gap-2.5 p-2 rounded-xl text-left hover:bg-[#FAF7F5] dark:hover:bg-[#121115] text-xs font-medium text-[#231F20] dark:text-[#F3EFEA] transition-colors">
+                <span class="w-2 h-2 rounded-full bg-[#74566E]"></span>
+                Inicio (Resumen)
+              </button>
+              <button
+                type="button"
+                (click)="navigateTo('/apuntes')"
+                class="flex items-center gap-2.5 p-2 rounded-xl text-left hover:bg-[#FAF7F5] dark:hover:bg-[#121115] text-xs font-medium text-[#231F20] dark:text-[#F3EFEA] transition-colors">
+                <span class="w-2 h-2 rounded-full bg-[#265B8A]"></span>
+                Apuntes y Notas
+              </button>
+              <button
+                type="button"
+                (click)="navigateTo('/tareas')"
+                class="flex items-center gap-2.5 p-2 rounded-xl text-left hover:bg-[#FAF7F5] dark:hover:bg-[#121115] text-xs font-medium text-[#231F20] dark:text-[#F3EFEA] transition-colors">
+                <span class="w-2 h-2 rounded-full bg-[#246A49]"></span>
+                Tablero de Tareas
+              </button>
+              <button
+                type="button"
+                (click)="navigateTo('/calendario')"
+                class="flex items-center gap-2.5 p-2 rounded-xl text-left hover:bg-[#FAF7F5] dark:hover:bg-[#121115] text-xs font-medium text-[#231F20] dark:text-[#F3EFEA] transition-colors">
+                <span class="w-2 h-2 rounded-full bg-[#8C4A19]"></span>
+                Calendario
+              </button>
+              <button
+                type="button"
+                (click)="navigateTo('/recordatorios')"
+                class="flex items-center gap-2.5 p-2 rounded-xl text-left hover:bg-[#FAF7F5] dark:hover:bg-[#121115] text-xs font-medium text-[#231F20] dark:text-[#F3EFEA] transition-colors">
+                <span class="w-2 h-2 rounded-full bg-[#9B2C2C]"></span>
+                Recordatorios
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Footer Help -->
+      <div class="px-4 py-2 bg-[#FAF7F5] dark:bg-[#121115] border-t border-[#EAE2DE] dark:border-[#2A2832] flex items-center justify-between text-xs text-[#635B5E] dark:text-neutral-400">
+        <div class="flex items-center gap-2">
+          <span>Seleccionar</span>
+          <kbd class="px-1.5 py-0.5 rounded border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] font-mono">↵</kbd>
+        </div>
+        <div class="flex items-center gap-2">
+          <span>Navegar</span>
+          <kbd class="px-1.5 py-0.5 rounded border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] font-mono">↑</kbd>
+          <kbd class="px-1.5 py-0.5 rounded border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] font-mono">↓</kbd>
+        </div>
+        <div>
+          <span class="font-medium text-[#74566E] dark:text-[#9D7B96]">Mi Espacio</span>
+        </div>
+      </div>
+    </div>
+  </div>
+}

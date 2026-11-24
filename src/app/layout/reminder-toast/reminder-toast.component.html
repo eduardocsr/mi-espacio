@@ -1,0 +1,63 @@
+@if (alertService.currentAlert(); as alert) {
+  <div class="fixed bottom-6 right-6 z-50 max-w-md w-full p-4 rounded-2xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] shadow-2xl animate-in slide-in-from-bottom-5 duration-200">
+    <div class="flex items-start gap-3">
+      <!-- Pulsing Bell Icon -->
+      <div class="w-10 h-10 rounded-xl bg-[#FDECEC] text-[#9B2C2C] dark:bg-[#9B2C2C]/20 flex items-center justify-center shrink-0">
+        <lucide-icon [img]="BellIcon" [size]="20" [strokeWidth]="2" class="animate-bounce"></lucide-icon>
+      </div>
+
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-[#9B2C2C]">
+            ¡Aviso de recordatorio!
+          </span>
+          <button 
+            type="button" 
+            (click)="dismiss()"
+            class="p-1 rounded text-[#635B5E] hover:text-[#231F20] transition-colors"
+            title="Cerrar aviso">
+            <lucide-icon [img]="XIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+          </button>
+        </div>
+
+        <h4 class="text-sm font-bold text-[#231F20] dark:text-[#F3EFEA] mt-0.5 truncate">
+          {{ alert.reminder.title }}
+        </h4>
+
+        @if (alert.reminder.description) {
+          <p class="text-xs text-[#635B5E] dark:text-neutral-400 mt-0.5 line-clamp-2">
+            {{ alert.reminder.description }}
+          </p>
+        }
+
+        <div class="flex items-center gap-2 mt-2 text-[11px] text-[#635B5E] dark:text-neutral-400">
+          <span class="px-2 py-0.2 rounded font-medium bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832]">
+            {{ alert.reminder.category }}
+          </span>
+          <span class="tabular-nums font-mono">
+            {{ alert.reminder.time }}
+          </span>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center gap-2 mt-3 pt-2 border-t border-[#EAE2DE] dark:border-[#2A2832]">
+          <button
+            type="button"
+            (click)="complete()"
+            class="flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-[#246A49] hover:bg-[#1E573C] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer">
+            <lucide-icon [img]="CheckIcon" [size]="13" [strokeWidth]="2.5"></lucide-icon>
+            <span>Completar</span>
+          </button>
+
+          <button
+            type="button"
+            (click)="snooze()"
+            class="flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] hover:bg-white text-xs font-semibold transition-colors cursor-pointer">
+            <lucide-icon [img]="ClockIcon" [size]="13" [strokeWidth]="2"></lucide-icon>
+            <span>Posponer 10 min</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

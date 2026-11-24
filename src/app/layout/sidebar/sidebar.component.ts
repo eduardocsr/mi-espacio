@@ -1,0 +1,89 @@
+import { Component, ElementRef, ViewChild, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule, Router } from '@angular/router';
+import {
+  LucideAngularModule,
+  House,
+  FileText,
+  CheckCircle2,
+  Calendar,
+  Bell,
+  Star,
+  Settings,
+  Moon,
+  Sun,
+  Download,
+  Upload,
+  Volume2,
+  VolumeX,
+  Tag,
+  X
+} from 'lucide-angular';
+import { WorkspaceService } from '../../core/services/workspace.service';
+
+@Component({
+  selector: 'app-sidebar',
+  standalone: true,
+  imports: [CommonModule, RouterModule, LucideAngularModule],
+  templateUrl: './sidebar.component.html'
+})
+export class SidebarComponent {
+  readonly workspace = inject(WorkspaceService);
+  private readonly router = inject(Router);
+
+  @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
+
+  // Icons
+  readonly HouseIcon = House;
+  readonly FileTextIcon = FileText;
+  readonly CheckCircle2Icon = CheckCircle2;
+  readonly CalendarIcon = Calendar;
+  readonly BellIcon = Bell;
+  readonly StarIcon = Star;
+  readonly SettingsIcon = Settings;
+  readonly MoonIcon = Moon;
+  readonly SunIcon = Sun;
+  readonly DownloadIcon = Download;
+  readonly UploadIcon = Upload;
+  readonly Volume2Icon = Volume2;
+  readonly VolumeXIcon = VolumeX;
+  readonly TagIcon = Tag;
+  readonly XIcon = X;
+
+  closeMobileDrawer(): void {
+    this.workspace.isMobileMenuOpen.set(false);
+  }
+
+  importStatus: string | null = null;
+
+  triggerFileInput(): void {
+    this.fileInput?.nativeElement.click();
+  }
+
+  async handleFileImport(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+    try {
+      const text = await file.text();
+      const success = await this.workspace.importBackup(text);
+      if (success) {
+        this.importStatus = '¡Respaldo importado con éxito!';
+      } else {
+        this.importStatus = 'Error al importar archivo. Verifica el formato.';
+      }
+    } catch {
+      this.importStatus = 'Error al leer el archivo.';
+    }
+
+    setTimeout(() => {
+      this.importStatus = null;
+      if (input) input.value = '';
+    }, 3500);
+  }
+
+  exportData(): void {
+    this.workspace.exportBackup();
+  }
+}

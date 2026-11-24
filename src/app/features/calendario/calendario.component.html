@@ -1,0 +1,392 @@
+<div class="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6">
+
+  <!-- 1. Header Banner -->
+  <section class="rounded-2xl bg-gradient-to-r from-[#FAF5F2] via-[#F6EFEB] to-[#EFE7E2] dark:from-[#19181E] dark:via-[#1D1B22] dark:to-[#16151B] border border-[#EAE2DE] dark:border-[#2A2832] p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+    <div class="space-y-1">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/70 dark:bg-black/30 border border-[#EAE2DE] dark:border-[#2A2832] text-xs font-medium text-[#74566E] dark:text-[#9D7B96]">
+        <lucide-icon [img]="CalendarIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+        <span>Planificación mensual y agenda diaria</span>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#231F20] dark:text-[#F3EFEA]">
+        Calendario
+      </h1>
+      <p class="text-xs sm:text-sm text-[#635B5E] dark:text-neutral-400">
+        Visualiza tus eventos, tareas y recordatorios por fecha. Organiza tu tiempo y mantén el enfoque.
+      </p>
+    </div>
+
+    <!-- Quick + Evento action -->
+    <button
+      type="button"
+      (click)="openCreateEventModal()"
+      class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#74566E] hover:bg-[#5E4359] dark:bg-[#9D7B96] dark:hover:bg-[#85637E] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer shrink-0 min-h-[42px]">
+      <lucide-icon [img]="PlusIcon" [size]="15" [strokeWidth]="2.5"></lucide-icon>
+      <span>Agregar evento</span>
+    </button>
+  </section>
+
+  <!-- 2. Controls & Categories Legend Bar -->
+  <section class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] shadow-xs">
+    <!-- Month Navigation -->
+    <div class="flex items-center justify-between sm:justify-start gap-2">
+      <button
+        type="button"
+        (click)="prevMonth()"
+        class="min-w-[40px] min-h-[40px] p-2 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] hover:bg-[#FAF7F5] dark:hover:bg-[#121115] text-[#635B5E] transition-colors flex items-center justify-center"
+        title="Mes anterior">
+        <lucide-icon [img]="ChevronLeftIcon" [size]="16" [strokeWidth]="2"></lucide-icon>
+      </button>
+
+      <span class="text-sm font-extrabold text-[#231F20] dark:text-[#F3EFEA] min-w-[130px] text-center">
+        {{ monthTitle() }}
+      </span>
+
+      <button
+        type="button"
+        (click)="nextMonth()"
+        class="min-w-[40px] min-h-[40px] p-2 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] hover:bg-[#FAF7F5] dark:hover:bg-[#121115] text-[#635B5E] transition-colors flex items-center justify-center"
+        title="Mes siguiente">
+        <lucide-icon [img]="ChevronRightIcon" [size]="16" [strokeWidth]="2"></lucide-icon>
+      </button>
+
+      <button
+        type="button"
+        (click)="goToToday()"
+        class="min-h-[40px] px-3.5 py-1.5 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-xs font-semibold text-[#74566E] hover:bg-white transition-colors flex items-center justify-center">
+        Hoy
+      </button>
+    </div>
+
+    <!-- Categories Legend & Filter -->
+    <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+      @for (cat of categories; track cat.name) {
+        <button
+          type="button"
+          (click)="selectedCategory.set(selectedCategory() === cat.name ? 'all' : cat.name)"
+          class="min-h-[34px] inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+          [style.background-color]="cat.bg"
+          [style.color]="cat.text"
+          [class.ring-2]="selectedCategory() === cat.name"
+          [style.ring-color]="cat.color">
+          <span class="w-2 h-2 rounded-full" [style.background-color]="cat.color"></span>
+          <span>{{ cat.name }}</span>
+        </button>
+      }
+
+      @if (selectedCategory() !== 'all') {
+        <button
+          type="button"
+          (click)="selectedCategory.set('all')"
+          class="min-h-[34px] text-xs text-[#635B5E] underline ml-1 px-1 flex items-center">
+          Mostrar todas
+        </button>
+      }
+    </div>
+  </section>
+
+  <!-- 3. Calendar Grid + Right Agenda (2 Columns) -->
+  <section class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+
+    <!-- Left Main Calendar Month Table (8 cols) -->
+    <div class="xl:col-span-8 bg-white dark:bg-[#19181E] rounded-2xl border border-[#EAE2DE] dark:border-[#2A2832] p-2.5 sm:p-6 shadow-xs overflow-hidden">
+      <!-- Weekday headers -->
+      <div class="grid grid-cols-7 gap-1 sm:gap-2 text-center pb-2.5 sm:pb-3 border-b border-[#EAE2DE] dark:border-[#2A2832] text-[10px] sm:text-xs font-bold text-[#635B5E] dark:text-neutral-400 uppercase tracking-wider">
+        <span>LUN</span>
+        <span>MAR</span>
+        <span>MIÉ</span>
+        <span>JUE</span>
+        <span>VIE</span>
+        <span>SÁB</span>
+        <span>DOM</span>
+      </div>
+
+      <!-- Month days grid -->
+      <div class="grid grid-cols-7 gap-1 sm:gap-2 pt-2.5 sm:pt-3">
+        @for (cell of calendarCells(); track cell.dateStr + cell.dayNumber) {
+          <div
+            (click)="selectDate(cell)"
+            class="min-h-[54px] sm:min-h-[105px] p-1 sm:p-2 rounded-xl border transition-all cursor-pointer flex flex-col justify-between group"
+            [ngClass]="{
+              'border-[#74566E] ring-2 ring-[#74566E]/20 bg-[#FAF7F5] dark:bg-[#201E27]': cell.isSelected,
+              'border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] hover:border-[#74566E]/40': !cell.isSelected && cell.isCurrentMonth,
+              'border-transparent bg-[#FAF7F5]/40 dark:bg-[#121115]/40 opacity-40': !cell.isCurrentMonth
+            }">
+            
+            <!-- Cell Header: Day Number -->
+            <div class="flex items-center justify-between">
+              <span 
+                class="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[11px] sm:text-xs font-bold tabular-nums"
+                [ngClass]="{
+                  'bg-[#74566E] text-white': cell.isToday,
+                  'text-[#231F20] dark:text-[#F3EFEA]': !cell.isToday && cell.isCurrentMonth,
+                  'text-[#635B5E]': !cell.isCurrentMonth
+                }">
+                {{ cell.dayNumber }}
+              </span>
+            </div>
+
+            <!-- Mobile (< sm): Dot indicators to avoid truncated messy text -->
+            <div class="flex sm:hidden items-center justify-center gap-1 flex-wrap mt-0.5 min-h-[12px]">
+              @for (event of cell.events.slice(0, 3); track event.id) {
+                <span 
+                  class="w-1.5 h-1.5 rounded-full shrink-0" 
+                  [style.background-color]="getCategoryColor(event.category)">
+                </span>
+              }
+              @for (task of cell.tasks.slice(0, 1); track task.id) {
+                <span class="w-1.5 h-1.5 rounded-full shrink-0 bg-[#74566E] dark:bg-[#9D7B96]"></span>
+              }
+              @if ((cell.events.length + cell.tasks.length) > 4) {
+                <span class="text-[8px] font-bold text-[#635B5E] leading-none">+</span>
+              }
+            </div>
+
+            <!-- Desktop / Tablet (>= sm): Items Pills inside the cell -->
+            <div class="hidden sm:block space-y-1 overflow-hidden mt-1">
+              <!-- Calendar Events -->
+              @for (event of cell.events.slice(0, 2); track event.id) {
+                <div 
+                  class="px-1.5 py-0.5 rounded text-[10px] font-semibold truncate flex items-center gap-1"
+                  [style.background-color]="getCategoryBg(event.category)"
+                  [style.color]="getCategoryText(event.category)">
+                  <span class="w-1.5 h-1.5 rounded-full shrink-0" [style.background-color]="getCategoryColor(event.category)"></span>
+                  <span class="truncate">{{ event.title }}</span>
+                </div>
+              }
+
+              <!-- Synced Task Deadlines -->
+              @for (task of cell.tasks.slice(0, 1); track task.id) {
+                <div class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#FAF7F5] dark:bg-[#2A2832] text-[#231F20] dark:text-[#F3EFEA] border border-[#EAE2DE] dark:border-[#2A2832] truncate flex items-center gap-1">
+                  <span class="text-[9px] font-bold text-[#74566E]">✓</span>
+                  <span class="truncate">{{ task.title }}</span>
+                </div>
+              }
+
+              @if ((cell.events.length + cell.tasks.length) > 3) {
+                <div class="text-[9px] text-[#635B5E] font-mono px-1">
+                  +{{ (cell.events.length + cell.tasks.length) - 3 }} más
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Right Side: Agenda del Día (4 cols) -->
+    <div class="xl:col-span-4 bg-white dark:bg-[#19181E] rounded-2xl border border-[#EAE2DE] dark:border-[#2A2832] p-4 sm:p-5 shadow-xs space-y-4 sm:space-y-5">
+      <!-- Agenda Header -->
+      <div class="pb-3 border-b border-[#EAE2DE] dark:border-[#2A2832]">
+        <div class="flex items-center gap-2">
+          <lucide-icon [img]="CalendarIcon" [size]="18" [strokeWidth]="2" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
+          <h2 class="text-base font-bold text-[#231F20] dark:text-[#F3EFEA]">
+            Agenda del día
+          </h2>
+        </div>
+        <p class="text-xs text-[#635B5E] dark:text-neutral-400 capitalize mt-1">
+          {{ formattedSelectedDay() }}
+        </p>
+      </div>
+
+      <!-- Events in Selected Day -->
+      <div class="space-y-3">
+        <div class="text-xs font-bold uppercase tracking-wider text-[#635B5E] dark:text-neutral-400">
+          Eventos programados ({{ selectedDayEvents().length }})
+        </div>
+
+        @for (event of selectedDayEvents(); track event.id) {
+          <div 
+            class="p-3.5 rounded-xl border flex items-start justify-between gap-3"
+            [style.background-color]="getCategoryBg(event.category) + '40'"
+            [style.border-color]="getCategoryColor(event.category) + '40'">
+            <div class="min-w-0 space-y-1">
+              <div class="flex items-center gap-2">
+                <span 
+                  class="px-2 py-0.2 rounded text-[10px] font-bold uppercase"
+                  [style.background-color]="getCategoryBg(event.category)"
+                  [style.color]="getCategoryText(event.category)">
+                  {{ event.category }}
+                </span>
+                <span class="text-xs font-mono tabular-nums text-[#635B5E]">
+                  {{ event.startTime }} {{ event.endTime ? '– ' + event.endTime : '' }}
+                </span>
+              </div>
+              <h4 class="text-sm font-bold text-[#231F20] dark:text-[#F3EFEA]">
+                {{ event.title }}
+              </h4>
+              @if (event.notes) {
+                <p class="text-xs text-[#635B5E] dark:text-neutral-400 leading-relaxed">
+                  {{ event.notes }}
+                </p>
+              }
+            </div>
+
+            <button
+              type="button"
+              (click)="deleteEvent(event.id)"
+              class="p-1 rounded text-[#635B5E] hover:text-[#9B2C2C] transition-colors"
+              title="Eliminar evento">
+              <lucide-icon [img]="Trash2Icon" [size]="14" [strokeWidth]="1.75"></lucide-icon>
+            </button>
+          </div>
+        }
+
+        @if (selectedDayEvents().length === 0) {
+          <div class="py-4 text-center text-xs text-[#635B5E] dark:text-neutral-400">
+            No hay eventos programados para este día.
+          </div>
+        }
+      </div>
+
+      <!-- Recordatorios del Día (with interactive checkboxes) -->
+      <div class="space-y-2 pt-3 border-t border-[#EAE2DE] dark:border-[#2A2832]">
+        <div class="text-xs font-bold uppercase tracking-wider text-[#635B5E] dark:text-neutral-400">
+          Recordatorios del día
+        </div>
+        <div class="space-y-1.5">
+          @for (reminder of selectedDayReminders(); track reminder.id) {
+            <div class="flex items-center justify-between p-2 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] text-xs">
+              <div class="flex items-center gap-2.5 truncate flex-1">
+                <input
+                  type="checkbox"
+                  [checked]="reminder.completed"
+                  (change)="toggleReminder(reminder.id)"
+                  class="accent-[#74566E] rounded cursor-pointer"
+                />
+                <span [class.line-through]="reminder.completed" class="truncate font-medium">
+                  {{ reminder.title }}
+                </span>
+              </div>
+              <span class="text-[11px] font-mono text-[#635B5E] tabular-nums shrink-0 ml-2">
+                {{ reminder.time }}
+              </span>
+            </div>
+          }
+
+          @if (selectedDayReminders().length === 0) {
+            <div class="py-2 text-xs text-[#635B5E] dark:text-neutral-400">
+              Sin recordatorios activos para hoy.
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Add Event Button -->
+      <div class="pt-2">
+        <button
+          type="button"
+          (click)="openCreateEventModal()"
+          class="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#74566E] hover:bg-[#5E4359] dark:bg-[#9D7B96] dark:hover:bg-[#85637E] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer">
+          <lucide-icon [img]="PlusIcon" [size]="15" [strokeWidth]="2.5"></lucide-icon>
+          <span>+ Agregar evento en este día</span>
+        </button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ========================================== -->
+  <!-- MODAL: Crear Evento en Calendario          -->
+  <!-- ========================================== -->
+  @if (showEventModal()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+      <div class="bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl">
+        <h3 class="text-base font-bold text-[#231F20] dark:text-[#F3EFEA]">
+          Nuevo evento de calendario
+        </h3>
+
+        <form (ngSubmit)="saveEvent()" class="space-y-4">
+          <!-- Título -->
+          <div>
+            <label class="text-xs font-bold text-[#635B5E] block mb-1">Título *</label>
+            <input
+              type="text"
+              [(ngModel)]="eventForm().title"
+              name="title"
+              required
+              placeholder="Ej: Reunión con cliente o Entrega de reporte"
+              class="w-full px-3 py-2 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none focus:border-[#74566E]"
+              autoFocus
+            />
+          </div>
+
+          <!-- Categoría -->
+          <div>
+            <label class="text-xs font-bold text-[#635B5E] block mb-1">Categoría</label>
+            <select
+              [(ngModel)]="eventForm().category"
+              name="category"
+              class="w-full px-3 py-2 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none">
+              @for (cat of categories; track cat.name) {
+                <option [value]="cat.name">{{ cat.name }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Fecha -->
+          <div>
+            <label class="text-xs font-bold text-[#635B5E] block mb-1">Fecha</label>
+            <input
+              type="date"
+              [(ngModel)]="eventForm().date"
+              name="date"
+              required
+              class="w-full px-3 py-2 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none"
+            />
+          </div>
+
+          <!-- Horas Inicio y Fin -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-bold text-[#635B5E] block mb-1">Hora inicio</label>
+              <input
+                type="time"
+                [(ngModel)]="eventForm().startTime"
+                name="startTime"
+                required
+                class="w-full px-3 py-1.5 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none"
+              />
+            </div>
+            <div>
+              <label class="text-xs font-bold text-[#635B5E] block mb-1">Hora fin (opcional)</label>
+              <input
+                type="time"
+                [(ngModel)]="eventForm().endTime"
+                name="endTime"
+                class="w-full px-3 py-1.5 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <!-- Notas -->
+          <div>
+            <label class="text-xs font-bold text-[#635B5E] block mb-1">Notas / Detalles</label>
+            <textarea
+              [(ngModel)]="eventForm().notes"
+              name="notes"
+              rows="2"
+              placeholder="Orden del día, enlace o notas..."
+              class="w-full px-3 py-2 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none resize-none"
+            ></textarea>
+          </div>
+
+          <div class="flex items-center justify-end gap-2 pt-3 border-t border-[#EAE2DE] dark:border-[#2A2832]">
+            <button
+              type="button"
+              (click)="closeEventModal()"
+              class="px-4 py-2 text-xs font-semibold text-[#635B5E] hover:text-[#231F20]">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              [disabled]="!eventForm().title.trim()"
+              class="px-4 py-2 bg-[#74566E] hover:bg-[#5E4359] text-white text-xs font-semibold rounded-xl disabled:opacity-50 transition-colors shadow-xs">
+              Guardar evento
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+</div>

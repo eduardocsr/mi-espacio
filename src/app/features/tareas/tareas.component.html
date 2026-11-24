@@ -1,0 +1,1330 @@
+<div class="p-6 md:p-8 max-w-7xl mx-auto space-y-6" (click)="closeColumnMenu()">
+
+  <!-- 1. Header Banner & Metrics -->
+  <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+    <!-- Left Hero Banner -->
+    <div class="lg:col-span-7 rounded-2xl bg-gradient-to-r from-[#FAF5F2] via-[#F6EFEB] to-[#EFE7E2] dark:from-[#19181E] dark:via-[#1D1B22] dark:to-[#16151B] border border-[#EAE2DE] dark:border-[#2A2832] p-6 flex items-center justify-between shadow-xs">
+      <div class="space-y-1.5">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/70 dark:bg-black/30 border border-[#EAE2DE] dark:border-[#2A2832] text-xs font-semibold text-[#74566E] dark:text-[#9D7B96]">
+          <lucide-icon [img]="LayoutGridIcon" [size]="13" [strokeWidth]="2"></lucide-icon>
+          <span>Gestión de flujo de trabajo Jira</span>
+        </div>
+        <h1 class="text-3xl font-extrabold tracking-tight text-[#231F20] dark:text-[#F3EFEA]">
+          Mis tareas
+        </h1>
+        <p class="text-sm text-[#635B5E] dark:text-neutral-400">
+          Controla incidencias, historias, errores y tareas con claves únicas y métricas de entrega.
+        </p>
+      </div>
+
+      <!-- Icon decorative widget -->
+      <div class="hidden sm:flex w-16 h-16 rounded-2xl bg-white/80 dark:bg-[#19181E]/80 border border-[#EAE2DE] dark:border-[#2A2832] items-center justify-center text-[#74566E] dark:text-[#9D7B96] shadow-xs">
+        <lucide-icon [img]="CheckSquareIcon" [size]="30" [strokeWidth]="1.75"></lucide-icon>
+      </div>
+    </div>
+
+    <!-- Right 3 Metric KPI Cards -->
+    <div class="lg:col-span-5 grid grid-cols-3 gap-3">
+      <!-- Vencidas -->
+      <button
+        type="button"
+        (click)="filterDateRange.set('overdue')"
+        class="p-4 rounded-2xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] shadow-xs flex flex-col justify-between text-left hover:border-[#9B2C2C]/40 transition-colors cursor-pointer group"
+        [class.ring-2]="filterDateRange() === 'overdue'"
+        [class.ring-[#9B2C2C]]="filterDateRange() === 'overdue'">
+        <div class="w-8 h-8 rounded-xl bg-[#FDECEC] text-[#9B2C2C] dark:bg-[#9B2C2C]/20 flex items-center justify-center">
+          <lucide-icon [img]="AlertTriangleIcon" [size]="16" [strokeWidth]="2"></lucide-icon>
+        </div>
+        <div>
+          <div class="text-2xl font-extrabold text-[#9B2C2C] tabular-nums mt-2">
+            {{ workspace.overdueTasksCount() }}
+          </div>
+          <div class="text-xs font-semibold text-[#635B5E] dark:text-neutral-400 mt-0.5">
+            Vencidas
+          </div>
+        </div>
+      </button>
+
+      <!-- Completadas -->
+      <button
+        type="button"
+        (click)="filterPriority.set('all')"
+        class="p-4 rounded-2xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] shadow-xs flex flex-col justify-between text-left hover:border-[#246A49]/40 transition-colors cursor-pointer">
+        <div class="w-8 h-8 rounded-xl bg-[#E6F3EC] text-[#246A49] dark:bg-[#246A49]/20 flex items-center justify-center">
+          <lucide-icon [img]="CheckCircleIcon" [size]="16" [strokeWidth]="2"></lucide-icon>
+        </div>
+        <div>
+          <div class="text-2xl font-extrabold text-[#246A49] tabular-nums mt-2">
+            {{ workspace.completedTasksCount() }}
+          </div>
+          <div class="text-xs font-semibold text-[#635B5E] dark:text-neutral-400 mt-0.5">
+            Completadas
+          </div>
+        </div>
+      </button>
+
+      <!-- Pendientes -->
+      <button
+        type="button"
+        (click)="filterDateRange.set('all')"
+        class="p-4 rounded-2xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] shadow-xs flex flex-col justify-between text-left hover:border-[#8C4A19]/40 transition-colors cursor-pointer">
+        <div class="w-8 h-8 rounded-xl bg-[#FDF0E6] text-[#8C4A19] dark:bg-[#8C4A19]/20 flex items-center justify-center">
+          <lucide-icon [img]="ClockIcon" [size]="16" [strokeWidth]="2"></lucide-icon>
+        </div>
+        <div>
+          <div class="text-2xl font-extrabold text-[#8C4A19] tabular-nums mt-2">
+            {{ workspace.pendingTasksCount() }}
+          </div>
+          <div class="text-xs font-semibold text-[#635B5E] dark:text-neutral-400 mt-0.5">
+            Pendientes
+          </div>
+        </div>
+      </button>
+    </div>
+  </section>
+
+  <!-- 2. Jira-Style Filters & View Switcher Bar -->
+  <section class="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] shadow-xs">
+    
+    <!-- Left: Search Box (by key or title) + Dropdown Filters -->
+    <div class="flex items-center gap-2 flex-wrap flex-1 min-w-[280px]">
+      
+      <!-- Search Input (centered icon) -->
+      <div class="flex items-center gap-2 px-3 py-2 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] focus-within:border-[#74566E] dark:focus-within:border-[#9D7B96] transition-colors w-52 sm:w-64">
+        <lucide-icon [img]="SearchIcon" [size]="14" [strokeWidth]="2" class="text-[#635B5E] dark:text-neutral-400 shrink-0"></lucide-icon>
+        <input
+          type="text"
+          [value]="searchQuery()"
+          (input)="searchQuery.set($any($event.target).value)"
+          placeholder="Buscar o clave (ESP-1)..."
+          class="w-full bg-transparent text-xs text-[#231F20] dark:text-[#F3EFEA] placeholder-[#635B5E]/60 focus:outline-none leading-normal font-sans"
+        />
+        @if (searchQuery()) {
+          <button type="button" (click)="searchQuery.set('')" class="text-[#635B5E] hover:text-[#231F20]">
+            <lucide-icon [img]="XIcon" [size]="12" [strokeWidth]="2"></lucide-icon>
+          </button>
+        }
+      </div>
+
+      <!-- Filter: Tipo de Incidencia (Jira IssueType) -->
+      <div class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-xs font-semibold">
+        <select
+          [value]="filterType()"
+          (change)="filterType.set($any($event.target).value)"
+          class="bg-transparent text-[#231F20] dark:text-[#F3EFEA] focus:outline-none cursor-pointer">
+          <option value="all">Tipo: Todos</option>
+          <option value="Tarea">🟦 Tarea</option>
+          <option value="Historia">🟩 Historia</option>
+          <option value="Error">🟥 Error</option>
+          <option value="Mejora">🟪 Mejora</option>
+        </select>
+      </div>
+
+      <!-- Filter: Prioridad -->
+      <div class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-xs font-semibold">
+        <lucide-icon [img]="FlagIcon" [size]="13" [strokeWidth]="2" class="text-[#635B5E]"></lucide-icon>
+        <select
+          [value]="filterPriority()"
+          (change)="filterPriority.set($any($event.target).value)"
+          class="bg-transparent text-[#231F20] dark:text-[#F3EFEA] focus:outline-none cursor-pointer">
+          <option value="all">Prioridad: Todas</option>
+          <option value="Alta">Alta</option>
+          <option value="Media">Media</option>
+          <option value="Baja">Baja</option>
+        </select>
+      </div>
+
+      <!-- Filter: Etiqueta / Módulo -->
+      <div class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-xs font-semibold">
+        <lucide-icon [img]="TagIcon" [size]="13" [strokeWidth]="2" class="text-[#635B5E]"></lucide-icon>
+        <select
+          [value]="filterTag()"
+          (change)="filterTag.set($any($event.target).value)"
+          class="bg-transparent text-[#231F20] dark:text-[#F3EFEA] focus:outline-none cursor-pointer">
+          <option value="all">Etiqueta: Todas</option>
+          @for (t of tags; track t) {
+            <option [value]="t">{{ t }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Clear Filters Button -->
+      @if (hasActiveFilters()) {
+        <button
+          type="button"
+          (click)="clearFilters()"
+          class="inline-flex items-center gap-1 px-2.5 py-2 text-xs font-semibold text-[#9B2C2C] hover:bg-[#FDECEC] dark:hover:bg-[#9B2C2C]/20 rounded-xl transition-colors cursor-pointer"
+          title="Restablecer todos los filtros">
+          <lucide-icon [img]="XIcon" [size]="13" [strokeWidth]="2.5"></lucide-icon>
+          <span>Limpiar filtros</span>
+        </button>
+      }
+    </div>
+
+    <!-- Right: View Switcher (Tablero / Lista) & Action Buttons -->
+    <div class="flex items-center gap-2.5">
+      <!-- Toggle Board / List -->
+      <div class="flex items-center p-1 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832]">
+        <button
+          type="button"
+          (click)="viewMode.set('board')"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+          [ngClass]="viewMode() === 'board' ? 'bg-white dark:bg-[#19181E] text-[#74566E] dark:text-[#9D7B96] shadow-xs' : 'text-[#635B5E]'">
+          <lucide-icon [img]="LayoutGridIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+          <span class="hidden sm:inline">Tablero</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="viewMode.set('list')"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+          [ngClass]="viewMode() === 'list' ? 'bg-white dark:bg-[#19181E] text-[#74566E] dark:text-[#9D7B96] shadow-xs' : 'text-[#635B5E]'">
+          <lucide-icon [img]="ListIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+          <span class="hidden sm:inline">Lista</span>
+        </button>
+      </div>
+
+      <!-- + Nueva columna Button -->
+      <button
+        type="button"
+        (click)="openAddColumnModal()"
+        class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] hover:border-[#74566E] text-[#635B5E] dark:text-neutral-300 hover:text-[#74566E] text-xs font-semibold shadow-xs transition-colors cursor-pointer shrink-0"
+        title="Crear nueva columna o estado personalizado">
+        <lucide-icon [img]="LayersIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+        <span class="hidden md:inline">+ Columna</span>
+      </button>
+
+      <!-- Restaurar tareas de ejemplo Button -->
+      <button
+        type="button"
+        (click)="workspace.resetSeedTasks()"
+        class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] hover:border-[#74566E] text-[#635B5E] dark:text-neutral-300 hover:text-[#74566E] text-xs font-semibold shadow-xs transition-colors cursor-pointer shrink-0"
+        title="Restablecer las tareas de ejemplo iniciales">
+        <lucide-icon [img]="RotateCcwIcon" [size]="13" [strokeWidth]="2"></lucide-icon>
+        <span class="hidden lg:inline">Restaurar ejemplo</span>
+      </button>
+
+      <!-- + Nueva tarea Button -->
+      <button
+        type="button"
+        (click)="openCreateModal()"
+        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#74566E] hover:bg-[#5E4359] dark:bg-[#9D7B96] dark:hover:bg-[#85637E] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer shrink-0">
+        <lucide-icon [img]="PlusIcon" [size]="15" [strokeWidth]="2.5"></lucide-icon>
+        <span>Nueva tarea</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- 3. Next Deadlines Ribbon Strip ("Próximos vencimientos") -->
+  <section class="p-4 rounded-2xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] shadow-xs space-y-3">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] flex items-center justify-center text-[#74566E]">
+          <lucide-icon [img]="CalendarIcon" [size]="15" [strokeWidth]="1.75"></lucide-icon>
+        </div>
+        <h3 class="text-xs font-bold uppercase tracking-wider text-[#231F20] dark:text-[#F3EFEA]">
+          Próximos vencimientos
+        </h3>
+      </div>
+      <span class="text-xs text-[#635B5E] dark:text-neutral-400">
+        Incidencias activas ordenadas por urgencia
+      </span>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      @for (task of filteredTasks().slice(0, 4); track task.id) {
+        <div 
+          (click)="openDetail(task)"
+          class="p-3 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5]/50 dark:bg-[#16151B]/50 hover:bg-white dark:hover:bg-[#19181E] hover:border-[#74566E] transition-all cursor-pointer flex flex-col justify-between gap-2 group">
+          <div class="flex items-center justify-between">
+            <span class="font-mono text-[10px] font-bold text-[#74566E] dark:text-[#9D7B96] tabular-nums">
+              {{ task.issueKey }}
+            </span>
+            <span 
+              class="px-2 py-0.5 rounded text-[10px] font-bold"
+              [ngClass]="{
+                'bg-[#FDECEC] text-[#9B2C2C]': task.priority === 'Alta',
+                'bg-[#FDF0E6] text-[#8C4A19]': task.priority === 'Media',
+                'bg-[#E6F3EC] text-[#246A49]': task.priority === 'Baja'
+              }">
+              {{ task.priority }}
+            </span>
+          </div>
+
+          <div class="font-bold text-xs text-[#231F20] dark:text-[#F3EFEA] line-clamp-1 group-hover:text-[#74566E] transition-colors">
+            {{ task.title }}
+          </div>
+
+          <div class="flex items-center justify-between text-[11px] text-[#635B5E] dark:text-neutral-400 pt-1 border-t border-[#EAE2DE]/60 dark:border-[#2A2832]/60">
+            <span class="truncate max-w-[100px]">{{ task.projectTag }}</span>
+            <span class="font-mono tabular-nums text-[10px]" [class.text-[#9B2C2C]="isOverdue(task)" [class.font-bold]="isOverdue(task)">
+              {{ task.dueDate || 'Sin fecha' }}
+            </span>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Empty State Alert if 0 tasks -->
+  @if (workspace.tasks().length === 0) {
+    <div class="p-8 rounded-2xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] shadow-xs text-center space-y-3 animate-in fade-in">
+      <div class="w-12 h-12 mx-auto rounded-2xl bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] flex items-center justify-center text-[#74566E]">
+        <lucide-icon [img]="CheckSquareIcon" [size]="24" [strokeWidth]="1.75"></lucide-icon>
+      </div>
+      <h3 class="text-base font-bold text-[#231F20] dark:text-[#F3EFEA]">
+        No hay tareas cargadas en el espacio
+      </h3>
+      <p class="text-xs text-[#635B5E] dark:text-neutral-400 max-w-md mx-auto">
+        Puedes recuperar todas las tareas de ejemplo iniciales (ESP-1 a ESP-7) con un solo clic:
+      </p>
+      <div class="flex items-center justify-center gap-3 pt-1">
+        <button
+          type="button"
+          (click)="workspace.resetSeedTasks()"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#74566E] hover:bg-[#5E4359] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer">
+          <lucide-icon [img]="RotateCcwIcon" [size]="14"></lucide-icon>
+          <span>Restaurar tareas de ejemplo</span>
+        </button>
+        <button
+          type="button"
+          (click)="openCreateModal()"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] text-[#635B5E] hover:bg-[#FAF7F5] dark:hover:bg-[#16151B] text-xs font-semibold shadow-xs transition-colors cursor-pointer">
+          <lucide-icon [img]="PlusIcon" [size]="14"></lucide-icon>
+          <span>Crear tarea</span>
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- VISTA 1: TABLERO KANBAN DINÁMICO TIPO JIRA                    -->
+  <!-- ============================================================== -->
+  @if (viewMode() === 'board') {
+    <div class="flex items-start gap-4 overflow-x-auto pb-6 scrollbar-thin snap-x snap-mandatory px-0.5" cdkDropListGroup>
+      
+      <!-- Dynamic Columns Loop -->
+      @for (col of workspace.sortedColumns(); track col.id; let colIdx = $index; let isFirst = $first; let isLast = $last) {
+        <div class="w-[85vw] sm:w-[310px] md:w-[320px] shrink-0 snap-start bg-[#FAF7F5] dark:bg-[#16151B] rounded-2xl border border-[#EAE2DE] dark:border-[#2A2832] p-3.5 sm:p-4 flex flex-col min-h-[540px]">
+          
+          <!-- Column Header -->
+          <div class="flex items-center justify-between pb-3 mb-3 border-b border-[#EAE2DE] dark:border-[#2A2832]">
+            <div class="flex items-center gap-2 min-w-0">
+              <div 
+                class="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
+                [style.background-color]="col.color + '20'"
+                [style.color]="col.color">
+                <lucide-icon [img]="getColumnIcon(col.icon)" [size]="13" [strokeWidth]="2.2"></lucide-icon>
+              </div>
+              <h2 class="text-xs font-bold uppercase tracking-wider text-[#231F20] dark:text-[#F3EFEA] truncate" [title]="col.label">
+                {{ col.label }}
+              </h2>
+              <span 
+                class="text-xs px-2 py-0.2 rounded-full bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] font-semibold tabular-nums shrink-0"
+                [style.color]="col.color">
+                {{ getTasksForColumn(col.id).length }}
+              </span>
+            </div>
+
+            <!-- Column Actions: Quick Add & Context Menu -->
+            <div class="relative flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                (click)="startQuickColumnTask(col.id)"
+                class="p-1 rounded-lg text-[#635B5E] hover:text-[#74566E] hover:bg-white dark:hover:bg-[#19181E] transition-colors cursor-pointer"
+                title="Añadir tarea rápida">
+                <lucide-icon [img]="PlusIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+              </button>
+
+              <button
+                type="button"
+                (click)="toggleColumnMenu(col.id, $event)"
+                class="p-1 rounded-lg text-[#635B5E] hover:text-[#231F20] dark:hover:text-[#F3EFEA] hover:bg-white dark:hover:bg-[#19181E] transition-colors cursor-pointer"
+                title="Opciones de columna">
+                <lucide-icon [img]="MoreVerticalIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+              </button>
+
+              <!-- Context Menu Dropdown -->
+              @if (activeMenuColumnId() === col.id) {
+                <div 
+                  (click)="$event.stopPropagation()"
+                  class="absolute right-0 top-7 z-30 w-48 bg-white dark:bg-[#19181E] rounded-xl shadow-lg border border-[#EAE2DE] dark:border-[#2A2832] py-1.5 animate-in fade-in zoom-in-95">
+                  <button
+                    type="button"
+                    (click)="openEditColumnModal(col)"
+                    class="w-full text-left px-3 py-1.5 text-xs text-[#231F20] dark:text-[#F3EFEA] hover:bg-[#FAF7F5] dark:hover:bg-[#16151B] flex items-center gap-2 cursor-pointer">
+                    <lucide-icon [img]="PencilIcon" [size]="13" [strokeWidth]="1.75" class="text-[#635B5E]"></lucide-icon>
+                    <span>Editar columna</span>
+                  </button>
+
+                  @if (!isFirst) {
+                    <button
+                      type="button"
+                      (click)="moveColumnLeft(colIdx)"
+                      class="w-full text-left px-3 py-1.5 text-xs text-[#231F20] dark:text-[#F3EFEA] hover:bg-[#FAF7F5] dark:hover:bg-[#16151B] flex items-center gap-2 cursor-pointer">
+                      <lucide-icon [img]="ArrowLeftIcon" [size]="13" [strokeWidth]="1.75" class="text-[#635B5E]"></lucide-icon>
+                      <span>Mover a la izquierda</span>
+                    </button>
+                  }
+
+                  @if (!isLast) {
+                    <button
+                      type="button"
+                      (click)="moveColumnRight(colIdx)"
+                      class="w-full text-left px-3 py-1.5 text-xs text-[#231F20] dark:text-[#F3EFEA] hover:bg-[#FAF7F5] dark:hover:bg-[#16151B] flex items-center gap-2 cursor-pointer">
+                      <lucide-icon [img]="ArrowRightIcon" [size]="13" [strokeWidth]="1.75" class="text-[#635B5E]"></lucide-icon>
+                      <span>Mover a la derecha</span>
+                    </button>
+                  }
+
+                  <div class="h-px bg-[#EAE2DE] dark:bg-[#2A2832] my-1"></div>
+
+                  <button
+                    type="button"
+                    (click)="openDeleteColumnModal(col)"
+                    class="w-full text-left px-3 py-1.5 text-xs text-[#9B2C2C] hover:bg-[#FDECEC] dark:hover:bg-[#9B2C2C]/20 flex items-center gap-2 cursor-pointer">
+                    <lucide-icon [img]="Trash2Icon" [size]="13" [strokeWidth]="1.75"></lucide-icon>
+                    <span>Eliminar columna</span>
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Cards Drop List -->
+          <div
+            cdkDropList
+            [id]="'col-' + col.id"
+            [cdkDropListData]="getTasksForColumn(col.id)"
+            (cdkDropListDropped)="onDrop($event, col.id)"
+            class="flex-1 flex flex-col space-y-3 min-h-[420px] pb-16">
+            @for (task of getTasksForColumn(col.id); track task.id) {
+              <div
+                cdkDrag
+                [cdkDragData]="task"
+                (click)="openDetail(task)"
+                class="bg-white dark:bg-[#19181E] rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] p-3.5 space-y-2.5 shadow-xs hover:border-[#74566E] dark:hover:border-[#9D7B96] transition-[border-color,background-color,box-shadow] cursor-grab active:cursor-grabbing select-none group">
+                
+                <!-- Issue Key & Issue Type Badge + Quick Move Action -->
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="font-mono text-[11px] font-bold text-[#635B5E] dark:text-neutral-400 tabular-nums">
+                      {{ task.issueKey }}
+                    </span>
+
+                    @let typeBadge = getIssueTypeColor(task.issueType);
+                    <span 
+                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold"
+                      [style.background-color]="typeBadge.bg"
+                      [style.color]="typeBadge.text">
+                      @if (task.issueType === 'Historia') {
+                        <lucide-icon [img]="BookmarkIcon" [size]="10" [strokeWidth]="2.5"></lucide-icon>
+                      } @else if (task.issueType === 'Error') {
+                        <lucide-icon [img]="AlertCircleIcon" [size]="10" [strokeWidth]="2.5"></lucide-icon>
+                      } @else if (task.issueType === 'Mejora') {
+                        <lucide-icon [img]="ArrowUpCircleIcon" [size]="10" [strokeWidth]="2.5"></lucide-icon>
+                      } @else {
+                        <lucide-icon [img]="CheckSquareIcon" [size]="10" [strokeWidth]="2.5"></lucide-icon>
+                      }
+                      <span>{{ task.issueType }}</span>
+                    </span>
+                  </div>
+
+                  <!-- Quick Move to Column Dropdown Menu -->
+                  <div class="relative shrink-0">
+                    <button
+                      type="button"
+                      (click)="toggleTaskMenu(task.id, $event)"
+                      class="p-1 rounded-md text-[#635B5E] hover:text-[#74566E] hover:bg-[#FAF7F5] dark:hover:bg-[#121115] transition-colors cursor-pointer"
+                      title="Mover de columna">
+                      <lucide-icon [img]="MoreVerticalIcon" [size]="13" [strokeWidth]="2"></lucide-icon>
+                    </button>
+
+                    @if (activeTaskMenuId() === task.id) {
+                      <div 
+                        class="absolute right-0 top-7 z-30 w-44 bg-white dark:bg-[#19181E] rounded-xl shadow-xl border border-[#EAE2DE] dark:border-[#2A2832] py-1.5 animate-in fade-in"
+                        (click)="$event.stopPropagation()">
+                        <div class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#635B5E]">
+                          Mover a...
+                        </div>
+                        @for (targetCol of workspace.sortedColumns(); track targetCol.id) {
+                          @if (targetCol.id !== task.status) {
+                            <button
+                              type="button"
+                              (click)="moveTaskToColumnFromMenu(task.id, targetCol.id, $event)"
+                              class="w-full text-left px-2.5 py-1.5 text-xs text-[#231F20] dark:text-[#F3EFEA] hover:bg-[#FAF7F5] dark:hover:bg-[#121115] flex items-center gap-2 cursor-pointer">
+                              <span class="w-2 h-2 rounded-full shrink-0" [style.background-color]="targetCol.color"></span>
+                              <span class="truncate">{{ targetCol.label }}</span>
+                            </button>
+                          }
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <!-- Title -->
+                <h3 
+                  class="text-xs font-bold text-[#231F20] dark:text-[#F3EFEA] leading-snug"
+                  [class.line-through]="workspace.isTaskStatusDone(task.status)"
+                  [class.opacity-60]="workspace.isTaskStatusDone(task.status)">
+                  {{ task.title }}
+                </h3>
+
+                <!-- Tag & Priority -->
+                <div class="flex items-center justify-between text-[11px]">
+                  <span class="px-2 py-0.5 rounded-md font-semibold text-[10px] bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] text-[#635B5E] dark:text-neutral-300">
+                    {{ task.projectTag }}
+                  </span>
+
+                  <span 
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold"
+                    [ngClass]="{
+                      'bg-[#FDECEC] text-[#9B2C2C]': task.priority === 'Alta',
+                      'bg-[#FDF0E6] text-[#8C4A19]': task.priority === 'Media',
+                      'bg-[#E6F3EC] text-[#246A49]': task.priority === 'Baja'
+                    }">
+                    <lucide-icon [img]="FlagIcon" [size]="10" [strokeWidth]="2.5"></lucide-icon>
+                    <span>{{ task.priority }}</span>
+                  </span>
+                </div>
+
+                <!-- Due Date & Subtasks -->
+                <div class="pt-2 border-t border-[#EAE2DE]/60 dark:border-[#2A2832]/60 flex items-center justify-between text-[11px] text-[#635B5E] dark:text-neutral-400">
+                  @if (task.dueDate) {
+                    <span 
+                      class="inline-flex items-center gap-1 font-mono text-[10px] tabular-nums px-1.5 py-0.5 rounded"
+                      [ngClass]="{
+                        'bg-[#FDECEC] text-[#9B2C2C] font-bold': isOverdue(task),
+                        'text-[#635B5E] dark:text-neutral-400': !isOverdue(task)
+                      }">
+                      <lucide-icon [img]="CalendarIcon" [size]="11" [strokeWidth]="1.75"></lucide-icon>
+                      <span>{{ task.dueDate }}</span>
+                    </span>
+                  } @else {
+                    <span></span>
+                  }
+
+                  @if (task.subtasks && task.subtasks.length > 0) {
+                    <span class="tabular-nums font-mono text-[11px] font-semibold text-[#635B5E]">
+                      {{ getSubtaskCompletedCount(task) }}/{{ task.subtasks.length }}
+                    </span>
+                  }
+                </div>
+              </div>
+            } @empty {
+              <div class="h-32 flex flex-col items-center justify-center border border-dashed border-[#EAE2DE] dark:border-[#2A2832] rounded-xl text-neutral-400 text-xs">
+                <span>Sin tareas</span>
+              </div>
+            }
+          </div>
+
+          <!-- Quick Task Input or Button -->
+          <div class="mt-3 pt-2 border-t border-[#EAE2DE] dark:border-[#2A2832]">
+            @if (quickColumnStatus() === col.id) {
+              <div class="space-y-2 animate-in fade-in">
+                <input
+                  type="text"
+                  [(ngModel)]="quickColumnTitle"
+                  (keydown.enter)="submitQuickColumnTask(col.id)"
+                  (keydown.escape)="cancelQuickColumnTask()"
+                  placeholder="¿Qué hay que hacer? (Enter para guardar)"
+                  class="w-full p-2.5 text-xs rounded-xl border border-[#74566E] bg-white dark:bg-[#19181E] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none"
+                  autoFocus
+                />
+                <div class="flex items-center justify-end gap-1.5">
+                  <button type="button" (click)="cancelQuickColumnTask()" class="px-2.5 py-1 text-xs text-[#635B5E] cursor-pointer">Cancelar</button>
+                  <button type="button" (click)="submitQuickColumnTask(col.id)" class="px-2.5 py-1 bg-[#74566E] text-white rounded-lg text-xs font-semibold cursor-pointer">Guardar</button>
+                </div>
+              </div>
+            } @else {
+              <button
+                type="button"
+                (click)="startQuickColumnTask(col.id)"
+                class="w-full py-2 flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-[#EAE2DE] dark:border-[#2A2832] text-xs font-semibold text-[#635B5E] hover:text-[#74566E] hover:bg-white dark:hover:bg-[#19181E] transition-colors cursor-pointer">
+                <lucide-icon [img]="PlusIcon" [size]="13" [strokeWidth]="2"></lucide-icon>
+                <span>+ Añadir tarea</span>
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Add Column Action Card at the end of the board -->
+      <div class="w-[280px] shrink-0">
+        <button
+          type="button"
+          (click)="openAddColumnModal()"
+          class="w-full py-6 px-4 rounded-2xl border-2 border-dashed border-[#EAE2DE] dark:border-[#2A2832] hover:border-[#74566E] dark:hover:border-[#9D7B96] bg-white/40 dark:bg-[#16151B]/40 hover:bg-white dark:hover:bg-[#19181E] flex flex-col items-center justify-center gap-2 text-xs font-bold text-[#635B5E] dark:text-neutral-300 hover:text-[#74566E] transition-all cursor-pointer shadow-xs min-h-[140px]">
+          <div class="w-9 h-9 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] flex items-center justify-center text-[#74566E]">
+            <lucide-icon [img]="PlusIcon" [size]="18" [strokeWidth]="2.5"></lucide-icon>
+          </div>
+          <span>+ Nueva columna / estado</span>
+          <span class="text-[10px] font-normal text-[#635B5E]/70 dark:text-neutral-500">Personaliza tu flujo de trabajo</span>
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- VISTA 2: LISTA JIRA (Tabla Backlog y Seguimiento)              -->
+  <!-- ============================================================== -->
+  @if (viewMode() === 'list') {
+    <section class="bg-white dark:bg-[#19181E] rounded-2xl border border-[#EAE2DE] dark:border-[#2A2832] shadow-xs overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="border-b border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5]/80 dark:bg-[#16151B]/80 text-[#635B5E] dark:text-neutral-400 text-[11px] font-bold uppercase tracking-wider">
+              <th class="py-3 px-4 w-12 text-center">Tipo</th>
+              <th class="py-3 px-4 w-24">Clave</th>
+              <th class="py-3 px-4 min-w-[240px]">Título e incidencia</th>
+              <th class="py-3 px-4 w-36">Estado</th>
+              <th class="py-3 px-4 w-28">Prioridad</th>
+              <th class="py-3 px-4 w-32">Módulo</th>
+              <th class="py-3 px-4 w-24 text-center">Subtareas</th>
+              <th class="py-3 px-4 w-32">Vencimiento</th>
+              <th class="py-3 px-4 w-16 text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#EAE2DE]/60 dark:divide-[#2A2832]/60">
+            @for (task of filteredTasks(); track task.id) {
+              <tr 
+                (click)="openDetail(task)"
+                class="hover:bg-[#FAF7F5]/60 dark:hover:bg-[#16151B]/60 transition-colors cursor-pointer group">
+                
+                <!-- Icono Tipo -->
+                <td class="py-3.5 px-4 text-center">
+                  @let typeBadge = getIssueTypeColor(task.issueType);
+                  <span 
+                    class="inline-flex items-center justify-center w-6 h-6 rounded-md text-[11px] font-bold"
+                    [style.background-color]="typeBadge.bg"
+                    [style.color]="typeBadge.text"
+                    [title]="task.issueType">
+                    @if (task.issueType === 'Historia') {
+                      <lucide-icon [img]="BookmarkIcon" [size]="12" [strokeWidth]="2.5"></lucide-icon>
+                    } @else if (task.issueType === 'Error') {
+                      <lucide-icon [img]="AlertCircleIcon" [size]="12" [strokeWidth]="2.5"></lucide-icon>
+                    } @else if (task.issueType === 'Mejora') {
+                      <lucide-icon [img]="ArrowUpCircleIcon" [size]="12" [strokeWidth]="2.5"></lucide-icon>
+                    } @else {
+                      <lucide-icon [img]="CheckSquareIcon" [size]="12" [strokeWidth]="2.5"></lucide-icon>
+                    }
+                  </span>
+                </td>
+
+                <!-- Clave ESP-X -->
+                <td class="py-3.5 px-4 font-mono font-bold text-[#74566E] dark:text-[#9D7B96] tabular-nums text-xs">
+                  {{ task.issueKey }}
+                </td>
+
+                <!-- Título -->
+                <td class="py-3.5 px-4">
+                  <div 
+                    class="font-bold text-[#231F20] dark:text-[#F3EFEA]" 
+                    [class.line-through]="workspace.isTaskStatusDone(task.status)" 
+                    [class.opacity-60]="workspace.isTaskStatusDone(task.status)">
+                    {{ task.title }}
+                  </div>
+                  @if (task.description) {
+                    <div class="text-[11px] text-[#635B5E] dark:text-neutral-400 line-clamp-1 mt-0.5">
+                      {{ task.description }}
+                    </div>
+                  }
+                </td>
+
+                <!-- Estado dinámico -->
+                <td class="py-3.5 px-4" (click)="$event.stopPropagation()">
+                  <select
+                    [ngModel]="task.status"
+                    (ngModelChange)="workspace.updateTaskStatus(task.id, $event)"
+                    class="px-2.5 py-1 rounded-lg text-xs font-semibold border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none cursor-pointer">
+                    @for (col of workspace.sortedColumns(); track col.id) {
+                      <option [value]="col.id">{{ col.label }}</option>
+                    }
+                  </select>
+                </td>
+
+                <!-- Prioridad -->
+                <td class="py-3.5 px-4">
+                  <span 
+                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold"
+                    [ngClass]="{
+                      'bg-[#FDECEC] text-[#9B2C2C]': task.priority === 'Alta',
+                      'bg-[#FDF0E6] text-[#8C4A19]': task.priority === 'Media',
+                      'bg-[#E6F3EC] text-[#246A49]': task.priority === 'Baja'
+                    }">
+                    <lucide-icon [img]="FlagIcon" [size]="11" [strokeWidth]="2"></lucide-icon>
+                    <span>{{ task.priority }}</span>
+                  </span>
+                </td>
+
+                <!-- Módulo / Tag -->
+                <td class="py-3.5 px-4">
+                  <span class="px-2.5 py-1 rounded-md bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] font-semibold text-[#635B5E] dark:text-neutral-300">
+                    {{ task.projectTag }}
+                  </span>
+                </td>
+
+                <!-- Subtareas -->
+                <td class="py-3.5 px-4 text-center font-mono tabular-nums text-xs">
+                  @if (task.subtasks && task.subtasks.length > 0) {
+                    <span class="px-2 py-0.5 rounded-full bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] font-semibold">
+                      {{ getSubtaskCompletedCount(task) }}/{{ task.subtasks.length }}
+                    </span>
+                  } @else {
+                    <span class="text-[#635B5E]/40">—</span>
+                  }
+                </td>
+
+                <!-- Vencimiento -->
+                <td class="py-3.5 px-4 font-mono tabular-nums text-[11px]">
+                  @if (task.dueDate) {
+                    <span 
+                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded font-semibold"
+                      [ngClass]="{
+                        'bg-[#FDECEC] text-[#9B2C2C]': isOverdue(task),
+                        'text-[#635B5E] dark:text-neutral-400': !isOverdue(task)
+                      }">
+                      <lucide-icon [img]="CalendarIcon" [size]="11" [strokeWidth]="1.75"></lucide-icon>
+                      <span>{{ task.dueDate }}</span>
+                    </span>
+                  } @else {
+                    <span class="text-[#635B5E]/40">Sin fecha</span>
+                  }
+                </td>
+
+                <!-- Acciones -->
+                <td class="py-3.5 px-4 text-center" (click)="$event.stopPropagation()">
+                  <button
+                    type="button"
+                    (click)="openDetail(task)"
+                    class="p-1 rounded text-[#635B5E] hover:text-[#74566E] transition-colors"
+                    title="Ver detalles">
+                    <lucide-icon [img]="ChevronRightIcon" [size]="15" [strokeWidth]="2"></lucide-icon>
+                  </button>
+                </td>
+              </tr>
+            }
+
+            @if (filteredTasks().length === 0) {
+              <tr>
+                <td colspan="9" class="py-12 text-center text-xs text-[#635B5E] dark:text-neutral-400">
+                  No se encontraron tareas con los filtros actuales.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  <!-- ============================================================== -->
+  <!-- MODAL / DRAWER DE DETALLE TIPO JIRA (Al hacer clic en tarjeta) -->
+  <!-- ============================================================== -->
+  @if (isDetailOpen() && selectedTask(); as task) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
+      <div 
+        class="bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
+        (click)="$event.stopPropagation()">
+        
+        <!-- Jira Header Bar -->
+        <div class="px-6 py-3.5 border-b border-[#EAE2DE] dark:border-[#2A2832] flex items-center justify-between bg-[#FAF7F5]/60 dark:bg-[#16151B]/60 shrink-0">
+          <!-- Breadcrumb: Key & Type -->
+          <div class="flex items-center gap-3">
+            <span class="font-mono text-sm font-extrabold text-[#74566E] dark:text-[#9D7B96] tabular-nums">
+              {{ task.issueKey }}
+            </span>
+
+            <span class="text-[#635B5E] text-xs">/</span>
+
+            <!-- Issue Type Selector -->
+            <select
+              [ngModel]="task.issueType"
+              (ngModelChange)="updateDetailField('issueType', $event)"
+              class="px-2.5 py-1 rounded-lg text-xs font-bold border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none cursor-pointer">
+              <option value="Tarea">🟦 Tarea</option>
+              <option value="Historia">🟩 Historia</option>
+              <option value="Error">🟥 Error</option>
+              <option value="Mejora">🟪 Mejora</option>
+            </select>
+          </div>
+
+          <!-- Close and Delete Buttons -->
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              (click)="deleteTask(task.id)"
+              class="p-1.5 text-[#635B5E] hover:text-[#9B2C2C] rounded-lg transition-colors cursor-pointer"
+              title="Eliminar tarea">
+              <lucide-icon [img]="Trash2Icon" [size]="16" [strokeWidth]="1.75"></lucide-icon>
+            </button>
+            <button
+              type="button"
+              (click)="closeDetail()"
+              class="p-1.5 text-[#635B5E] hover:text-[#231F20] dark:hover:text-white rounded-lg transition-colors cursor-pointer"
+              title="Cerrar (Esc)">
+              <lucide-icon [img]="XIcon" [size]="18" [strokeWidth]="2"></lucide-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Jira Two-Column Body -->
+        <div class="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          <!-- Left Column (65%): Title, Description, Subtasks, Linked Note -->
+          <div class="lg:col-span-8 space-y-6">
+            
+            <!-- Editable Title -->
+            <div class="space-y-1">
+              <input
+                type="text"
+                [ngModel]="task.title"
+                (ngModelChange)="updateDetailField('title', $event)"
+                placeholder="Título de la tarea..."
+                class="w-full text-xl font-bold bg-transparent border-b border-transparent hover:border-[#EAE2DE] focus:border-[#74566E] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none py-1 transition-colors"
+              />
+            </div>
+
+            <!-- Description -->
+            <div class="space-y-2">
+              <label class="block text-xs font-bold text-[#231F20] dark:text-[#F3EFEA] uppercase tracking-wider">
+                Descripción
+              </label>
+              <textarea
+                rows="4"
+                [ngModel]="task.description || ''"
+                (ngModelChange)="updateDetailField('description', $event)"
+                placeholder="Añade detalles, especificaciones técnicas o criterios de aceptación..."
+                class="w-full p-3 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-xs text-[#231F20] dark:text-[#F3EFEA] placeholder-[#635B5E]/60 focus:outline-none focus:border-[#74566E] resize-y transition-colors"
+              ></textarea>
+            </div>
+
+            <!-- Subtasks / Checklist with Progress Bar -->
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-bold text-[#231F20] dark:text-[#F3EFEA] uppercase tracking-wider">
+                  Subtareas / Criterios de Aceptación
+                </label>
+                <span class="font-mono text-xs tabular-nums text-[#635B5E] dark:text-neutral-400 font-semibold">
+                  {{ getSubtaskCompletedCount(task) }} de {{ task.subtasks.length }} ({{ getSubtaskProgress(task) }}%)
+                </span>
+              </div>
+
+              <!-- Progress bar -->
+              <div class="w-full h-2 rounded-full bg-[#EAE2DE] dark:bg-[#2A2832] overflow-hidden">
+                <div 
+                  class="h-full bg-[#74566E] dark:bg-[#9D7B96] transition-all duration-300"
+                  [style.width.%]="getSubtaskProgress(task)">
+                </div>
+              </div>
+
+              <!-- Subtask List -->
+              <div class="space-y-1.5">
+                @for (sub of task.subtasks; track sub.id) {
+                  <div class="flex items-center justify-between gap-2 p-2 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] group">
+                    <label class="flex items-center gap-2.5 flex-1 cursor-pointer min-w-0">
+                      <input
+                        type="checkbox"
+                        [checked]="sub.completed"
+                        (change)="toggleSubTask(task.id, sub.id)"
+                        class="rounded text-[#74566E] focus:ring-[#74566E] w-4 h-4 cursor-pointer shrink-0"
+                      />
+                      <span 
+                        class="text-xs text-[#231F20] dark:text-[#F3EFEA] truncate"
+                        [class.line-through]="sub.completed"
+                        [class.opacity-50]="sub.completed">
+                        {{ sub.title }}
+                      </span>
+                    </label>
+
+                    <button
+                      type="button"
+                      (click)="removeDetailSubtask(sub.id)"
+                      class="text-[#635B5E] hover:text-[#9B2C2C] p-1 rounded transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                      title="Eliminar subtarea">
+                      <lucide-icon [img]="XIcon" [size]="14"></lucide-icon>
+                    </button>
+                  </div>
+                }
+              </div>
+
+              <!-- Add Subtask Input -->
+              <div class="flex items-center gap-2">
+                <input
+                  type="text"
+                  [value]="newDetailSubtaskInput()"
+                  (input)="newDetailSubtaskInput.set($any($event.target).value)"
+                  (keydown.enter)="addDetailSubtask()"
+                  placeholder="Agregar nueva subtarea (Enter para guardar)..."
+                  class="flex-1 p-2 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-xs text-[#231F20] dark:text-[#F3EFEA] focus:outline-none focus:border-[#74566E]"
+                />
+                <button
+                  type="button"
+                  (click)="addDetailSubtask()"
+                  class="px-3 py-2 bg-[#74566E] text-white rounded-xl text-xs font-semibold hover:bg-[#5E4359] transition-colors cursor-pointer shrink-0">
+                  + Agregar
+                </button>
+              </div>
+            </div>
+
+            <!-- Linked Note Bridge (if any) -->
+            @if (task.linkedNoteId) {
+              <div class="p-3.5 rounded-xl border border-[#74566E]/20 bg-[#FAF7F5] dark:bg-[#16151B] flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-7 h-7 rounded-lg bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] flex items-center justify-center text-[#74566E]">
+                    <lucide-icon [img]="ExternalLinkIcon" [size]="14"></lucide-icon>
+                  </div>
+                  <div>
+                    <div class="text-[11px] font-semibold text-[#635B5E] dark:text-neutral-400">Apunte vinculado</div>
+                    <div class="text-xs font-bold text-[#231F20] dark:text-[#F3EFEA]">Nota asociada en Mi Espacio</div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  (click)="openLinkedNote(task.linkedNoteId)"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#74566E] text-white text-xs font-semibold hover:bg-[#5E4359] cursor-pointer">
+                  <span>Abrir apunte</span>
+                  <lucide-icon [img]="ArrowRightIcon" [size]="12"></lucide-icon>
+                </button>
+              </div>
+            }
+          </div>
+
+          <!-- Right Column (35%): Status, Priority, Project Tag, Due Date -->
+          <div class="lg:col-span-4 bg-[#FAF7F5] dark:bg-[#16151B] p-4 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] space-y-4">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-[#635B5E] dark:text-neutral-400">
+              Detalles del ítem
+            </h4>
+
+            <!-- Dynamic Estado Selector -->
+            <div>
+              <label class="block text-[11px] font-semibold text-[#635B5E] dark:text-neutral-400 mb-1">Estado</label>
+              <select
+                [ngModel]="task.status"
+                (ngModelChange)="updateDetailField('status', $event)"
+                class="w-full p-2.5 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] text-xs font-semibold text-[#231F20] dark:text-[#F3EFEA] focus:outline-none focus:border-[#74566E] cursor-pointer">
+                @for (col of workspace.sortedColumns(); track col.id) {
+                  <option [value]="col.id">{{ col.label }}</option>
+                }
+              </select>
+            </div>
+
+            <!-- Prioridad -->
+            <div>
+              <label class="block text-[11px] font-semibold text-[#635B5E] dark:text-neutral-400 mb-1">Prioridad</label>
+              <select
+                [ngModel]="task.priority"
+                (ngModelChange)="updateDetailField('priority', $event)"
+                class="w-full p-2.5 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] text-xs font-semibold text-[#231F20] dark:text-[#F3EFEA] focus:outline-none focus:border-[#74566E] cursor-pointer">
+                @for (p of priorities; track p) {
+                  <option [value]="p">{{ p }}</option>
+                }
+              </select>
+            </div>
+
+            <!-- Etiqueta / Módulo -->
+            <div>
+              <label class="block text-[11px] font-semibold text-[#635B5E] dark:text-neutral-400 mb-1">Módulo / Etiqueta</label>
+              <select
+                [ngModel]="task.projectTag"
+                (ngModelChange)="updateDetailField('projectTag', $event)"
+                class="w-full p-2.5 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] text-xs font-semibold text-[#231F20] dark:text-[#F3EFEA] focus:outline-none focus:border-[#74566E] cursor-pointer">
+                @for (t of tags; track t) {
+                  <option [value]="t">{{ t }}</option>
+                }
+              </select>
+            </div>
+
+            <!-- Fecha de entrega -->
+            <div>
+              <label class="block text-[11px] font-semibold text-[#635B5E] dark:text-neutral-400 mb-1">Fecha de vencimiento</label>
+              <input
+                type="date"
+                [ngModel]="task.dueDate || ''"
+                (ngModelChange)="updateDetailField('dueDate', $event || undefined)"
+                class="w-full p-2.5 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] text-xs font-semibold text-[#231F20] dark:text-[#F3EFEA] focus:outline-none focus:border-[#74566E]"
+              />
+            </div>
+
+            <!-- Hora límite -->
+            <div>
+              <label class="block text-[11px] font-semibold text-[#635B5E] dark:text-neutral-400 mb-1">Hora límite</label>
+              <input
+                type="time"
+                [ngModel]="task.dueTime || ''"
+                (ngModelChange)="updateDetailField('dueTime', $event || undefined)"
+                class="w-full p-2.5 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] text-xs font-semibold text-[#231F20] dark:text-[#F3EFEA] focus:outline-none focus:border-[#74566E]"
+              />
+            </div>
+
+            <!-- Timestamps metadata -->
+            <div class="pt-3 border-t border-[#EAE2DE] dark:border-[#2A2832] space-y-1 text-[11px] text-[#635B5E] dark:text-neutral-400 font-mono tabular-nums">
+              <div>Creada: {{ task.createdAt | date:'short' }}</div>
+              <div>Actualizada: {{ task.updatedAt | date:'short' }}</div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- MODAL: NUEVA TAREA (+ Nueva tarea top button)                  -->
+  <!-- ============================================================== -->
+  @if (showCreateModal()) {
+    <div 
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in"
+      (click)="closeCreateModal()">
+      <div 
+        class="bg-white dark:bg-[#19181E] w-full max-w-lg rounded-2xl shadow-2xl border border-[#EAE2DE] dark:border-[#2A2832] p-6 space-y-4 animate-in zoom-in-95"
+        (click)="$event.stopPropagation()">
+        
+        <div class="flex items-center justify-between pb-3 border-b border-[#EAE2DE] dark:border-[#2A2832]">
+          <h2 class="text-base font-bold text-[#231F20] dark:text-[#F3EFEA]">
+            Crear nueva incidencia
+          </h2>
+          <button 
+            type="button" 
+            (click)="closeCreateModal()" 
+            class="p-1 rounded-lg text-[#635B5E] hover:bg-[#FAF7F5] dark:hover:bg-[#16151B] cursor-pointer">
+            <lucide-icon [img]="XIcon" [size]="16"></lucide-icon>
+          </button>
+        </div>
+
+        <form (ngSubmit)="saveNewTask()" class="space-y-4">
+          <!-- Title & Issue Type -->
+          <div class="space-y-3">
+            <div>
+              <label class="text-xs font-bold text-[#635B5E] block mb-1">Tipo de incidencia</label>
+              <select
+                [(ngModel)]="createForm().issueType"
+                name="issueType"
+                class="w-full px-2.5 py-2 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] font-bold focus:outline-none">
+                <option value="Tarea">🟦 Tarea</option>
+                <option value="Historia">🟩 Historia</option>
+                <option value="Error">🟥 Error</option>
+                <option value="Mejora">🟪 Mejora</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="text-xs font-bold text-[#635B5E] block mb-1">Título de la incidencia *</label>
+              <input
+                type="text"
+                [(ngModel)]="createForm().title"
+                name="title"
+                placeholder="ej. Implementar pasarela de pagos..."
+                required
+                class="w-full px-3 py-2 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none focus:border-[#74566E]"
+                autoFocus
+              />
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div>
+            <label class="text-xs font-bold text-[#635B5E] block mb-1">Descripción</label>
+            <textarea
+              rows="3"
+              [(ngModel)]="createForm().description"
+              name="description"
+              placeholder="Detalles adicionales, contexto y requerimientos..."
+              class="w-full px-3 py-2 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none focus:border-[#74566E] resize-none"
+            ></textarea>
+          </div>
+
+          <!-- Status & Priority -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-bold text-[#635B5E] block mb-1">Estado inicial</label>
+              <select
+                [(ngModel)]="createForm().status"
+                name="status"
+                class="w-full px-2.5 py-1.5 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none cursor-pointer">
+                @for (col of workspace.sortedColumns(); track col.id) {
+                  <option [value]="col.id">{{ col.label }}</option>
+                }
+              </select>
+            </div>
+
+            <div>
+              <label class="text-xs font-bold text-[#635B5E] block mb-1">Prioridad</label>
+              <select
+                [(ngModel)]="createForm().priority"
+                name="priority"
+                class="w-full px-2.5 py-1.5 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none">
+                <option value="Alta">Alta</option>
+                <option value="Media">Media</option>
+                <option value="Baja">Baja</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Project Tag -->
+          <div>
+            <label class="text-xs font-bold text-[#635B5E] block mb-1">Etiqueta / Módulo</label>
+            <select
+              [(ngModel)]="createForm().projectTag"
+              name="projectTag"
+              class="w-full px-2.5 py-1.5 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none">
+              <option value="Trabajo">Trabajo</option>
+              <option value="Salud">Salud</option>
+              <option value="Estudio">Estudio</option>
+              <option value="Personal">Personal</option>
+            </select>
+          </div>
+
+          <!-- Due Date & Time -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-bold text-[#635B5E] block mb-1">Fecha de vencimiento</label>
+              <input
+                type="date"
+                [(ngModel)]="createForm().dueDate"
+                name="dueDate"
+                class="w-full px-3 py-1.5 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none"
+              />
+            </div>
+            <div>
+              <label class="text-xs font-bold text-[#635B5E] block mb-1">Hora límite</label>
+              <input
+                type="time"
+                [(ngModel)]="createForm().dueTime"
+                name="dueTime"
+                class="w-full px-3 py-1.5 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <!-- Subtasks -->
+          <div class="space-y-2 pt-2 border-t border-[#EAE2DE] dark:border-[#2A2832]">
+            <label class="text-xs font-bold text-[#635B5E] block">Subtareas / Checklist</label>
+            <div class="space-y-1.5 max-h-32 overflow-y-auto">
+              @for (sub of createForm().subtasks; track sub.id) {
+                <div class="flex items-center justify-between gap-2 p-2 rounded-lg bg-[#FAF7F5] dark:bg-[#121115] text-xs">
+                  <span class="truncate">{{ sub.title }}</span>
+                  <button type="button" (click)="removeCreateFormSubtask(sub.id)" class="text-[#635B5E] hover:text-[#9B2C2C] font-bold">×</button>
+                </div>
+              }
+            </div>
+
+            <div class="flex items-center gap-2">
+              <input
+                type="text"
+                [(ngModel)]="createForm().newSubtaskInput"
+                name="newSubtaskInput"
+                placeholder="Añadir paso o subtarea..."
+                (keydown.enter)="$event.preventDefault(); addCreateFormSubtask()"
+                class="flex-1 px-3 py-1.5 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none focus:border-[#74566E]"
+              />
+              <button
+                type="button"
+                (click)="addCreateFormSubtask()"
+                class="px-3 py-1.5 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-xs font-semibold text-[#74566E]">
+                + Añadir
+              </button>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center justify-end gap-2 pt-3 border-t border-[#EAE2DE] dark:border-[#2A2832]">
+            <button
+              type="button"
+              (click)="closeCreateModal()"
+              class="px-4 py-2 text-xs font-semibold text-[#635B5E] hover:text-[#231F20]">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              [disabled]="!createForm().title.trim()"
+              class="px-4 py-2 bg-[#74566E] hover:bg-[#5E4359] text-white text-xs font-semibold rounded-xl disabled:opacity-50 transition-colors shadow-xs cursor-pointer">
+              Crear incidencia
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- MODAL: CREAR / EDITAR COLUMNA Y ESTADO                         -->
+  <!-- ============================================================== -->
+  @if (showColumnModal()) {
+    <div 
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in"
+      (click)="closeColumnModal()">
+      <div 
+        class="bg-white dark:bg-[#19181E] w-full max-w-md rounded-2xl shadow-2xl border border-[#EAE2DE] dark:border-[#2A2832] p-6 space-y-5 animate-in zoom-in-95"
+        (click)="$event.stopPropagation()">
+        
+        <div class="flex items-center justify-between pb-3 border-b border-[#EAE2DE] dark:border-[#2A2832]">
+          <h2 class="text-base font-bold text-[#231F20] dark:text-[#F3EFEA]">
+            {{ isEditingColumn() ? 'Editar Columna / Estado' : 'Nueva Columna / Estado' }}
+          </h2>
+          <button 
+            type="button" 
+            (click)="closeColumnModal()" 
+            class="p-1 rounded-lg text-[#635B5E] hover:bg-[#FAF7F5] dark:hover:bg-[#16151B] cursor-pointer">
+            <lucide-icon [img]="XIcon" [size]="16"></lucide-icon>
+          </button>
+        </div>
+
+        <div class="space-y-4 text-xs">
+          <!-- Nombre de la columna -->
+          <div>
+            <label class="block font-bold text-[#231F20] dark:text-[#F3EFEA] mb-1">Nombre de la columna / estado *</label>
+            <input
+              type="text"
+              [(ngModel)]="columnForm().label"
+              placeholder="ej. En pruebas QA, Bloqueado, Aprobado..."
+              class="w-full p-2.5 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none focus:border-[#74566E]"
+              autoFocus
+            />
+          </div>
+
+          <!-- Color de la columna -->
+          <div>
+            <label class="block font-bold text-[#231F20] dark:text-[#F3EFEA] mb-1.5">Color indicador (Editorial)</label>
+            <div class="grid grid-cols-4 gap-2">
+              @for (c of columnColorOptions; track c.value) {
+                <button
+                  type="button"
+                  (click)="columnForm().color = c.value"
+                  class="flex items-center gap-1.5 p-1.5 rounded-xl border text-[11px] font-semibold cursor-pointer transition-all"
+                  [ngClass]="columnForm().color === c.value ? 'border-[#74566E] bg-white dark:bg-[#16151B] shadow-xs ring-1 ring-[#74566E]' : 'border-[#EAE2DE] dark:border-[#2A2832] hover:bg-[#FAF7F5] dark:hover:bg-[#16151B]'">
+                  <span class="w-3.5 h-3.5 rounded-full shrink-0" [style.background-color]="c.value"></span>
+                  <span class="truncate text-[#635B5E] dark:text-neutral-300">{{ c.label }}</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Icono de la columna -->
+          <div>
+            <label class="block font-bold text-[#231F20] dark:text-[#F3EFEA] mb-1.5">Ícono representativo</label>
+            <div class="flex flex-wrap gap-2">
+              @for (ic of columnIconOptions; track ic.icon) {
+                <button
+                  type="button"
+                  (click)="columnForm().icon = ic.icon"
+                  class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all"
+                  [ngClass]="columnForm().icon === ic.icon ? 'border-[#74566E] bg-[#74566E]/10 text-[#74566E] dark:text-[#9D7B96] font-bold' : 'border-[#EAE2DE] dark:border-[#2A2832] text-[#635B5E] hover:bg-[#FAF7F5] dark:hover:bg-[#16151B]'">
+                  <lucide-icon [img]="getColumnIcon(ic.icon)" [size]="14" [strokeWidth]="2.2"></lucide-icon>
+                  <span>{{ ic.label }}</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Checkbox: Es columna de completadas -->
+          <div class="p-3 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] space-y-1">
+            <label class="flex items-center gap-2 cursor-pointer font-bold text-[#231F20] dark:text-[#F3EFEA]">
+              <input
+                type="checkbox"
+                [(ngModel)]="columnForm().isDoneColumn"
+                class="rounded text-[#74566E] focus:ring-[#74566E] w-4 h-4 cursor-pointer"
+              />
+              <span>Marcar como estado de tareas completadas</span>
+            </label>
+            <p class="text-[11px] text-[#635B5E] dark:text-neutral-400 pl-6">
+              Las tareas en esta columna se considerarán finalizadas, no figurarán como pendientes ni vencidas, y sumarán a las métricas de completadas.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-[#EAE2DE] dark:border-[#2A2832]">
+          <button
+            type="button"
+            (click)="closeColumnModal()"
+            class="px-4 py-2 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] text-xs font-semibold text-[#635B5E] hover:bg-[#FAF7F5] dark:hover:bg-[#16151B] cursor-pointer">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            (click)="saveColumn()"
+            [disabled]="!columnForm().label.trim()"
+            class="px-4 py-2 rounded-xl bg-[#74566E] hover:bg-[#5E4359] dark:bg-[#9D7B96] text-white text-xs font-semibold shadow-xs disabled:opacity-50 cursor-pointer">
+            {{ isEditingColumn() ? 'Guardar cambios' : 'Crear columna' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- MODAL: ELIMINAR COLUMNA Y REASIGNAR TAREAS                     -->
+  <!-- ============================================================== -->
+  @if (showDeleteColumnModal()) {
+    <div 
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in"
+      (click)="closeDeleteColumnModal()">
+      <div 
+        class="bg-white dark:bg-[#19181E] w-full max-w-md rounded-2xl shadow-2xl border border-[#EAE2DE] dark:border-[#2A2832] p-6 space-y-4 animate-in zoom-in-95"
+        (click)="$event.stopPropagation()">
+        
+        <div class="flex items-center justify-between pb-3 border-b border-[#EAE2DE] dark:border-[#2A2832]">
+          <div class="flex items-center gap-2 text-[#9B2C2C]">
+            <lucide-icon [img]="AlertTriangleIcon" [size]="18" [strokeWidth]="2"></lucide-icon>
+            <h2 class="text-sm font-bold">
+              Eliminar columna "{{ deletingColumn()?.label }}"
+            </h2>
+          </div>
+          <button 
+            type="button" 
+            (click)="closeDeleteColumnModal()" 
+            class="p-1 rounded-lg text-[#635B5E] hover:bg-[#FAF7F5] dark:hover:bg-[#16151B] cursor-pointer">
+            <lucide-icon [img]="XIcon" [size]="16"></lucide-icon>
+          </button>
+        </div>
+
+        <div class="space-y-3 text-xs text-[#635B5E] dark:text-neutral-300">
+          @if (deletingColumnTaskCount() > 0) {
+            <div class="p-3 rounded-xl bg-[#FDECEC] text-[#9B2C2C] font-semibold">
+              Esta columna contiene <strong>{{ deletingColumnTaskCount() }}</strong> tareas activas.
+            </div>
+            <p>
+              Para que ninguna tarea se pierda ni quede huérfana, selecciona la columna destino a la que deseas transferirlas:
+            </p>
+
+            <div>
+              <label class="block font-bold text-[#231F20] dark:text-[#F3EFEA] mb-1">Mover tareas a:</label>
+              <select
+                [(ngModel)]="fallbackColumnId"
+                class="w-full p-2.5 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] font-semibold text-xs focus:outline-none focus:border-[#74566E] cursor-pointer">
+                @for (c of workspace.sortedColumns(); track c.id) {
+                  @if (c.id !== deletingColumn()?.id) {
+                    <option [value]="c.id">{{ c.label }}</option>
+                  }
+                }
+              </select>
+            </div>
+          } @else {
+            <p>
+              Esta columna no tiene tareas asociadas. ¿Estás seguro de que deseas eliminarla de tu tablero?
+            </p>
+          }
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-[#EAE2DE] dark:border-[#2A2832]">
+          <button
+            type="button"
+            (click)="closeDeleteColumnModal()"
+            class="px-4 py-2 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] text-xs font-semibold text-[#635B5E] hover:bg-[#FAF7F5] dark:hover:bg-[#16151B] cursor-pointer">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            (click)="confirmDeleteColumn()"
+            class="px-4 py-2 rounded-xl bg-[#9B2C2C] hover:bg-[#822424] text-white text-xs font-semibold shadow-xs cursor-pointer">
+            {{ deletingColumnTaskCount() > 0 ? 'Mover tareas y eliminar' : 'Eliminar columna' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

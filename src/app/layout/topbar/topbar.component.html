@@ -1,0 +1,198 @@
+<header class="h-16 px-3.5 sm:px-6 flex items-center justify-between border-b border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5]/80 dark:bg-[#121115]/80 backdrop-blur-md sticky top-0 z-30 transition-colors gap-2">
+  <!-- Left: Hamburger button (mobile) + Search input pill trigger -->
+  <div class="flex items-center gap-2 flex-1 max-w-xl min-w-0">
+    <!-- Hamburger button visible on < lg -->
+    <button
+      type="button"
+      (click)="toggleMobileMenu()"
+      class="lg:hidden p-2 rounded-xl text-[#635B5E] dark:text-neutral-300 hover:bg-[#EAE2DE] dark:hover:bg-[#201E27] transition-colors shrink-0 cursor-pointer min-h-[40px] min-w-[40px] flex items-center justify-center"
+      title="Abrir menú de navegación">
+      <lucide-icon [img]="MenuIcon" [size]="20" [strokeWidth]="2"></lucide-icon>
+    </button>
+
+    <!-- Search pill trigger -->
+    <button
+      type="button"
+      (click)="openSearch()"
+      class="flex-1 flex items-center justify-between px-3 py-2 rounded-xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] text-left hover:border-[#74566E]/40 dark:hover:border-[#9D7B96]/40 transition-colors shadow-xs group min-w-0">
+      <div class="flex items-center gap-2 min-w-0">
+        <lucide-icon [img]="SearchIcon" [size]="16" [strokeWidth]="1.75" class="text-[#635B5E] dark:text-neutral-400 group-hover:text-[#74566E] dark:group-hover:text-[#9D7B96] transition-colors shrink-0"></lucide-icon>
+        <span class="text-xs sm:text-sm text-[#635B5E]/80 dark:text-neutral-400 truncate">
+          Buscar notas, tareas...
+        </span>
+      </div>
+      <kbd class="hidden md:inline-flex items-center gap-0.5 px-2 py-0.5 text-[11px] font-mono rounded border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#635B5E] dark:text-[#9D7B96]">
+        ⌘ K
+      </kbd>
+    </button>
+  </div>
+
+  <!-- Right Actions: Real Save Status, + Nueva nota, Bell & Profile -->
+  <div class="flex items-center gap-1.5 sm:gap-3 shrink-0 relative">
+    <!-- Real Save / Cloud Sync Status Badge -->
+    <div 
+      class="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono border transition-all duration-200 select-none"
+      [ngClass]="{
+        'bg-[#E6F3EC] dark:bg-[#192A21] text-[#246A49] dark:text-[#52B788] border-[#246A49]/20': workspace.firebaseSync.currentUser() || workspace.saveStatus() === 'Guardado en IndexedDB',
+        'bg-[#FEF9E7] dark:bg-[#2B2313] text-[#975A16] dark:text-[#E9B949] border-[#975A16]/20 animate-pulse': workspace.saveStatus() === 'Guardando...' || workspace.firebaseSync.isSyncing(),
+        'bg-[#FDECEC] dark:bg-[#2F1717] text-[#9B2C2C] dark:text-[#E57373] border-[#9B2C2C]/20': workspace.saveStatus() === 'Error al guardar' || workspace.firebaseSync.syncState() === 'error'
+      }"
+      [title]="workspace.firebaseSync.currentUser() ? 'Sincronizado con Google Cloud Firestore' : 'Almacenado localmente en IndexedDB'">
+      @if (workspace.saveStatus() === 'Guardando...' || workspace.firebaseSync.isSyncing()) {
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
+        <span>Sincronizando...</span>
+      } @else if (workspace.saveStatus() === 'Error al guardar' || workspace.firebaseSync.syncState() === 'error') {
+        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+        <span>Error al guardar</span>
+      } @else if (workspace.firebaseSync.currentUser()) {
+        <lucide-icon [img]="CloudIcon" [size]="12" [strokeWidth]="2.5" class="text-[#246A49] dark:text-[#52B788]"></lucide-icon>
+        <span>Google Cloud Activo</span>
+      } @else {
+        <lucide-icon [img]="CheckIcon" [size]="12" [strokeWidth]="2.5" class="text-[#246A49] dark:text-[#52B788]"></lucide-icon>
+        <span>Guardado local (IndexedDB)</span>
+      }
+    </div>
+
+    <!-- + Nueva nota Button -->
+    <button
+      type="button"
+      (click)="createNewNote()"
+      class="inline-flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl bg-[#74566E] hover:bg-[#5E4359] dark:bg-[#9D7B96] dark:hover:bg-[#85637E] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer min-h-[38px]">
+      <lucide-icon [img]="PlusIcon" [size]="15" [strokeWidth]="2"></lucide-icon>
+      <span class="hidden sm:inline">Nueva nota</span>
+    </button>
+
+    <!-- Notification Bell -->
+    <button
+      type="button"
+      (click)="goToReminders()"
+      class="relative p-2 rounded-xl hover:bg-[#EAE2DE]/60 dark:hover:bg-[#201E27] text-[#231F20]/80 dark:text-[#F3EFEA]/80 transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center cursor-pointer"
+      title="Ver recordatorios">
+      <lucide-icon [img]="BellIcon" [size]="19" [strokeWidth]="1.75"></lucide-icon>
+      @if (workspace.todayRemindersCount() > 0) {
+        <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#9B2C2C] ring-2 ring-white dark:ring-[#121115]"></span>
+      }
+    </button>
+
+    <!-- User Profile Button / Dropdown Trigger -->
+    <div class="relative pl-1 border-l border-[#EAE2DE] dark:border-[#2A2832]">
+      <button
+        type="button"
+        (click)="toggleUserMenu()"
+        class="relative w-8 h-8 rounded-full ring-2 ring-[#74566E]/20 overflow-hidden bg-[#EFEAF6] text-[#5B447A] flex items-center justify-center font-bold text-xs select-none cursor-pointer hover:ring-[#74566E] transition-all"
+        title="Opciones de cuenta y sincronización">
+        @if (workspace.firebaseSync.currentUser(); as user) {
+          @if (user.photoURL) {
+            <img [src]="user.photoURL" alt="Avatar" class="w-full h-full object-cover" />
+          } @else {
+            <span>{{ (user.displayName || user.email || 'U').charAt(0).toUpperCase() }}</span>
+          }
+        } @else {
+          <lucide-icon [img]="UserIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+        }
+      </button>
+
+      <!-- Dropdown Menu -->
+      @if (isUserMenuOpen()) {
+        <!-- Backdrop to close -->
+        <div class="fixed inset-0 z-40" (click)="closeUserMenu()"></div>
+
+        <!-- Menu Container -->
+        <div class="absolute right-0 mt-2 w-72 rounded-2xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] shadow-xl p-3 z-50 space-y-3">
+          <!-- User Info Header -->
+          @if (workspace.firebaseSync.currentUser(); as user) {
+            <div class="p-2.5 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] flex items-center gap-3">
+              @if (user.photoURL) {
+                <img [src]="user.photoURL" class="w-10 h-10 rounded-full ring-2 ring-[#74566E]/30" />
+              } @else {
+                <div class="w-10 h-10 rounded-full bg-[#74566E] text-white flex items-center justify-center font-bold text-sm">
+                  {{ user.displayName?.charAt(0) || 'U' }}
+                </div>
+              }
+              <div class="min-w-0 flex-1">
+                <div class="text-xs font-bold text-[#231F20] dark:text-[#F3EFEA] truncate">
+                  {{ user.displayName || 'Usuario Google' }}
+                </div>
+                <div class="text-[11px] text-[#635B5E] dark:text-neutral-400 truncate">
+                  {{ user.email }}
+                </div>
+                <div class="inline-flex items-center gap-1 mt-0.5 text-[10px] text-[#246A49] dark:text-[#52B788] font-semibold">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#246A49] dark:bg-[#52B788]"></span>
+                  <span>Sincronización en la nube activa</span>
+                </div>
+              </div>
+            </div>
+          } @else {
+            <div class="p-3 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] space-y-2">
+              <div class="flex items-center gap-2 text-xs font-bold text-[#231F20] dark:text-[#F3EFEA]">
+                <lucide-icon [img]="CloudIcon" [size]="15" [strokeWidth]="2" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
+                <span>Modo Local (IndexedDB)</span>
+              </div>
+              <p class="text-[11px] text-[#635B5E] dark:text-neutral-400 leading-relaxed">
+                Tus datos están guardados en este navegador. Inicia sesión con Google para ver tus notas en otra PC o GitHub Pages.
+              </p>
+              <button
+                type="button"
+                (click)="loginWithGoogle()"
+                [disabled]="isActionInProgress()"
+                class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#74566E] hover:bg-[#5E4359] text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50">
+                <lucide-icon [img]="LogInIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+                <span>Iniciar sesión con Google</span>
+              </button>
+            </div>
+          }
+
+          <!-- Sync & Backup Actions -->
+          <div class="space-y-1 text-xs">
+            @if (workspace.firebaseSync.currentUser()) {
+              <button
+                type="button"
+                (click)="syncNow()"
+                class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[#231F20] dark:text-[#F3EFEA] hover:bg-[#FAF7F5] dark:hover:bg-[#121115] transition-colors cursor-pointer">
+                <lucide-icon [img]="RefreshCwIcon" [size]="14" [strokeWidth]="2" class="text-[#74566E]"></lucide-icon>
+                <span>Forzar sincronización ahora</span>
+              </button>
+            }
+
+            <button
+              type="button"
+              (click)="exportBackup()"
+              class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[#231F20] dark:text-[#F3EFEA] hover:bg-[#FAF7F5] dark:hover:bg-[#121115] transition-colors cursor-pointer">
+              <lucide-icon [img]="DownloadIcon" [size]="14" [strokeWidth]="2" class="text-[#74566E]"></lucide-icon>
+              <span>Exportar respaldo JSON</span>
+            </button>
+
+            <button
+              type="button"
+              (click)="triggerImportFile(fileInput)"
+              class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[#231F20] dark:text-[#F3EFEA] hover:bg-[#FAF7F5] dark:hover:bg-[#121115] transition-colors cursor-pointer">
+              <lucide-icon [img]="UploadIcon" [size]="14" [strokeWidth]="2" class="text-[#74566E]"></lucide-icon>
+              <span>Importar respaldo JSON</span>
+            </button>
+
+            @if (workspace.firebaseSync.currentUser()) {
+              <div class="pt-1 border-t border-[#EAE2DE] dark:border-[#2A2832]">
+                <button
+                  type="button"
+                  (click)="logout()"
+                  class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[#9B2C2C] hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer">
+                  <lucide-icon [img]="LogOutIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+                  <span>Cerrar sesión</span>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Hidden file input for importing backup -->
+    <input
+      #fileInput
+      type="file"
+      accept=".json"
+      (change)="handleImportFile($event)"
+      class="hidden"
+    />
+  </div>
+</header>

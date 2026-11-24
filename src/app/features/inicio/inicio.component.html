@@ -1,0 +1,458 @@
+<div class="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 overflow-x-hidden">
+
+  <!-- 1. Hero Greeting Banner with Botanical SVG Illustration -->
+  <section class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#FAF5F2] via-[#F6EFEB] to-[#EFE7E2] dark:from-[#19181E] dark:via-[#1D1B22] dark:to-[#16151B] border border-[#EAE2DE] dark:border-[#2A2832] p-5 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xs">
+    <!-- Left Text -->
+    <div class="space-y-2 z-10 w-full md:max-w-lg min-w-0">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/70 dark:bg-black/30 border border-[#EAE2DE] dark:border-[#2A2832] text-xs font-medium text-[#74566E] dark:text-[#9D7B96] max-w-full">
+        <lucide-icon [img]="SparklesIcon" [size]="14" [strokeWidth]="1.75" class="shrink-0"></lucide-icon>
+        <span class="truncate">Tu espacio de organización diario</span>
+      </div>
+      <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-[#231F20] dark:text-[#F3EFEA] break-words">
+        Hola, Michell <span class="inline-block animate-wave">👋</span>
+      </h1>
+      <p class="text-xs sm:text-sm md:text-base text-[#635B5E] dark:text-neutral-400 font-normal leading-relaxed">
+        Aquí está el resumen de tu día. Organiza tus ideas, tareas y planes en un solo lugar.
+      </p>
+    </div>
+
+    <!-- Right Minimalist Botanical Illustration (SVG) (Scaled on mobile/tablet) -->
+    <div class="hidden sm:flex relative shrink-0 w-48 md:w-64 h-28 md:h-36 items-center justify-center select-none" aria-hidden="true">
+      <svg viewBox="0 0 280 160" class="w-full h-full drop-shadow-xs" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Wooden Shelf Base -->
+        <rect x="20" y="140" width="240" height="8" rx="4" fill="#E2D7D0" class="dark:fill-[#2D2A35]" />
+        
+        <!-- Books Stack -->
+        <rect x="180" y="90" width="16" height="50" rx="2" fill="#74566E" />
+        <rect x="199" y="80" width="14" height="60" rx="2" fill="#C97D60" />
+        <rect x="216" y="96" width="16" height="44" rx="2" fill="#265B8A" />
+        <line x1="184" y1="96" x2="192" y2="96" stroke="#FAF7F5" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="203" y1="88" x2="209" y2="88" stroke="#FAF7F5" stroke-width="1.5" stroke-linecap="round"/>
+
+        <!-- Warm Mushroom Lamp -->
+        <ellipse cx="145" cy="115" rx="22" ry="12" fill="#FDF0E6" stroke="#E6DFDA" stroke-width="1.5" />
+        <path d="M135 115 C135 96 155 96 155 115 Z" fill="#FCE6D6" />
+        <rect x="142" y="115" width="6" height="25" fill="#E6DFDA" />
+        <ellipse cx="145" cy="140" rx="10" ry="2.5" fill="#D3C9C2" />
+        <circle cx="145" cy="110" r="18" fill="#FDF0E6" fill-opacity="0.35" filter="blur(6px)" />
+
+        <!-- Terracotta Pot & Lush Plant -->
+        <path d="M55 106 L85 106 L80 140 L60 140 Z" fill="#D48B70" />
+        <ellipse cx="70" cy="106" rx="16" ry="3.5" fill="#BC765C" />
+        <!-- Stems & Foliage -->
+        <path d="M70 106 Q65 75 42 70" stroke="#3D6B50" stroke-width="3" stroke-linecap="round" fill="none" />
+        <path d="M70 106 Q72 65 80 50" stroke="#487A5C" stroke-width="3" stroke-linecap="round" fill="none" />
+        <path d="M70 106 Q85 80 105 85" stroke="#3D6B50" stroke-width="2.5" stroke-linecap="round" fill="none" />
+        <path d="M70 106 Q55 95 38 100" stroke="#487A5C" stroke-width="2.5" stroke-linecap="round" fill="none" />
+
+        <!-- Stylized Leaves -->
+        <path d="M42 70 C35 60 50 48 56 60 C62 72 48 76 42 70 Z" fill="#4B8161" />
+        <path d="M80 50 C75 35 95 30 98 44 C101 58 87 60 80 50 Z" fill="#5A9673" />
+        <path d="M105 85 C118 78 122 92 114 98 C106 104 98 92 105 85 Z" fill="#4B8161" />
+        <path d="M38 100 C28 92 34 80 44 85 C54 90 46 105 38 100 Z" fill="#3D6B50" />
+      </svg>
+    </div>
+  </section>
+
+  <!-- 2. Three Clickable KPI Metric Cards -->
+  <section class="grid grid-cols-1 sm:grid-cols-3 gap-4.5">
+    <!-- KPI 1: Notas Activas -->
+    <a
+      routerLink="/apuntes"
+      class="group p-5 rounded-2xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] hover:border-[#74566E]/40 dark:hover:border-[#9D7B96]/40 transition-all duration-200 shadow-xs hover:shadow-md flex items-center justify-between cursor-pointer">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-[#EFEAF6] text-[#5B447A] dark:bg-[#74566E]/20 dark:text-[#9D7B96] flex items-center justify-center shrink-0">
+          <lucide-icon [img]="FileTextIcon" [size]="22" [strokeWidth]="1.75"></lucide-icon>
+        </div>
+        <div>
+          <div class="text-2xl sm:text-3xl font-extrabold text-[#231F20] dark:text-[#F3EFEA] tabular-nums">
+            {{ workspace.activeNotesCount() }}
+          </div>
+          <div class="text-xs sm:text-sm font-medium text-[#635B5E] dark:text-neutral-400 mt-0.5">
+            Notas activas
+          </div>
+        </div>
+      </div>
+      <div class="w-8 h-8 rounded-full flex items-center justify-center text-[#635B5E] group-hover:text-[#74566E] dark:group-hover:text-[#9D7B96] group-hover:translate-x-1 transition-all">
+        <lucide-icon [img]="ChevronRightIcon" [size]="18" [strokeWidth]="2"></lucide-icon>
+      </div>
+    </a>
+
+    <!-- KPI 2: Tareas Pendientes -->
+    <a
+      routerLink="/tareas"
+      class="group p-5 rounded-2xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] hover:border-[#8C4A19]/40 dark:hover:border-[#C97D60]/40 transition-all duration-200 shadow-xs hover:shadow-md flex items-center justify-between cursor-pointer">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-[#FDF0E6] text-[#8C4A19] dark:bg-[#8C4A19]/20 dark:text-[#C97D60] flex items-center justify-center shrink-0">
+          <lucide-icon [img]="CheckCircle2Icon" [size]="22" [strokeWidth]="1.75"></lucide-icon>
+        </div>
+        <div>
+          <div class="text-2xl sm:text-3xl font-extrabold text-[#231F20] dark:text-[#F3EFEA] tabular-nums">
+            {{ workspace.pendingTasksCount() }}
+          </div>
+          <div class="text-xs sm:text-sm font-medium text-[#635B5E] dark:text-neutral-400 mt-0.5">
+            Tareas pendientes
+          </div>
+        </div>
+      </div>
+      <div class="w-8 h-8 rounded-full flex items-center justify-center text-[#635B5E] group-hover:text-[#8C4A19] dark:group-hover:text-[#C97D60] group-hover:translate-x-1 transition-all">
+        <lucide-icon [img]="ChevronRightIcon" [size]="18" [strokeWidth]="2"></lucide-icon>
+      </div>
+    </a>
+
+    <!-- KPI 3: Recordatorios Hoy -->
+    <a
+      routerLink="/recordatorios"
+      class="group p-5 rounded-2xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] hover:border-[#246A49]/40 dark:hover:border-[#4B8161]/40 transition-all duration-200 shadow-xs hover:shadow-md flex items-center justify-between cursor-pointer">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-[#E6F3EC] text-[#246A49] dark:bg-[#246A49]/20 dark:text-[#4B8161] flex items-center justify-center shrink-0">
+          <lucide-icon [img]="BellIcon" [size]="22" [strokeWidth]="1.75"></lucide-icon>
+        </div>
+        <div>
+          <div class="text-2xl sm:text-3xl font-extrabold text-[#231F20] dark:text-[#F3EFEA] tabular-nums">
+            {{ workspace.todayRemindersCount() }}
+          </div>
+          <div class="text-xs sm:text-sm font-medium text-[#635B5E] dark:text-neutral-400 mt-0.5">
+            Recordatorios hoy
+          </div>
+        </div>
+      </div>
+      <div class="w-8 h-8 rounded-full flex items-center justify-center text-[#635B5E] group-hover:text-[#246A49] dark:group-hover:text-[#4B8161] group-hover:translate-x-1 transition-all">
+        <lucide-icon [img]="ChevronRightIcon" [size]="18" [strokeWidth]="2"></lucide-icon>
+      </div>
+    </a>
+  </section>
+
+  <!-- 3. Main Dashboard Grid (3 Columns) -->
+  <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Column 1: Notas Recientes (4 cols) -->
+    <div class="lg:col-span-4 bg-white dark:bg-[#19181E] rounded-2xl border border-[#EAE2DE] dark:border-[#2A2832] p-5 flex flex-col justify-between shadow-xs">
+      <div>
+        <div class="flex items-center justify-between pb-3.5 mb-3 border-b border-[#EAE2DE] dark:border-[#2A2832]">
+          <div class="flex items-center gap-2">
+            <lucide-icon [img]="FileTextIcon" [size]="18" [strokeWidth]="1.75" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
+            <h2 class="text-sm font-bold text-[#231F20] dark:text-[#F3EFEA]">
+              Notas recientes
+            </h2>
+          </div>
+          <a
+            routerLink="/apuntes"
+            class="inline-flex items-center gap-1 text-xs font-semibold text-[#74566E] dark:text-[#9D7B96] hover:underline">
+            <span>Ver todas</span>
+            <lucide-icon [img]="ArrowRightIcon" [size]="13" [strokeWidth]="2"></lucide-icon>
+          </a>
+        </div>
+
+        <!-- Notes List -->
+        <div class="space-y-2">
+          @for (note of workspace.recentNotes(); track note.id) {
+            <div
+              (click)="openNote(note.id)"
+              class="flex items-center justify-between p-2.5 rounded-xl hover:bg-[#FAF7F5] dark:hover:bg-[#121115] transition-colors cursor-pointer group">
+              <div class="flex items-center gap-3 min-w-0">
+                <div 
+                  class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                  [style.background-color]="getFolderColor(note.folderId) + '18'"
+                  [style.color]="getFolderColor(note.folderId)">
+                  <lucide-icon [img]="FileTextIcon" [size]="17" [strokeWidth]="1.75"></lucide-icon>
+                </div>
+                <div class="min-w-0 truncate">
+                  <div class="text-sm font-semibold text-[#231F20] dark:text-[#F3EFEA] group-hover:text-[#74566E] dark:group-hover:text-[#9D7B96] truncate transition-colors">
+                    {{ note.title }}
+                  </div>
+                  <div class="text-xs text-[#635B5E] dark:text-neutral-400 tabular-nums">
+                    Editado {{ formatRelativeTime(note.updatedAt) }}
+                  </div>
+                </div>
+              </div>
+              <lucide-icon [img]="ChevronRightIcon" [size]="16" [strokeWidth]="1.75" class="text-[#635B5E] opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all"></lucide-icon>
+            </div>
+          }
+
+          @if (workspace.recentNotes().length === 0) {
+            <div class="py-8 text-center text-xs text-[#635B5E] dark:text-neutral-400">
+              No tienes notas aún.
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Quick Add Note Action in bottom -->
+      <div class="pt-3 border-t border-[#EAE2DE]/60 dark:border-[#2A2832]/60 mt-3">
+        <button
+          type="button"
+          (click)="openNote(workspace.addNote('Nueva nota rápida').id)"
+          class="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-dashed border-[#EAE2DE] dark:border-[#2A2832] text-xs font-semibold text-[#74566E] dark:text-[#9D7B96] hover:bg-[#FAF7F5] dark:hover:bg-[#121115] transition-colors">
+          <lucide-icon [img]="PlusIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+          <span>Escribir apunte rápido</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Column 2: Tareas de Hoy (4 cols) with Interactive Checkboxes -->
+    <div class="lg:col-span-4 bg-white dark:bg-[#19181E] rounded-2xl border border-[#EAE2DE] dark:border-[#2A2832] p-5 flex flex-col justify-between shadow-xs">
+      <div>
+        <div class="flex items-center justify-between pb-3.5 mb-3 border-b border-[#EAE2DE] dark:border-[#2A2832]">
+          <div class="flex items-center gap-2">
+            <lucide-icon [img]="CheckCircle2Icon" [size]="18" [strokeWidth]="1.75" class="text-[#246A49] dark:text-[#4B8161]"></lucide-icon>
+            <h2 class="text-sm font-bold text-[#231F20] dark:text-[#F3EFEA]">
+              Tareas de hoy
+            </h2>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-[#E6F3EC] text-[#246A49] dark:bg-[#246A49]/20 dark:text-green-300 font-semibold tabular-nums">
+              {{ todayTasksCompletedCount() }}/{{ todayTasksList().length }}
+            </span>
+          </div>
+          <a
+            routerLink="/tareas"
+            class="inline-flex items-center gap-1 text-xs font-semibold text-[#74566E] dark:text-[#9D7B96] hover:underline">
+            <span>Ver todas</span>
+            <lucide-icon [img]="ArrowRightIcon" [size]="13" [strokeWidth]="2"></lucide-icon>
+          </a>
+        </div>
+
+        <!-- Tasks List with Interactive Real-Time Checkbox -->
+        <div class="space-y-2">
+          @for (task of todayTasksList(); track task.id) {
+            <div class="flex items-center justify-between p-2.5 rounded-xl hover:bg-[#FAF7F5] dark:hover:bg-[#121115] transition-colors group">
+              <!-- Checkbox & Title -->
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                <button
+                  type="button"
+                  (click)="toggleTask(task.id); $event.stopPropagation()"
+                  class="w-5 h-5 rounded-md border flex items-center justify-center transition-all cursor-pointer shrink-0"
+                  [ngClass]="{
+                    'bg-[#74566E] border-[#74566E] text-white': workspace.isTaskStatusDone(task.status),
+                    'border-[#635B5E]/40 hover:border-[#74566E] bg-white dark:bg-[#19181E]': !workspace.isTaskStatusDone(task.status)
+                  }"
+                  [title]="workspace.isTaskStatusDone(task.status) ? 'Marcar como pendiente' : 'Marcar como completada'">
+                  @if (workspace.isTaskStatusDone(task.status)) {
+                    <lucide-icon [img]="CheckIcon" [size]="14" [strokeWidth]="2.5"></lucide-icon>
+                  }
+                </button>
+                <span 
+                  class="text-sm font-medium transition-all truncate"
+                  [ngClass]="{
+                    'line-through text-[#635B5E]/60 dark:text-neutral-500': workspace.isTaskStatusDone(task.status),
+                    'text-[#231F20] dark:text-[#F3EFEA]': !workspace.isTaskStatusDone(task.status)
+                  }">
+                  {{ task.title }}
+                </span>
+              </div>
+
+              <!-- Project Tag Badge (High-contrast pastel) -->
+              <span 
+                class="text-xs px-2.5 py-0.5 rounded-md font-medium shrink-0 ml-2"
+                [ngClass]="{
+                  'bg-[#EFEAF6] text-[#5B447A] dark:bg-[#74566E]/20 dark:text-[#9D7B96]': task.projectTag === 'Trabajo',
+                  'bg-[#E6F3EC] text-[#246A49] dark:bg-[#246A49]/20 dark:text-green-300': task.projectTag === 'Salud',
+                  'bg-[#E8F1FA] text-[#265B8A] dark:bg-[#265B8A]/20 dark:text-blue-300': task.projectTag === 'Estudio',
+                  'bg-[#FDF0E6] text-[#8C4A19] dark:bg-[#8C4A19]/20 dark:text-orange-300': task.projectTag === 'Personal'
+                }">
+                {{ task.projectTag }}
+              </span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Quick Inline Add Task Input -->
+      <div class="pt-3 border-t border-[#EAE2DE]/60 dark:border-[#2A2832]/60 mt-3">
+        @if (showQuickTaskInput()) {
+          <form (ngSubmit)="addQuickTask()" class="flex items-center gap-2">
+            <input
+              type="text"
+              [(ngModel)]="quickTaskTitle"
+              name="quickTaskTitle"
+              placeholder="Nueva tarea para hoy..."
+              class="flex-1 px-3 py-1.5 text-xs rounded-xl bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none focus:border-[#74566E]"
+              autoFocus
+            />
+            <button
+              type="submit"
+              class="px-3 py-1.5 bg-[#74566E] text-white rounded-xl text-xs font-semibold hover:bg-[#5E4359]">
+              Agregar
+            </button>
+            <button
+              type="button"
+              (click)="showQuickTaskInput.set(false)"
+              class="px-2 py-1.5 text-xs text-[#635B5E] hover:text-[#231F20]">
+              Cancelar
+            </button>
+          </form>
+        } @else {
+          <button
+            type="button"
+            (click)="showQuickTaskInput.set(true)"
+            class="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-dashed border-[#EAE2DE] dark:border-[#2A2832] text-xs font-semibold text-[#246A49] dark:text-[#4B8161] hover:bg-[#FAF7F5] dark:hover:bg-[#121115] transition-colors">
+            <lucide-icon [img]="PlusIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+            <span>Añadir tarea para hoy</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Column 3: Calendario Compacto (4 cols) -->
+    <div class="lg:col-span-4 bg-white dark:bg-[#19181E] rounded-2xl border border-[#EAE2DE] dark:border-[#2A2832] p-5 shadow-xs flex flex-col justify-between">
+      <div>
+        <!-- Calendar Header -->
+        <div class="flex items-center justify-between pb-3.5 mb-3 border-b border-[#EAE2DE] dark:border-[#2A2832]">
+          <div class="flex items-center gap-2">
+            <lucide-icon [img]="CalendarIcon" [size]="18" [strokeWidth]="1.75" class="text-[#8C4A19] dark:text-[#C97D60]"></lucide-icon>
+            <h2 class="text-sm font-bold text-[#231F20] dark:text-[#F3EFEA]">
+              Calendario
+            </h2>
+          </div>
+
+          <!-- Month Selector -->
+          <div class="flex items-center gap-1.5">
+            <button
+              type="button"
+              (click)="prevMonth()"
+              class="p-1 rounded-lg hover:bg-[#FAF7F5] dark:hover:bg-[#121115] text-[#635B5E] transition-colors"
+              title="Mes anterior">
+              <lucide-icon [img]="ChevronLeftIcon" [size]="16" [strokeWidth]="2"></lucide-icon>
+            </button>
+            <span class="text-xs font-semibold text-[#231F20] dark:text-[#F3EFEA] min-w-[100px] text-center">
+              {{ calendarMonthTitle() }}
+            </span>
+            <button
+              type="button"
+              (click)="nextMonth()"
+              class="p-1 rounded-lg hover:bg-[#FAF7F5] dark:hover:bg-[#121115] text-[#635B5E] transition-colors"
+              title="Mes siguiente">
+              <lucide-icon [img]="ChevronRightIcon" [size]="16" [strokeWidth]="2"></lucide-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Weekday Headers (L, M, M, J, V, S, D) -->
+        <div class="grid grid-cols-7 gap-1 text-center mb-2">
+          <span class="text-[11px] font-semibold text-[#635B5E] dark:text-neutral-400">L</span>
+          <span class="text-[11px] font-semibold text-[#635B5E] dark:text-neutral-400">M</span>
+          <span class="text-[11px] font-semibold text-[#635B5E] dark:text-neutral-400">M</span>
+          <span class="text-[11px] font-semibold text-[#635B5E] dark:text-neutral-400">J</span>
+          <span class="text-[11px] font-semibold text-[#635B5E] dark:text-neutral-400">V</span>
+          <span class="text-[11px] font-semibold text-[#635B5E] dark:text-neutral-400">S</span>
+          <span class="text-[11px] font-semibold text-[#635B5E] dark:text-neutral-400">D</span>
+        </div>
+
+        <!-- Days Grid -->
+        <div class="grid grid-cols-7 gap-1 text-center">
+          @for (day of calendarDays(); track day.dateStr + day.dayNumber) {
+            <button
+              type="button"
+              (click)="selectCalendarDay(day)"
+              class="relative aspect-square flex flex-col items-center justify-center rounded-xl text-xs font-medium tabular-nums transition-all group cursor-pointer"
+              [ngClass]="{
+                'bg-[#74566E] text-white font-bold shadow-xs': day.isToday,
+                'text-[#231F20] dark:text-[#F3EFEA] hover:bg-[#FAF7F5] dark:hover:bg-[#121115]': day.isCurrentMonth && !day.isToday,
+                'text-[#635B5E]/30 dark:text-neutral-600': !day.isCurrentMonth
+              }">
+              <span>{{ day.dayNumber }}</span>
+
+              <!-- Activity Dots Indicator -->
+              @if (day.hasItems && !day.isToday) {
+                <div class="absolute bottom-1 flex items-center justify-center gap-0.5">
+                  @for (t of day.itemTypes; track t) {
+                    <span 
+                      class="w-1 h-1 rounded-full"
+                      [ngClass]="{
+                        'bg-[#74566E]': t === 'task',
+                        'bg-[#265B8A]': t === 'event',
+                        'bg-[#246A49]': t === 'reminder'
+                      }">
+                    </span>
+                  }
+                </div>
+              }
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Quick Link to Full Calendar -->
+      <div class="pt-3 border-t border-[#EAE2DE]/60 dark:border-[#2A2832]/60 mt-3 text-center">
+        <a
+          routerLink="/calendario"
+          class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#74566E] dark:text-[#9D7B96] hover:underline">
+          <span>Abrir vista completa de calendario</span>
+          <lucide-icon [img]="ArrowRightIcon" [size]="13" [strokeWidth]="2"></lucide-icon>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Bottom Row: Próximos Recordatorios -->
+  <section class="bg-white dark:bg-[#19181E] rounded-2xl border border-[#EAE2DE] dark:border-[#2A2832] p-5 shadow-xs">
+    <div class="flex items-center justify-between pb-3.5 mb-3 border-b border-[#EAE2DE] dark:border-[#2A2832]">
+      <div class="flex items-center gap-2">
+        <lucide-icon [img]="BellIcon" [size]="18" [strokeWidth]="1.75" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
+        <h2 class="text-sm font-bold text-[#231F20] dark:text-[#F3EFEA]">
+          Próximos recordatorios
+        </h2>
+      </div>
+      <a
+        routerLink="/recordatorios"
+        class="inline-flex items-center gap-1 text-xs font-semibold text-[#74566E] dark:text-[#9D7B96] hover:underline">
+        <span>Ver todos</span>
+        <lucide-icon [img]="ArrowRightIcon" [size]="13" [strokeWidth]="2"></lucide-icon>
+      </a>
+    </div>
+
+    <!-- Reminders Horizontal / Vertical Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      @for (reminder of workspace.upcomingReminders(); track reminder.id) {
+        <div class="p-3.5 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5]/50 dark:bg-[#121115]/50 flex items-start justify-between gap-3 group hover:border-[#74566E]/40 transition-colors">
+          <div class="flex items-start gap-3 min-w-0">
+            <!-- Category Indicator Dot / Icon -->
+            <div 
+              class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+              [ngClass]="{
+                'bg-[#EFEAF6] text-[#5B447A] dark:bg-[#74566E]/20 dark:text-[#9D7B96]': reminder.category === 'Trabajo',
+                'bg-[#E6F3EC] text-[#246A49] dark:bg-[#246A49]/20 dark:text-green-300': reminder.category === 'Salud',
+                'bg-[#FDF0E6] text-[#8C4A19] dark:bg-[#8C4A19]/20 dark:text-orange-300': reminder.category === 'Personal',
+                'bg-[#E8F1FA] text-[#265B8A] dark:bg-[#265B8A]/20 dark:text-blue-300': reminder.category === 'Estudio' || reminder.category === 'Pagos'
+              }">
+              <lucide-icon [img]="BellIcon" [size]="15" [strokeWidth]="1.75"></lucide-icon>
+            </div>
+
+            <div class="min-w-0">
+              <div class="text-sm font-bold text-[#231F20] dark:text-[#F3EFEA] truncate">
+                {{ reminder.title }}
+              </div>
+              <div class="flex items-center gap-2 mt-1 text-xs text-[#635B5E] dark:text-neutral-400">
+                <span class="inline-flex items-center gap-1 tabular-nums font-medium">
+                  <lucide-icon [img]="ClockIcon" [size]="13" [strokeWidth]="1.75"></lucide-icon>
+                  {{ reminder.date }} a las {{ reminder.time }}
+                </span>
+                @if (reminder.recurrence !== 'none') {
+                  <span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] text-[10px] font-mono">
+                    <lucide-icon [img]="RotateCwIcon" [size]="10" [strokeWidth]="2"></lucide-icon>
+                    {{ reminder.recurrence === 'daily' ? 'Diario' : reminder.recurrence === 'weekly' ? 'Semanal' : 'Mensual' }}
+                  </span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Mark Completed Button -->
+          <button
+            type="button"
+            (click)="toggleReminder(reminder.id)"
+            class="p-1.5 rounded-lg border border-[#EAE2DE] dark:border-[#2A2832] hover:bg-[#E6F3EC] hover:text-[#246A49] hover:border-[#246A49]/30 text-[#635B5E] transition-colors shrink-0"
+            title="Marcar recordatorio como completado">
+            <lucide-icon [img]="CheckIcon" [size]="15" [strokeWidth]="2"></lucide-icon>
+          </button>
+        </div>
+      }
+
+      @if (workspace.upcomingReminders().length === 0) {
+        <div class="col-span-3 py-6 text-center text-xs text-[#635B5E] dark:text-neutral-400">
+          No tienes recordatorios pendientes para hoy.
+        </div>
+      }
+    </div>
+  </section>
+
+</div>

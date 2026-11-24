@@ -1,0 +1,398 @@
+<div class="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6">
+
+  <!-- 1. Header Banner -->
+  <section class="rounded-2xl bg-gradient-to-r from-[#FAF5F2] via-[#F6EFEB] to-[#EFE7E2] dark:from-[#19181E] dark:via-[#1D1B22] dark:to-[#16151B] border border-[#EAE2DE] dark:border-[#2A2832] p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+    <div class="space-y-1">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/70 dark:bg-black/30 border border-[#EAE2DE] dark:border-[#2A2832] text-xs font-medium text-[#74566E] dark:text-[#9D7B96]">
+        <lucide-icon [img]="BellIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+        <span>Alertas activas y recordatorios personales</span>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#231F20] dark:text-[#F3EFEA]">
+        Mis recordatorios
+      </h1>
+      <p class="text-xs sm:text-sm text-[#635B5E] dark:text-neutral-400">
+        Gestiona tus recordatorios, mantén tus pendientes a la vista y recibe alertas sonoras a tiempo.
+      </p>
+    </div>
+
+    <!-- Test Audio & Alert button -->
+    <button
+      type="button"
+      (click)="testAlertNotification()"
+      class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] hover:border-[#74566E]/40 text-xs font-semibold text-[#74566E] dark:text-[#9D7B96] transition-colors shadow-xs cursor-pointer shrink-0 min-h-[42px]"
+      title="Dispara de prueba el tono Web Audio API y el toast interactivo">
+      <lucide-icon [img]="Volume2Icon" [size]="15" [strokeWidth]="2"></lucide-icon>
+      <span>Probar sonido y alerta</span>
+    </button>
+  </section>
+
+  <!-- 2. Filters & Actions Bar -->
+  <section class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] shadow-xs">
+    <!-- Filter Tabs (Todos, Hoy, Programados, Completados) -->
+    <div class="flex items-center gap-1.5 p-1 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] overflow-x-auto max-w-full">
+      <button
+        type="button"
+        (click)="filterTab.set('all')"
+        class="min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shrink-0"
+        [ngClass]="filterTab() === 'all' ? 'bg-white dark:bg-[#19181E] text-[#74566E] dark:text-[#9D7B96] shadow-xs' : 'text-[#635B5E]'">
+        <span>Todos</span>
+        <span class="text-[10px] font-mono opacity-80 tabular-nums">({{ metrics().total }})</span>
+      </button>
+
+      <button
+        type="button"
+        (click)="filterTab.set('today')"
+        class="min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shrink-0"
+        [ngClass]="filterTab() === 'today' ? 'bg-white dark:bg-[#19181E] text-[#74566E] dark:text-[#9D7B96] shadow-xs' : 'text-[#635B5E]'">
+        <span>Hoy</span>
+        <span class="text-[10px] font-mono opacity-80 tabular-nums">({{ workspace.todayRemindersCount() }})</span>
+      </button>
+
+      <button
+        type="button"
+        (click)="filterTab.set('scheduled')"
+        class="min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0"
+        [ngClass]="filterTab() === 'scheduled' ? 'bg-white dark:bg-[#19181E] text-[#74566E] dark:text-[#9D7B96] shadow-xs' : 'text-[#635B5E]'">
+        Programados
+      </button>
+
+      <button
+        type="button"
+        (click)="filterTab.set('completed')"
+        class="min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shrink-0"
+        [ngClass]="filterTab() === 'completed' ? 'bg-white dark:bg-[#19181E] text-[#74566E] dark:text-[#9D7B96] shadow-xs' : 'text-[#635B5E]'">
+        <span>Completados</span>
+        <span class="text-[10px] font-mono opacity-80 tabular-nums">({{ metrics().completed }})</span>
+      </button>
+    </div>
+
+    <!-- Category & Search Filters -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 max-w-full md:max-w-lg">
+      <div class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-xs font-medium min-h-[40px]">
+        <select
+          [value]="selectedCategory()"
+          (change)="selectedCategory.set($any($event.target).value)"
+          class="bg-transparent text-[#231F20] dark:text-[#F3EFEA] focus:outline-none cursor-pointer w-full">
+          <option value="all">Categoría: Todas</option>
+          @for (c of categories; track c) {
+            <option [value]="c">{{ c }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="flex items-center gap-2 px-3 py-2 rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] focus-within:border-[#74566E] dark:focus-within:border-[#9D7B96] transition-colors flex-1 min-h-[40px]">
+        <lucide-icon [img]="SearchIcon" [size]="13" [strokeWidth]="2" class="text-[#635B5E] dark:text-neutral-400 shrink-0"></lucide-icon>
+        <input
+          type="text"
+          [value]="searchQuery()"
+          (input)="searchQuery.set($any($event.target).value)"
+          placeholder="Buscar recordatorio..."
+          class="w-full bg-transparent text-xs text-[#231F20] dark:text-[#F3EFEA] placeholder-[#635B5E]/60 focus:outline-none leading-normal"
+        />
+      </div>
+    </div>
+
+    <!-- + Nuevo button -->
+    <button
+      type="button"
+      (click)="openCreateForm()"
+      class="w-full md:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#74566E] hover:bg-[#5E4359] dark:bg-[#9D7B96] dark:hover:bg-[#85637E] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer shrink-0 min-h-[42px]">
+      <lucide-icon [img]="PlusIcon" [size]="15" [strokeWidth]="2.5"></lucide-icon>
+      <span>Nuevo recordatorio</span>
+    </button>
+  </section>
+
+  <!-- 3. Main Content Grid (List + Right Form/Summary) -->
+  <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+    <!-- Left List of Reminders (7 cols) -->
+    <div class="lg:col-span-7 bg-white dark:bg-[#19181E] rounded-2xl border border-[#EAE2DE] dark:border-[#2A2832] p-4 sm:p-5 shadow-xs space-y-3">
+      <div class="flex items-center justify-between pb-3 border-b border-[#EAE2DE] dark:border-[#2A2832]">
+        <div class="text-xs font-bold uppercase tracking-wider text-[#635B5E] dark:text-neutral-400">
+          Lista de recordatorios ({{ filteredReminders().length }})
+        </div>
+      </div>
+
+      <div class="space-y-2.5">
+        @for (reminder of filteredReminders(); track reminder.id) {
+          <div
+            (click)="editReminder(reminder)"
+            class="p-3.5 sm:p-4 rounded-xl border transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 group"
+            [ngClass]="{
+              'border-[#74566E] bg-[#FAF7F5] dark:bg-[#201E27]': editingReminderId() === reminder.id,
+              'border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] hover:border-[#74566E]/40': editingReminderId() !== reminder.id,
+              'opacity-60': reminder.completed || !reminder.active
+            }">
+            
+            <!-- Left Info with Checkbox -->
+            <div class="flex items-start gap-3 min-w-0 flex-1">
+              <!-- Complete check button with generous touch target -->
+              <button
+                type="button"
+                (click)="toggleCompleted(reminder.id); $event.stopPropagation()"
+                class="mt-0.5 w-6 h-6 sm:w-5 sm:h-5 rounded-md border flex items-center justify-center transition-colors shrink-0 cursor-pointer min-h-[32px] min-w-[32px] sm:min-h-[20px] sm:min-w-[20px]"
+                [ngClass]="{
+                  'bg-[#74566E] border-[#74566E] text-white': reminder.completed,
+                  'border-[#635B5E]/40 hover:border-[#74566E] bg-white dark:bg-[#19181E]': !reminder.completed
+                }"
+                [title]="reminder.completed ? 'Marcar como pendiente' : 'Marcar como completado'">
+                @if (reminder.completed) {
+                  <lucide-icon [img]="CheckIcon" [size]="14" [strokeWidth]="3"></lucide-icon>
+                }
+              </button>
+
+              <div class="min-w-0 space-y-1 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h4 
+                    class="text-sm font-bold truncate max-w-[200px] sm:max-w-none"
+                    [class.line-through]="reminder.completed"
+                    [class.text-[#231F20]]="!reminder.completed"
+                    [class.dark:text-[#F3EFEA]]="!reminder.completed">
+                    {{ reminder.title }}
+                  </h4>
+
+                  <!-- Category Badge -->
+                  <span 
+                    class="px-2 py-0.5 rounded text-[10px] font-semibold shrink-0"
+                    [ngClass]="{
+                      'bg-[#EFEAF6] text-[#5B447A] dark:bg-[#74566E]/20 dark:text-[#9D7B96]': reminder.category === 'Trabajo',
+                      'bg-[#E6F3EC] text-[#246A49] dark:bg-[#246A49]/20 dark:text-green-300': reminder.category === 'Salud',
+                      'bg-[#FDF0E6] text-[#8C4A19] dark:bg-[#8C4A19]/20 dark:text-orange-300': reminder.category === 'Personal',
+                      'bg-[#E8F1FA] text-[#265B8A] dark:bg-[#265B8A]/20 dark:text-blue-300': reminder.category === 'Estudio' || reminder.category === 'Pagos'
+                    }">
+                    {{ reminder.category }}
+                  </span>
+                </div>
+
+                @if (reminder.description) {
+                  <p class="text-xs text-[#635B5E] dark:text-neutral-400 line-clamp-2">
+                    {{ reminder.description }}
+                  </p>
+                }
+
+                <div class="flex items-center gap-2.5 sm:gap-3 text-xs text-[#635B5E] dark:text-neutral-400 flex-wrap">
+                  <span class="inline-flex items-center gap-1 font-mono tabular-nums">
+                    <lucide-icon [img]="ClockIcon" [size]="12" [strokeWidth]="1.75"></lucide-icon>
+                    {{ reminder.date }} a las {{ reminder.time }}
+                  </span>
+
+                  @if (reminder.recurrence !== 'none') {
+                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] text-[10px] font-mono">
+                      <lucide-icon [img]="RotateCwIcon" [size]="10" [strokeWidth]="2"></lucide-icon>
+                      {{ reminder.recurrence === 'daily' ? 'Diario' : reminder.recurrence === 'weekly' ? 'Semanal' : 'Mensual' }}
+                    </span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Controls: Active switch & Delete -->
+            <div class="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#EAE2DE]/50 dark:border-[#2A2832]/50 shrink-0" (click)="$event.stopPropagation()">
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] sm:hidden text-[#635B5E] font-medium">Activo</span>
+                <!-- Switch On/Off -->
+                <button
+                  type="button"
+                  (click)="toggleActive(reminder.id)"
+                  class="w-10 h-6 sm:w-9 sm:h-5 rounded-full transition-colors relative cursor-pointer min-h-[32px] sm:min-h-0 flex items-center"
+                  [ngClass]="reminder.active ? 'bg-[#74566E]' : 'bg-[#EAE2DE] dark:bg-[#2A2832]'"
+                  [title]="reminder.active ? 'Desactivar recordatorio' : 'Activar recordatorio'">
+                  <span 
+                    class="block w-4 h-4 sm:w-3.5 sm:h-3.5 rounded-full bg-white transition-transform transform translate-x-1"
+                    [ngClass]="{ 'translate-x-5 sm:translate-x-4.5': reminder.active }">
+                  </span>
+                </button>
+              </div>
+
+              <!-- Delete -->
+              <button
+                type="button"
+                (click)="deleteReminder(reminder.id)"
+                class="min-h-[40px] min-w-[40px] sm:min-h-[32px] sm:min-w-[32px] p-2 sm:p-1.5 rounded-lg text-[#635B5E] hover:text-[#9B2C2C] hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors flex items-center justify-center cursor-pointer"
+                title="Eliminar recordatorio">
+                <lucide-icon [img]="Trash2Icon" [size]="16" [strokeWidth]="1.75"></lucide-icon>
+              </button>
+            </div>
+          </div>
+        }
+
+        @if (filteredReminders().length === 0) {
+          <div class="py-12 text-center text-xs text-[#635B5E] dark:text-neutral-400">
+            No hay recordatorios que coincidan con los filtros seleccionados.
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Right Column: Formulario Crear / Editar + Resumen (5 cols) -->
+    <div class="lg:col-span-5 space-y-5">
+      <!-- Form Card -->
+      <div class="bg-white dark:bg-[#19181E] rounded-2xl border border-[#EAE2DE] dark:border-[#2A2832] p-4 sm:p-5 shadow-xs space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-[#EAE2DE] dark:border-[#2A2832]">
+          <div class="flex items-center gap-2">
+            <lucide-icon [img]="BellIcon" [size]="16" [strokeWidth]="2" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
+            <h3 class="text-sm font-bold text-[#231F20] dark:text-[#F3EFEA]">
+              {{ isEditing() ? 'Editar recordatorio' : 'Nuevo recordatorio' }}
+            </h3>
+          </div>
+          @if (isEditing()) {
+            <button
+              type="button"
+              (click)="openCreateForm()"
+              class="text-xs text-[#74566E] hover:underline font-semibold min-h-[32px] px-2 flex items-center">
+              + Nuevo
+            </button>
+          }
+        </div>
+
+        <form (ngSubmit)="saveReminder()" class="space-y-3.5">
+          <!-- Título -->
+          <div>
+            <label class="text-xs font-bold text-[#635B5E] block mb-1">Título *</label>
+            <input
+              type="text"
+              [(ngModel)]="reminderForm().title"
+              name="title"
+              required
+              placeholder="Ej: Tomar vitaminas, Pago de servicio..."
+              class="w-full px-3 py-2 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none focus:border-[#74566E] min-h-[38px]"
+            />
+          </div>
+
+          <!-- Descripción -->
+          <div>
+            <label class="text-xs font-bold text-[#635B5E] block mb-1">Descripción</label>
+            <textarea
+              [(ngModel)]="reminderForm().description"
+              name="description"
+              rows="2"
+              placeholder="Detalles adicionales o notas..."
+              class="w-full px-3 py-2 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none focus:border-[#74566E] resize-none"
+            ></textarea>
+          </div>
+
+          <!-- Fecha y Hora -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-bold text-[#635B5E] block mb-1">Fecha</label>
+              <input
+                type="date"
+                [(ngModel)]="reminderForm().date"
+                name="date"
+                required
+                class="w-full px-3 py-2 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none min-h-[38px]"
+              />
+            </div>
+            <div>
+              <label class="text-xs font-bold text-[#635B5E] block mb-1">Hora</label>
+              <input
+                type="time"
+                [(ngModel)]="reminderForm().time"
+                name="time"
+                required
+                class="w-full px-3 py-2 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none min-h-[38px]"
+              />
+            </div>
+          </div>
+
+          <!-- Recurrencia & Categoría -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-bold text-[#635B5E] block mb-1">Recurrencia</label>
+              <select
+                [(ngModel)]="reminderForm().recurrence"
+                name="recurrence"
+                class="w-full px-2.5 py-2 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none min-h-[38px]">
+                <option value="none">Sin recurrencia</option>
+                <option value="daily">Diario</option>
+                <option value="weekly">Semanal</option>
+                <option value="monthly">Mensual</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="text-xs font-bold text-[#635B5E] block mb-1">Categoría</label>
+              <select
+                [(ngModel)]="reminderForm().category"
+                name="category"
+                class="w-full px-2.5 py-2 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none min-h-[38px]">
+                @for (c of categories; track c) {
+                  <option [value]="c">{{ c }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <!-- Switch Notificaciones -->
+          <div class="flex items-center justify-between p-3 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832]">
+            <div class="space-y-0.5">
+              <div class="text-xs font-bold text-[#231F20] dark:text-[#F3EFEA]">
+                Notificaciones activas
+              </div>
+              <div class="text-[11px] text-[#635B5E]">
+                Recibir aviso sonoro y en pantalla
+              </div>
+            </div>
+            <button
+              type="button"
+              (click)="toggleFormActive()"
+              class="w-10 h-6 rounded-full transition-colors relative cursor-pointer min-h-[32px] flex items-center"
+              [ngClass]="reminderForm().active ? 'bg-[#74566E]' : 'bg-[#EAE2DE] dark:bg-[#2A2832]'">
+              <span 
+                class="block w-4 h-4 rounded-full bg-white transition-transform transform translate-x-1"
+                [ngClass]="{ 'translate-x-5': reminderForm().active }">
+              </span>
+            </button>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center justify-end gap-2 pt-2">
+            @if (isEditing()) {
+              <button
+                type="button"
+                (click)="openCreateForm()"
+                class="px-3 py-2 text-xs font-semibold text-[#635B5E] min-h-[42px]">
+                Cancelar
+              </button>
+            }
+            <button
+              type="submit"
+              [disabled]="!reminderForm().title.trim()"
+              class="w-full py-2.5 bg-[#74566E] hover:bg-[#5E4359] text-white text-xs font-semibold rounded-xl disabled:opacity-50 transition-colors shadow-xs min-h-[42px] cursor-pointer">
+              {{ isEditing() ? 'Guardar cambios' : 'Crear recordatorio' }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Quick Metrics Summary Card -->
+      <div class="bg-white dark:bg-[#19181E] rounded-2xl border border-[#EAE2DE] dark:border-[#2A2832] p-5 shadow-xs space-y-3">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-[#635B5E] dark:text-neutral-400">
+          Resumen de actividad
+        </h4>
+        <div class="grid grid-cols-3 gap-2.5">
+          <div class="p-3 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] text-center">
+            <div class="text-xs text-[#635B5E]">Total</div>
+            <div class="text-xl font-bold tabular-nums text-[#231F20] dark:text-[#F3EFEA] mt-1">
+              {{ metrics().total }}
+            </div>
+          </div>
+          <div class="p-3 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] text-center">
+            <div class="text-xs text-[#635B5E]">Pendientes</div>
+            <div class="text-xl font-bold tabular-nums text-[#8C4A19] mt-1">
+              {{ metrics().pending }}
+            </div>
+          </div>
+          <div class="p-3 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] text-center">
+            <div class="text-xs text-[#635B5E]">Hechos</div>
+            <div class="text-xl font-bold tabular-nums text-[#246A49] mt-1">
+              {{ metrics().completed }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+</div>

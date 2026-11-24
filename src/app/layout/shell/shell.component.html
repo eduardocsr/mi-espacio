@@ -1,0 +1,42 @@
+<div class="flex h-screen w-screen overflow-x-hidden overflow-y-hidden bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] relative">
+  <!-- Desktop Left Sidebar (visible on lg+) -->
+  <div class="hidden lg:block shrink-0">
+    <app-sidebar></app-sidebar>
+  </div>
+
+  <!-- Mobile Drawer Overlay & Sliding Sidebar (visible on < lg when isMobileMenuOpen) -->
+  @if (workspace.isMobileMenuOpen()) {
+    <div 
+      class="lg:hidden fixed inset-0 z-50 flex animate-in fade-in duration-200"
+      role="dialog"
+      aria-modal="true">
+      <!-- Semi-transparent Backdrop -->
+      <div 
+        class="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-xs transition-opacity"
+        (click)="workspace.isMobileMenuOpen.set(false)"
+        aria-hidden="true"></div>
+
+      <!-- Sliding Drawer Menu -->
+      <div class="relative w-72 max-w-[85vw] h-full shadow-2xl z-10 animate-in slide-in-from-left duration-250">
+        <app-sidebar></app-sidebar>
+      </div>
+    </div>
+  }
+
+  <!-- Right Main Area -->
+  <div class="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+    <!-- Topbar -->
+    <app-topbar></app-topbar>
+
+    <!-- Main Dynamic Content (Router Outlet) -->
+    <main class="flex-1 overflow-y-auto overflow-x-hidden">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+
+  <!-- Global Command Palette (Ctrl+K) -->
+  <app-command-palette></app-command-palette>
+
+  <!-- Global Active Reminder Toast (AudioContext + Notification API) -->
+  <app-reminder-toast></app-reminder-toast>
+</div>

@@ -1,0 +1,137 @@
+import { Component, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
+import {
+  LucideAngularModule,
+  Search,
+  Plus,
+  Bell,
+  Check,
+  Menu,
+  Cloud,
+  CloudUpload,
+  Download,
+  Upload,
+  LogIn,
+  LogOut,
+  User as UserIcon,
+  RefreshCw
+} from 'lucide-angular';
+import { WorkspaceService } from '../../core/services/workspace.service';
+
+@Component({
+  selector: 'app-topbar',
+  standalone: true,
+  imports: [CommonModule, LucideAngularModule],
+  templateUrl: './topbar.component.html'
+})
+export class TopbarComponent {
+  readonly workspace = inject(WorkspaceService);
+  private readonly router = inject(Router);
+
+  // User menu state
+  readonly isUserMenuOpen = signal<boolean>(false);
+  readonly isActionInProgress = signal<boolean>(false);
+
+  // Icons
+  readonly MenuIcon = Menu;
+  readonly SearchIcon = Search;
+  readonly PlusIcon = Plus;
+  readonly BellIcon = Bell;
+  readonly CheckIcon = Check;
+  readonly CloudIcon = Cloud;
+  readonly CloudUploadIcon = CloudUpload;
+  readonly DownloadIcon = Download;
+  readonly UploadIcon = Upload;
+  readonly LogInIcon = LogIn;
+  readonly LogOutIcon = LogOut;
+  readonly UserIcon = UserIcon;
+  readonly RefreshCwIcon = RefreshCw;
+
+  toggleMobileMenu(): void {
+    this.workspace.isMobileMenuOpen.update(v => !v);
+  }
+
+  toggleUserMenu(): void {
+    this.isUserMenuOpen.update(v => !v);
+  }
+
+  closeUserMenu(): void {
+    this.isUserMenuOpen.set(false);
+  }
+
+  openSearch(): void {
+    this.workspace.isSearchOpen.set(true);
+  }
+
+  createNewNote(): void {
+    const note = this.workspace.addNote('Nota sin título');
+    this.router.navigate(['/apuntes'], { queryParams: { id: note.id } });
+  }
+
+  goToReminders(): void {
+    this.router.navigate(['/recordatorios']);
+  }
+
+  async loginWithGoogle(): Promise<void> {
+    this.isActionInProgress.set(true);
+    try {
+      await this.workspace.loginWithGoogle();
+      this.closeUserMenu();
+    } catch (err) {
+      console.error('Error al iniciar sesión:', err);
+    } finally {
+      this.isActionInProgress.set(false);
+    }
+  }
+
+  async logout(): Promise<void> {
+    this.isActionInProgress.set(true);
+    try {
+      await this.workspace.logout();
+      this.closeUserMenu();
+    } finally {
+      this.isActionInProgress.set(false);
+    }
+  }
+
+  exportBackup(): void {
+    this.workspace.exportBackup();
+    this.closeUserMenu();
+  }
+
+  triggerImportFile(fileInput: HTMLInputElement): void {
+    fileInput.click();
+  }
+
+  async handleImportFile(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const text = e.target?.result as string;
+      if (text) {
+        const success = await this.workspace.importBackup(text);
+        if (success) {
+          alert('¡Respaldo importado exitosamente!');
+        } else {
+          alert('El archivo de respaldo no es válido.');
+        }
+      }
+      this.closeUserMenu();
+      input.value = '';
+    };
+    reader.readAsText(file);
+  }
+
+  async syncNow(): Promise<void> {
+    this.isActionInProgress.set(true);
+    try {
+      await this.workspace.saveSnapshot();
+    } finally {
+      this.isActionInProgress.set(false);
+    }
+  }
+}

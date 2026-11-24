@@ -1,0 +1,183 @@
+<aside class="w-64 h-screen sticky top-0 flex flex-col justify-between bg-[#F4EFEA] dark:bg-[#16151B] border-r border-[#E6DFDA] dark:border-[#2A2832] p-4 select-none transition-colors duration-200">
+  <!-- Top Brand & Navigation -->
+  <div class="space-y-6">
+    <!-- Brand Logo & Mobile Close Button -->
+    <div class="flex items-center justify-between px-2 py-2">
+      <div class="flex items-center gap-3">
+        <!-- Minimalist geometric icon inspired by reference images -->
+        <div class="flex items-center gap-1">
+          <div class="w-2.5 h-6 rounded-full bg-[#C97D60]"></div>
+          <div class="w-2.5 h-7 rounded-full bg-[#74566E] dark:bg-[#9D7B96]"></div>
+        </div>
+        <span class="text-lg font-bold tracking-tight text-[#231F20] dark:text-[#F3EFEA]">
+          Mi Espacio
+        </span>
+      </div>
+
+      <!-- Close button visible only on mobile/tablet drawer -->
+      <button
+        type="button"
+        (click)="closeMobileDrawer()"
+        class="lg:hidden p-1.5 rounded-xl text-[#635B5E] hover:text-[#231F20] dark:hover:text-[#F3EFEA] hover:bg-[#EAE2DE] dark:hover:bg-[#201E27] transition-colors"
+        title="Cerrar menú">
+        <lucide-icon [img]="XIcon" [size]="18" [strokeWidth]="2"></lucide-icon>
+      </button>
+    </div>
+
+    <!-- Main Navigation Links -->
+    <nav class="space-y-1">
+      <!-- Inicio -->
+      <a
+        routerLink="/inicio"
+        (click)="closeMobileDrawer()"
+        routerLinkActive="bg-[#EAE2DE] dark:bg-[#25232D] text-[#74566E] dark:text-[#9D7B96] font-semibold"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#231F20]/80 dark:text-[#F3EFEA]/80 hover:bg-[#ECE5E0] dark:hover:bg-[#201E27] transition-colors group">
+        <div class="flex items-center gap-3">
+          <lucide-icon [img]="HouseIcon" [size]="18" [strokeWidth]="1.75" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
+          <span>Inicio</span>
+        </div>
+      </a>
+
+      <!-- Apuntes -->
+      <a
+        routerLink="/apuntes"
+        (click)="closeMobileDrawer()"
+        routerLinkActive="bg-[#EAE2DE] dark:bg-[#25232D] text-[#74566E] dark:text-[#9D7B96] font-semibold"
+        class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#231F20]/80 dark:text-[#F3EFEA]/80 hover:bg-[#ECE5E0] dark:hover:bg-[#201E27] transition-colors group">
+        <div class="flex items-center gap-3">
+          <lucide-icon [img]="FileTextIcon" [size]="18" [strokeWidth]="1.75" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
+          <span>Apuntes</span>
+        </div>
+        <span class="text-xs px-2 py-0.5 rounded-full bg-white/70 dark:bg-[#2A2832] text-[#635B5E] dark:text-neutral-300 tabular-nums">
+          {{ workspace.activeNotesCount() }}
+        </span>
+      </a>
+
+      <!-- Tareas -->
+      <a
+        routerLink="/tareas"
+        (click)="closeMobileDrawer()"
+        routerLinkActive="bg-[#EAE2DE] dark:bg-[#25232D] text-[#74566E] dark:text-[#9D7B96] font-semibold"
+        class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#231F20]/80 dark:text-[#F3EFEA]/80 hover:bg-[#ECE5E0] dark:hover:bg-[#201E27] transition-colors group">
+        <div class="flex items-center gap-3">
+          <lucide-icon [img]="CheckCircle2Icon" [size]="18" [strokeWidth]="1.75" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
+          <span>Tareas</span>
+        </div>
+        @if (workspace.pendingTasksCount() > 0) {
+          <span class="text-xs px-2 py-0.5 rounded-full bg-[#EFEAF6] text-[#5B447A] dark:bg-[#74566E]/25 dark:text-[#9D7B96] font-semibold tabular-nums">
+            {{ workspace.pendingTasksCount() }}
+          </span>
+        }
+      </a>
+
+      <!-- Calendario -->
+      <a
+        routerLink="/calendario"
+        (click)="closeMobileDrawer()"
+        routerLinkActive="bg-[#EAE2DE] dark:bg-[#25232D] text-[#74566E] dark:text-[#9D7B96] font-semibold"
+        class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#231F20]/80 dark:text-[#F3EFEA]/80 hover:bg-[#ECE5E0] dark:hover:bg-[#201E27] transition-colors group">
+        <div class="flex items-center gap-3">
+          <lucide-icon [img]="CalendarIcon" [size]="18" [strokeWidth]="1.75" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
+          <span>Calendario</span>
+        </div>
+      </a>
+
+      <!-- Recordatorios -->
+      <a
+        routerLink="/recordatorios"
+        (click)="closeMobileDrawer()"
+        routerLinkActive="bg-[#EAE2DE] dark:bg-[#25232D] text-[#74566E] dark:text-[#9D7B96] font-semibold"
+        class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#231F20]/80 dark:text-[#F3EFEA]/80 hover:bg-[#ECE5E0] dark:hover:bg-[#201E27] transition-colors group">
+        <div class="flex items-center gap-3">
+          <lucide-icon [img]="BellIcon" [size]="18" [strokeWidth]="1.75" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
+          <span>Recordatorios</span>
+        </div>
+        @if (workspace.todayRemindersCount() > 0) {
+          <span class="text-xs px-2 py-0.5 rounded-full bg-[#FDECEC] text-[#9B2C2C] dark:bg-[#9B2C2C]/25 dark:text-red-300 font-semibold tabular-nums">
+            {{ workspace.todayRemindersCount() }}
+          </span>
+        }
+      </a>
+    </nav>
+  </div>
+
+  <!-- Bottom Utilities & Actions -->
+  <div class="space-y-3 pt-4 border-t border-[#E6DFDA] dark:border-[#2A2832]">
+    <!-- Status message if import/export occurred -->
+    @if (importStatus) {
+      <div class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#E6F3EC] text-[#246A49] dark:bg-[#246A49]/20 dark:text-green-300 text-center animate-in fade-in duration-200">
+        {{ importStatus }}
+      </div>
+    }
+
+    <!-- Dark/Light Theme Toggle -->
+    <button
+      type="button"
+      (click)="workspace.toggleTheme()"
+      class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-[#231F20]/80 dark:text-[#F3EFEA]/80 hover:bg-[#ECE5E0] dark:hover:bg-[#201E27] transition-colors"
+      [title]="'Cambiar a modo ' + (workspace.theme() === 'light' ? 'oscuro' : 'claro')">
+      <div class="flex items-center gap-2.5">
+        @if (workspace.theme() === 'light') {
+          <lucide-icon [img]="MoonIcon" [size]="16" [strokeWidth]="1.75" class="text-[#74566E]"></lucide-icon>
+          <span>Modo Oscuro</span>
+        } @else {
+          <lucide-icon [img]="SunIcon" [size]="16" [strokeWidth]="1.75" class="text-[#9D7B96]"></lucide-icon>
+          <span>Modo Claro</span>
+        }
+      </div>
+      <span class="text-[11px] font-mono uppercase text-[#635B5E] dark:text-neutral-400">
+        {{ workspace.theme() }}
+      </span>
+    </button>
+
+    <!-- Sound Toggle -->
+    <button
+      type="button"
+      (click)="workspace.toggleSound()"
+      class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-[#231F20]/80 dark:text-[#F3EFEA]/80 hover:bg-[#ECE5E0] dark:hover:bg-[#201E27] transition-colors"
+      title="Activar o desactivar tonos de alerta">
+      <div class="flex items-center gap-2.5">
+        @if (workspace.soundEnabled()) {
+          <lucide-icon [img]="Volume2Icon" [size]="16" [strokeWidth]="1.75" class="text-[#246A49]"></lucide-icon>
+          <span>Sonido de alertas</span>
+        } @else {
+          <lucide-icon [img]="VolumeXIcon" [size]="16" [strokeWidth]="1.75" class="text-[#635B5E]"></lucide-icon>
+          <span>Alertas silenciadas</span>
+        }
+      </div>
+      <span class="text-[11px] font-mono text-[#635B5E] dark:text-neutral-400">
+        {{ workspace.soundEnabled() ? 'ON' : 'OFF' }}
+      </span>
+    </button>
+
+    <!-- Data Management (Export & Import) -->
+    <div class="pt-2 border-t border-[#E6DFDA]/60 dark:border-[#2A2832]/60 grid grid-cols-2 gap-1.5">
+      <button
+        type="button"
+        (click)="exportData()"
+        class="flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-medium bg-white/70 dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] text-[#231F20] dark:text-[#F3EFEA] hover:bg-white dark:hover:bg-[#232029] transition-colors"
+        title="Exportar base de datos como archivo .json">
+        <lucide-icon [img]="DownloadIcon" [size]="14" [strokeWidth]="1.75"></lucide-icon>
+        <span>Exportar</span>
+      </button>
+
+      <button
+        type="button"
+        (click)="triggerFileInput()"
+        class="flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-medium bg-white/70 dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] text-[#231F20] dark:text-[#F3EFEA] hover:bg-white dark:hover:bg-[#232029] transition-colors"
+        title="Importar archivo de respaldo .json">
+        <lucide-icon [img]="UploadIcon" [size]="14" [strokeWidth]="1.75"></lucide-icon>
+        <span>Importar</span>
+      </button>
+      
+      <input
+        #fileInput
+        type="file"
+        accept=".json"
+        (change)="handleFileImport($event)"
+        class="hidden"
+      />
+    </div>
+  </div>
+</aside>
