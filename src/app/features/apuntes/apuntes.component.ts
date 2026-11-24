@@ -204,6 +204,8 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   readonly editorHost = viewChild<ElementRef<HTMLDivElement>>('editorHost');
   private loadedNoteId: string | null = null;
   private isInternalUpdate = false;
+  private pendingRemoteContent: any = null;
+  private hasLocalEditsWhileFocused = false;
 
   // Lucide Icons
   readonly FileTextIcon = FileText;
@@ -365,16 +367,45 @@ export class ApuntesComponent implements OnInit, OnDestroy {
       }
     });
 
-    // 2. Sincronización reactiva con activeNote / currentNote sin bucle infinito
+    // 2. Sincronización reactiva con activeNote / currentNote sin bucle infinito y en vivo
     effect(() => {
       const note = this.currentNote();
       if (!note || !this.editor || this.isInternalUpdate) {
         return;
       }
 
-      // Solo llamar a setContent si cambiamos a una nota distinta
+      // Caso 1: Cambio a una nota distinta en la lista
       if (note.id !== this.loadedNoteId) {
+        this.pendingRemoteContent = null;
+        this.hasLocalEditsWhileFocused = false;
         this.loadNoteIntoEditor(note);
+        return;
+      }
+
+      // Caso 2: Es la misma nota abierta (note.id === this.loadedNoteId) que recibió actualización remota en vivo
+      const incomingHtml = note.html || '';
+      const currentHtml = this.editor.getHTML();
+      const contentToApply = note.contentJson ?? (note.html ? note.html : note.plainText);
+
+      // Comprobar si el contenido entrante difiere del contenido actual del editor
+      const isDifferent = incomingHtml
+        ? incomingHtml !== currentHtml
+        : (note.contentJson && JSON.stringify(note.contentJson) !== JSON.stringify(this.editor.getJSON()));
+
+      if (isDifferent) {
+        // Si difiere y el editor local no tiene el foco activo (!editor.isFocused), actualizar en vivo inmediatamente
+        if (!this.editor.isFocused) {
+          this.pendingRemoteContent = null;
+          this.isInternalUpdate = true;
+          this.editor.commands.setContent(contentToApply, { emitUpdate: false });
+          this.extractHtmlPreview();
+          setTimeout(() => {
+            this.isInternalUpdate = false;
+          }, 100);
+        } else {
+          // El usuario tiene el foco activo en este editor: guardar contenido remoto pendiente para aplicarlo en onBlur
+          this.pendingRemoteContent = contentToApply;
+        }
       }
     });
   }
@@ -505,21 +536,42 @@ export class ApuntesComponent implements OnInit, OnDestroy {
           return false;
         }
       },
+      onFocus: () => {
+        this.hasLocalEditsWhileFocused = false;
+      },
       onUpdate: ({ editor }) => {
         this.isInternalUpdate = true;
+        this.hasLocalEditsWhileFocused = true;
         const json = editor.getJSON();
+        const html = editor.getHTML();
         const text = editor.getText();
         const note = this.currentNote();
         if (note) {
           this.workspace.updateNote(note.id, {
             contentJson: json,
-            plainText: text
+            html,
+            plainText: text,
+            updatedAt: new Date().toISOString()
           });
         }
         this.extractHtmlPreview();
         setTimeout(() => {
           this.isInternalUpdate = false;
-        }, 300);
+        }, 150);
+      },
+      onBlur: ({ editor }) => {
+        // Si había una actualización remota pendiente y no hubo edición local posterior en este equipo
+        if (this.pendingRemoteContent && !this.hasLocalEditsWhileFocused) {
+          const contentToApply = this.pendingRemoteContent;
+          this.pendingRemoteContent = null;
+          this.isInternalUpdate = true;
+          editor.commands.setContent(contentToApply, { emitUpdate: false });
+          this.extractHtmlPreview();
+          setTimeout(() => {
+            this.isInternalUpdate = false;
+          }, 100);
+        }
+        this.hasLocalEditsWhileFocused = false;
       }
     });
 
@@ -532,12 +584,18 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   private loadNoteIntoEditor(note: Note): void {
     if (!this.editor) return;
     this.loadedNoteId = note.id;
-    const content = note.contentJson || (note.plainText ? note.plainText : {
+    this.pendingRemoteContent = null;
+    this.hasLocalEditsWhileFocused = false;
+    const content = note.contentJson || (note.html ? note.html : (note.plainText ? note.plainText : {
       type: 'doc',
       content: [{ type: 'paragraph' }]
-    });
+    }));
+    this.isInternalUpdate = true;
     this.editor.commands.setContent(content, { emitUpdate: false });
     this.extractHtmlPreview();
+    setTimeout(() => {
+      this.isInternalUpdate = false;
+    }, 100);
   }
 
   selectNote(note: Note): void {

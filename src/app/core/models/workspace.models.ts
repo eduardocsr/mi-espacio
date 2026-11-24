@@ -21,6 +21,7 @@ export interface Note {
   title: string;
   folderId: string;
   contentJson: any; // Tiptap JSON or editor content
+  html?: string;
   plainText: string;
   tags: string[];
   favorite: boolean;

@@ -637,6 +637,7 @@ export class WorkspaceService {
       title,
       folderId: defaultFolderId,
       contentJson: { type: 'doc', content: [{ type: 'paragraph' }] },
+      html: '<p></p>',
       plainText: '',
       tags: ['General'],
       favorite: false,
@@ -655,12 +656,12 @@ export class WorkspaceService {
   updateNote(id: string, updates: Partial<Note>): void {
     const now = new Date().toISOString();
     this.notes.update(current =>
-      current.map(n => (n.id === id ? { ...n, ...updates, updatedAt: now } : n))
+      current.map(n => (n.id === id ? { ...n, ...updates, updatedAt: updates.updatedAt || now } : n))
     );
 
-    // Si solo es tipeo de contenido en Tiptap, usar debounce de 250ms
+    // Si solo es tipeo de contenido en Tiptap (contentJson, html, plainText), usar debounce corto de 800ms
     const isOnlyTyping =
-      (updates.contentJson !== undefined || updates.plainText !== undefined) &&
+      (updates.contentJson !== undefined || updates.plainText !== undefined || updates.html !== undefined) &&
       updates.title === undefined &&
       updates.folderId === undefined &&
       updates.status === undefined &&
@@ -668,7 +669,7 @@ export class WorkspaceService {
       updates.tags === undefined;
 
     if (isOnlyTyping) {
-      this.scheduleDebouncedSave(250);
+      this.scheduleDebouncedSave(800);
     } else {
       this.saveImmediately();
     }
