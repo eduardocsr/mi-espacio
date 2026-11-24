@@ -17,9 +17,11 @@ import {
   Volume2,
   VolumeX,
   Tag,
-  X
+  X,
+  LogOut
 } from 'lucide-angular';
 import { WorkspaceService } from '../../core/services/workspace.service';
+import { AuthSessionService } from '../../core/services/auth-session.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -29,6 +31,7 @@ import { WorkspaceService } from '../../core/services/workspace.service';
 })
 export class SidebarComponent {
   readonly workspace = inject(WorkspaceService);
+  readonly authSession = inject(AuthSessionService);
   private readonly router = inject(Router);
 
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
@@ -49,6 +52,14 @@ export class SidebarComponent {
   readonly VolumeXIcon = VolumeX;
   readonly TagIcon = Tag;
   readonly XIcon = X;
+  readonly LogOutIcon = LogOut;
+
+  logout(): void {
+    if (confirm('¿Deseas cerrar tu sesión? Podrás volver a entrar con tu perfil cuando quieras.')) {
+      this.closeMobileDrawer();
+      this.workspace.logout();
+    }
+  }
 
   closeMobileDrawer(): void {
     this.workspace.isMobileMenuOpen.set(false);

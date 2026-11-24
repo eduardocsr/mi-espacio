@@ -1,4 +1,5 @@
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import {
   CalendarEvent,
   KanbanColumn,
@@ -8,11 +9,13 @@ import {
   TaskItem,
   TaskPriority,
   TaskStatus,
+  UserProfile,
   WorkspaceExportData,
   WorkspaceSnapshot
 } from '../models/workspace.models';
 import { IndexedStorageService } from './indexed-storage.service';
 import { FirebaseSyncService } from './firebase-sync.service';
+import { AuthSessionService } from './auth-session.service';
 import { generateSeedData } from './seed-data';
 
 export const DEFAULT_COLUMNS: KanbanColumn[] = [
@@ -28,6 +31,8 @@ export const DEFAULT_COLUMNS: KanbanColumn[] = [
 export class WorkspaceService {
   private readonly storage = inject(IndexedStorageService);
   readonly firebaseSync = inject(FirebaseSyncService);
+  readonly authSession = inject(AuthSessionService);
+  private readonly router = inject(Router);
 
   // Core State Signals
   readonly folders = signal<NoteFolder[]>([]);
@@ -46,7 +51,7 @@ export class WorkspaceService {
   readonly isMobileMenuOpen = signal<boolean>(false);
 
   // Real IndexedDB Save Status Signals
-  readonly saveStatus = signal<'Guardado en IndexedDB' | 'Guardando...' | 'Error al guardar'>('Guardado en IndexedDB');
+  readonly saveStatus = signal<'Guardado en IndexedDB' | 'Guardando...' | 'Error al guardar' | 'Google Cloud Activo'>('Guardado en IndexedDB');
   readonly lastSavedAt = signal<Date | null>(null);
 
   // Debounce save timer
@@ -135,14 +140,23 @@ export class WorkspaceService {
     };
   });
 
-  private readonly LOCAL_STORAGE_KEY = 'mi_espacio_workspace_snapshot_v1';
+  private getStorageKey(userId?: string): string {
+    const id = userId || this.authSession.currentUser()?.id;
+    return id ? `mi_espacio_snapshot_${id}` : 'mi_espacio_workspace_snapshot_v1';
+  }
 
   constructor() {
     this.initTheme();
     this.initSound();
     this.initBeforeUnload();
-    this.prehydrateSynchronously();
-    this.loadInitialData();
+
+    const activeUser = this.authSession.currentUser();
+    if (activeUser) {
+      this.prehydrateSynchronously(activeUser.id);
+      this.loadUserData(activeUser);
+    } else {
+      this.clearInMemoryWorkspace();
+    }
     this.initCloudSyncListener();
   }
 
@@ -158,14 +172,17 @@ export class WorkspaceService {
 
   private async handleUserLogin(user: any): Promise<void> {
     try {
+      const activeUser = this.authSession.currentUser();
+      const userId = activeUser?.id || user.uid;
+
       // 1. Cargar datos del usuario desde Cloud Firestore
       const cloudSnapshot = await this.firebaseSync.loadFromCloud();
       if (cloudSnapshot && this.hasActualData(cloudSnapshot)) {
         // La nube ya tiene datos previos: aplicarlos al espacio de trabajo
         this.applySnapshot(cloudSnapshot);
-        this.saveToLocalStorage(cloudSnapshot);
-        await this.storage.saveSnapshot(cloudSnapshot).catch(console.error);
-        this.saveStatus.set('Guardado en IndexedDB');
+        this.saveToLocalStorage(cloudSnapshot, userId);
+        await this.storage.saveSnapshot(cloudSnapshot, userId).catch(console.error);
+        this.saveStatus.set('Google Cloud Activo');
       } else {
         // Primera vez del usuario: subir sus datos locales actuales a la nube
         const local = this.getSnapshot();
@@ -176,8 +193,8 @@ export class WorkspaceService {
       this.firebaseSync.listenToCloud((remote) => {
         if (remote && this.hasActualData(remote)) {
           this.applySnapshot(remote);
-          this.saveToLocalStorage(remote);
-          this.storage.saveSnapshot(remote).catch(console.error);
+          this.saveToLocalStorage(remote, userId);
+          this.storage.saveSnapshot(remote, userId).catch(console.error);
         }
       });
     } catch (err) {
@@ -188,18 +205,100 @@ export class WorkspaceService {
   async loginWithGoogle(): Promise<void> {
     const user = await this.firebaseSync.loginWithGoogle();
     if (user) {
+      const profile = this.authSession.loginWithGoogleUser(user);
+      await this.loadUserData(profile);
       await this.handleUserLogin(user);
     }
   }
 
   async logout(): Promise<void> {
+    this.clearInMemoryWorkspace();
     await this.firebaseSync.logout();
+    this.authSession.logout();
+    this.router.navigate(['/bienvenida']);
   }
 
-  private loadFromLocalStorage(): WorkspaceSnapshot | null {
+  clearInMemoryWorkspace(): void {
+    this.folders.set([]);
+    this.notes.set([]);
+    this.tasks.set([]);
+    this.columns.set(DEFAULT_COLUMNS);
+    this.calendarEvents.set([]);
+    this.reminders.set([]);
+    this.isInitialized.set(false);
+    this.saveStatus.set('Guardado en IndexedDB');
+  }
+
+  async loadUserData(user: UserProfile): Promise<void> {
+    try {
+      // 1. Cargar desde IndexedDB para este usuario
+      const saved = await this.storage.loadSnapshot(user.id);
+      if (saved) {
+        this.applySnapshot(saved);
+        this.saveToLocalStorage(saved, user.id);
+        this.isInitialized.set(true);
+        this.saveStatus.set('Guardado en IndexedDB');
+        this.lastSavedAt.set(new Date());
+        return;
+      }
+
+      // 2. Si no está en IndexedDB, revisar localStorage para este usuario
+      const local = this.loadFromLocalStorage(user.id);
+      if (local) {
+        this.applySnapshot(local);
+        await this.storage.saveSnapshot(local, user.id).catch(console.error);
+        this.isInitialized.set(true);
+        this.saveStatus.set('Guardado en IndexedDB');
+        this.lastSavedAt.set(new Date());
+        return;
+      }
+
+      // 3. Si el usuario está conectado a Google/Firebase, verificar si tiene datos en Firestore
+      if (this.firebaseSync.currentUser()) {
+        const cloudSnapshot = await this.firebaseSync.loadFromCloud();
+        if (cloudSnapshot && this.hasActualData(cloudSnapshot)) {
+          this.applySnapshot(cloudSnapshot);
+          this.saveToLocalStorage(cloudSnapshot, user.id);
+          await this.storage.saveSnapshot(cloudSnapshot, user.id).catch(console.error);
+          this.isInitialized.set(true);
+          this.saveStatus.set('Google Cloud Activo');
+          this.lastSavedAt.set(new Date());
+          return;
+        }
+      }
+
+      // 4. Usuario NUEVO: Iniciar COMPLETAMENTE LIMPIO (0 notas, 0 tareas, 0 eventos, 0 recordatorios)
+      const cleanEmptySnapshot: WorkspaceSnapshot = {
+        version: '1.0.0',
+        exportedAt: new Date().toISOString(),
+        isSeeded: true, // marcado para no sembrar datos ficticios
+        folders: [
+          { id: 'f-' + Date.now(), name: 'General', color: '#74566E', icon: 'folder' }
+        ],
+        notes: [],
+        tasks: [],
+        columns: DEFAULT_COLUMNS,
+        calendarEvents: [],
+        reminders: []
+      };
+
+      this.applySnapshot(cleanEmptySnapshot);
+      this.isInitialized.set(true);
+      this.saveToLocalStorage(cleanEmptySnapshot, user.id);
+      await this.storage.saveSnapshot(cleanEmptySnapshot, user.id).catch(console.error);
+      this.saveStatus.set('Guardado en IndexedDB');
+      this.lastSavedAt.set(new Date());
+    } catch (err) {
+      console.error('Error al cargar datos del usuario:', err);
+      this.isInitialized.set(true);
+    }
+  }
+
+  private loadFromLocalStorage(userId?: string): WorkspaceSnapshot | null {
     if (typeof window === 'undefined') return null;
     try {
-      const raw = localStorage.getItem(this.LOCAL_STORAGE_KEY);
+      const key = this.getStorageKey(userId);
+      const raw = localStorage.getItem(key);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === 'object') {
@@ -212,10 +311,11 @@ export class WorkspaceService {
     return null;
   }
 
-  private saveToLocalStorage(snapshot: WorkspaceSnapshot): void {
+  private saveToLocalStorage(snapshot: WorkspaceSnapshot, userId?: string): void {
     if (typeof window === 'undefined') return;
     try {
-      localStorage.setItem(this.LOCAL_STORAGE_KEY, JSON.stringify(snapshot));
+      const key = this.getStorageKey(userId);
+      localStorage.setItem(key, JSON.stringify(snapshot));
     } catch (e) {
       console.warn('Error al escribir snapshot en localStorage:', e);
     }
@@ -237,8 +337,8 @@ export class WorkspaceService {
    * Pre-hidratación síncrona instantánea en 0ms.
    * Evita cualquier pantalla en blanco o desfase de señales antes de que los componentes se rendericen.
    */
-  private prehydrateSynchronously(): void {
-    const cached = this.loadFromLocalStorage();
+  private prehydrateSynchronously(userId?: string): void {
+    const cached = this.loadFromLocalStorage(userId);
     if (cached && this.hasActualData(cached)) {
       this.applySnapshot(cached);
       this.isInitialized.set(true);
@@ -323,17 +423,20 @@ export class WorkspaceService {
    * Guarda de forma asíncrona el snapshot completo y actualiza el badge de estado real.
    */
   async saveSnapshot(): Promise<void> {
+    const user = this.authSession.currentUser();
+    if (!user) return;
+
     const snapshot = this.getSnapshot();
     snapshot.isSeeded = true;
 
-    // 1. Respaldo síncrono instantáneo en localStorage (0ms, resiste F5 inmediato en cualquier estado)
-    this.saveToLocalStorage(snapshot);
+    // 1. Respaldo síncrono instantáneo en localStorage aislado por usuario
+    this.saveToLocalStorage(snapshot, user.id);
 
     if (!this.isInitialized()) return;
     this.saveStatus.set('Guardando...');
     try {
-      // 2. Persistencia en IndexedDB
-      await this.storage.saveSnapshot(snapshot);
+      // 2. Persistencia en IndexedDB aislada por usuario
+      await this.storage.saveSnapshot(snapshot, user.id);
       this.saveStatus.set('Guardado en IndexedDB');
       this.lastSavedAt.set(new Date());
 
@@ -393,75 +496,7 @@ export class WorkspaceService {
     this.reminders.set(saved.reminders || []);
   }
 
-  private async seedInitialData(): Promise<void> {
-    const seed = generateSeedData();
-    const tasksWithOrder = seed.tasks.map((t, idx) => ({
-      ...t,
-      order: t.order !== undefined ? t.order : idx
-    }));
-
-    this.folders.set(seed.folders);
-    this.notes.set(seed.notes);
-    this.tasks.set(tasksWithOrder);
-    this.columns.set(DEFAULT_COLUMNS);
-    this.calendarEvents.set(seed.calendarEvents);
-    this.reminders.set(seed.reminders);
-
-    // Guardar inmediatamente el snapshot inicial en localStorage e IndexedDB
-    const initialSnapshot: WorkspaceSnapshot = {
-      version: '1.0.0',
-      exportedAt: new Date().toISOString(),
-      isSeeded: true,
-      folders: seed.folders,
-      notes: seed.notes,
-      tasks: tasksWithOrder,
-      columns: DEFAULT_COLUMNS,
-      calendarEvents: seed.calendarEvents,
-      reminders: seed.reminders
-    };
-    this.saveToLocalStorage(initialSnapshot);
-    await this.storage.saveSnapshot(initialSnapshot).catch(console.error);
-  }
-
-  /**
-   * Carga inicial garantizada con doble capa:
-   * 1. Si IndexedDB tiene datos, los aplica y actualiza localStorage.
-   * 2. Si IndexedDB retorna null o falla, revisa localStorage antes de considerar vacía la base.
-   * 3. seedInitialData() se ejecuta ÚNICAMENTE si absolutamente NINGUNA de las dos capas tiene datos.
-   */
-  private async loadInitialData(): Promise<void> {
-    try {
-      const saved = await this.storage.loadSnapshot();
-
-      if (saved && this.hasActualData(saved)) {
-        this.applySnapshot(saved);
-        this.saveToLocalStorage(saved);
-      } else {
-        // Si IndexedDB no tiene datos o retornó null, verificar respaldo en localStorage
-        const local = this.loadFromLocalStorage();
-        if (local && this.hasActualData(local)) {
-          this.applySnapshot(local);
-          await this.storage.saveSnapshot(local).catch(console.error);
-        } else {
-          // Primera ejecución de un usuario nuevo
-          await this.seedInitialData();
-        }
-      }
-
-      this.isInitialized.set(true);
-      this.saveStatus.set('Guardado en IndexedDB');
-      this.lastSavedAt.set(new Date());
-    } catch (error) {
-      console.error('Error al inicializar datos desde IndexedDB:', error);
-      const local = this.loadFromLocalStorage();
-      if (local && this.hasActualData(local)) {
-        this.applySnapshot(local);
-      }
-      this.isInitialized.set(true);
-    }
-  }
-
-  // Restablece las tareas de ejemplo
+  // Restablece las tareas de ejemplo (manual)
   resetSeedTasks(): void {
     const seed = generateSeedData();
     const tasksWithOrder = seed.tasks.map((t, idx) => ({

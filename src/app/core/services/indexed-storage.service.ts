@@ -265,9 +265,10 @@ export class IndexedStorageService {
    * Guarda de forma atómica y sanitizada el snapshot completo en el store de snapshot
    * y sincroniza de forma limpia cada store individual (reemplazo sin duplicados ni residuos).
    */
-  async saveSnapshot(snapshot: WorkspaceSnapshot): Promise<void> {
+  async saveSnapshot(snapshot: WorkspaceSnapshot, userId?: string): Promise<void> {
     const cleanSnapshot = this.sanitize(snapshot);
     const db = await this.getDB();
+    const snapshotKey = userId ? `snapshot_${userId}` : 'workspace_current';
 
     return new Promise((resolve, reject) => {
       try {
@@ -289,10 +290,10 @@ export class IndexedStorageService {
 
         const tx = db.transaction(availableStores, 'readwrite');
 
-        // 1. Snapshot central
+        // 1. Snapshot central aislado por usuario
         if (db.objectStoreNames.contains(this.stores.snapshot)) {
           const snapStore = tx.objectStore(this.stores.snapshot);
-          snapStore.put({ id: 'workspace_current', ...cleanSnapshot });
+          snapStore.put({ id: snapshotKey, ...cleanSnapshot });
         }
 
         // 2. Stores individuales limpios
@@ -345,11 +346,12 @@ export class IndexedStorageService {
   }
 
   /**
-   * Carga el snapshot persistido. Si no existe ningún registro previo en IndexedDB,
-   * retorna exactamente null para indicar que debe inicializarse por primera vez.
+   * Carga el snapshot persistido para un usuario específico (o el general).
+   * Si no existe ningún registro previo para este usuario, retorna null para inicializar limpio.
    */
-  async loadSnapshot(): Promise<WorkspaceSnapshot | null> {
+  async loadSnapshot(userId?: string): Promise<WorkspaceSnapshot | null> {
     const db = await this.getDB();
+    const snapshotKey = userId ? `snapshot_${userId}` : 'workspace_current';
 
     // 1. Si existe el store de snapshot, intentar leer primero en su propia transacción dedicada
     if (db.objectStoreNames.contains(this.stores.snapshot)) {
@@ -357,7 +359,7 @@ export class IndexedStorageService {
         try {
           const tx = db.transaction([this.stores.snapshot], 'readonly');
           const store = tx.objectStore(this.stores.snapshot);
-          const req = store.get('workspace_current');
+          const req = store.get(snapshotKey);
           req.onsuccess = () => {
             if (req.result) {
               const res = req.result;
@@ -383,17 +385,14 @@ export class IndexedStorageService {
         }
       });
 
-      // Si el snapshot existe y contiene datos o fue previamente inicializado, retornarlo
-      if (
-        snapResult &&
-        (snapResult.folders.length > 0 ||
-          snapResult.notes.length > 0 ||
-          snapResult.tasks.length > 0 ||
-          snapResult.calendarEvents.length > 0 ||
-          snapResult.reminders.length > 0 ||
-          snapResult.isSeeded)
-      ) {
+      // Si el snapshot existe, retornarlo directamente (incluso si está vacío pero inicializado)
+      if (snapResult) {
         return snapResult;
+      }
+
+      // Si se buscaba un usuario específico y no existe su snapshot, no mezclar con datos individuales
+      if (userId) {
+        return null;
       }
     }
 

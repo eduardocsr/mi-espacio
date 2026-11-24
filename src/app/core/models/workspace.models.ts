@@ -101,3 +101,13 @@ export interface WorkspaceExportData {
 }
 
 export type WorkspaceSnapshot = WorkspaceExportData;
+
+export interface UserProfile {
+  id: string; // e.g. 'u-12345' or Firebase UID
+  name: string;
+  email: string;
+  initials: string;
+  color: string;
+  avatarUrl?: string;
+  createdAt: string;
+}

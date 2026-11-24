@@ -79,13 +79,14 @@
       <button
         type="button"
         (click)="toggleUserMenu()"
-        class="relative w-8 h-8 rounded-full ring-2 ring-[#74566E]/20 overflow-hidden bg-[#EFEAF6] text-[#5B447A] flex items-center justify-center font-bold text-xs select-none cursor-pointer hover:ring-[#74566E] transition-all"
+        class="relative w-8 h-8 rounded-full ring-2 ring-[#74566E]/20 overflow-hidden text-white flex items-center justify-center font-bold text-xs select-none cursor-pointer hover:ring-[#74566E] transition-all"
+        [style.backgroundColor]="authSession.currentUser()?.color || '#74566E'"
         title="Opciones de cuenta y sincronización">
-        @if (workspace.firebaseSync.currentUser(); as user) {
-          @if (user.photoURL) {
-            <img [src]="user.photoURL" alt="Avatar" class="w-full h-full object-cover" />
+        @if (authSession.currentUser(); as user) {
+          @if (user.avatarUrl) {
+            <img [src]="user.avatarUrl" alt="Avatar" class="w-full h-full object-cover" />
           } @else {
-            <span>{{ (user.displayName || user.email || 'U').charAt(0).toUpperCase() }}</span>
+            <span>{{ user.initials || user.name.charAt(0) }}</span>
           }
         } @else {
           <lucide-icon [img]="UserIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
@@ -100,44 +101,54 @@
         <!-- Menu Container -->
         <div class="absolute right-0 mt-2 w-72 rounded-2xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] shadow-xl p-3 z-50 space-y-3">
           <!-- User Info Header -->
-          @if (workspace.firebaseSync.currentUser(); as user) {
+          @if (authSession.currentUser(); as user) {
             <div class="p-2.5 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] flex items-center gap-3">
-              @if (user.photoURL) {
-                <img [src]="user.photoURL" class="w-10 h-10 rounded-full ring-2 ring-[#74566E]/30" />
+              @if (user.avatarUrl) {
+                <img [src]="user.avatarUrl" class="w-10 h-10 rounded-full ring-2 ring-[#74566E]/30 object-cover" />
               } @else {
-                <div class="w-10 h-10 rounded-full bg-[#74566E] text-white flex items-center justify-center font-bold text-sm">
-                  {{ user.displayName?.charAt(0) || 'U' }}
+                <div class="w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-sm shrink-0" [style.backgroundColor]="user.color || '#74566E'">
+                  {{ user.initials || user.name.charAt(0) }}
                 </div>
               }
               <div class="min-w-0 flex-1">
                 <div class="text-xs font-bold text-[#231F20] dark:text-[#F3EFEA] truncate">
-                  {{ user.displayName || 'Usuario Google' }}
+                  {{ user.name }}
                 </div>
                 <div class="text-[11px] text-[#635B5E] dark:text-neutral-400 truncate">
                   {{ user.email }}
                 </div>
-                <div class="inline-flex items-center gap-1 mt-0.5 text-[10px] text-[#246A49] dark:text-[#52B788] font-semibold">
-                  <span class="w-1.5 h-1.5 rounded-full bg-[#246A49] dark:bg-[#52B788]"></span>
-                  <span>Sincronización en la nube activa</span>
-                </div>
+                @if (workspace.firebaseSync.currentUser()) {
+                  <div class="inline-flex items-center gap-1 mt-0.5 text-[10px] text-[#246A49] dark:text-[#52B788] font-semibold">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#246A49] dark:bg-[#52B788]"></span>
+                    <span>Google Cloud sincronizado</span>
+                  </div>
+                } @else {
+                  <div class="inline-flex items-center gap-1 mt-0.5 text-[10px] text-[#74566E] dark:text-[#9D7B96] font-semibold">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#74566E] dark:bg-[#9D7B96]"></span>
+                    <span>Espacio local aislado</span>
+                  </div>
+                }
               </div>
             </div>
-          } @else {
-            <div class="p-3 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] space-y-2">
-              <div class="flex items-center gap-2 text-xs font-bold text-[#231F20] dark:text-[#F3EFEA]">
-                <lucide-icon [img]="CloudIcon" [size]="15" [strokeWidth]="2" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
-                <span>Modo Local (IndexedDB)</span>
+          }
+
+          <!-- Google Sync Section if not connected -->
+          @if (!workspace.firebaseSync.currentUser()) {
+            <div class="p-2.5 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] space-y-1.5">
+              <div class="flex items-center gap-1.5 text-xs font-semibold text-[#231F20] dark:text-[#F3EFEA]">
+                <lucide-icon [img]="CloudIcon" [size]="13" [strokeWidth]="2" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
+                <span>Conectar con Google Cloud</span>
               </div>
-              <p class="text-[11px] text-[#635B5E] dark:text-neutral-400 leading-relaxed">
-                Tus datos están guardados en este navegador. Inicia sesión con Google para ver tus notas en otra PC o GitHub Pages.
+              <p class="text-[11px] text-[#635B5E] dark:text-neutral-400 leading-snug">
+                Sincroniza tus notas y tareas automáticamente en la nube.
               </p>
               <button
                 type="button"
                 (click)="loginWithGoogle()"
                 [disabled]="isActionInProgress()"
-                class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#74566E] hover:bg-[#5E4359] text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50">
-                <lucide-icon [img]="LogInIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
-                <span>Iniciar sesión con Google</span>
+                class="w-full inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl bg-[#74566E] hover:bg-[#5E4359] text-white text-xs font-medium transition-colors cursor-pointer disabled:opacity-50">
+                <lucide-icon [img]="LogInIcon" [size]="13" [strokeWidth]="2"></lucide-icon>
+                <span>Vincular con Google</span>
               </button>
             </div>
           }
@@ -170,17 +181,15 @@
               <span>Importar respaldo JSON</span>
             </button>
 
-            @if (workspace.firebaseSync.currentUser()) {
-              <div class="pt-1 border-t border-[#EAE2DE] dark:border-[#2A2832]">
-                <button
-                  type="button"
-                  (click)="logout()"
-                  class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[#9B2C2C] hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer">
-                  <lucide-icon [img]="LogOutIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
-                  <span>Cerrar sesión</span>
-                </button>
-              </div>
-            }
+            <div class="pt-1 border-t border-[#EAE2DE] dark:border-[#2A2832]">
+              <button
+                type="button"
+                (click)="logout()"
+                class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[#9B2C2C] hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer">
+                <lucide-icon [img]="LogOutIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+                <span>Cerrar sesión</span>
+              </button>
+            </div>
           </div>
         </div>
       }

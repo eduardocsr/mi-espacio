@@ -9,11 +9,32 @@
         <span class="truncate">Tu espacio de organización diario</span>
       </div>
       <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-[#231F20] dark:text-[#F3EFEA] break-words">
-        Hola, Michell <span class="inline-block animate-wave">👋</span>
+        Hola, {{ authSession.currentUser()?.name || 'bienvenido' }} <span class="inline-block animate-wave">👋</span>
       </h1>
       <p class="text-xs sm:text-sm md:text-base text-[#635B5E] dark:text-neutral-400 font-normal leading-relaxed">
-        Aquí está el resumen de tu día. Organiza tus ideas, tareas y planes en un solo lugar.
+        @if (workspace.activeNotesCount() === 0 && workspace.pendingTasksCount() === 0) {
+          ¡Te damos la bienvenida a tu nuevo espacio! Comienza agregando tu primer apunte o creando tu primera tarea.
+        } @else {
+          Aquí está el resumen de tu día. Organiza tus ideas, tareas y planes en un solo lugar.
+        }
       </p>
+
+      @if (workspace.activeNotesCount() === 0 && workspace.pendingTasksCount() === 0) {
+        <div class="pt-2 flex flex-wrap items-center gap-2.5">
+          <a
+            routerLink="/apuntes"
+            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#74566E] text-white text-xs font-semibold hover:bg-[#5E4359] shadow-xs transition-colors cursor-pointer">
+            <lucide-icon [img]="FileTextIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+            <span>Crear mi primer apunte</span>
+          </a>
+          <a
+            routerLink="/tareas"
+            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] text-[#246A49] dark:text-green-400 text-xs font-semibold hover:bg-[#E6F3EC] shadow-xs transition-colors cursor-pointer">
+            <lucide-icon [img]="CheckCircle2Icon" [size]="14" [strokeWidth]="2"></lucide-icon>
+            <span>Crear mi primera tarea</span>
+          </a>
+        </div>
+      }
     </div>
 
     <!-- Right Minimalist Botanical Illustration (SVG) (Scaled on mobile/tablet) -->
@@ -175,6 +196,12 @@
               No tienes notas aún.
             </div>
           }
+
+          @if (todayTasksList().length === 0) {
+            <div class="py-8 text-center text-xs text-[#635B5E] dark:text-neutral-400">
+              No tienes tareas pendientes para hoy. ¡Todo al día!
+            </div>
+          }
         </div>
       </div>
 
@@ -251,6 +278,12 @@
                 }">
                 {{ task.projectTag }}
               </span>
+            </div>
+          }
+
+          @if (todayTasksList().length === 0) {
+            <div class="py-8 text-center text-xs text-[#635B5E] dark:text-neutral-400">
+              No tienes tareas pendientes para hoy. ¡Todo al día!
             </div>
           }
         </div>
@@ -367,6 +400,12 @@
                 </div>
               }
             </button>
+          }
+
+          @if (todayTasksList().length === 0) {
+            <div class="py-8 text-center text-xs text-[#635B5E] dark:text-neutral-400">
+              No tienes tareas pendientes para hoy. ¡Todo al día!
+            </div>
           }
         </div>
       </div>

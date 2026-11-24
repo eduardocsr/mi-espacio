@@ -5,11 +5,19 @@ import { ApuntesComponent } from './features/apuntes/apuntes.component';
 import { TareasComponent } from './features/tareas/tareas.component';
 import { CalendarioComponent } from './features/calendario/calendario.component';
 import { RecordatoriosComponent } from './features/recordatorios/recordatorios.component';
+import { WelcomeComponent } from './features/bienvenida/welcome.component';
+import { authGuard, unauthGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   {
+    path: 'bienvenida',
+    component: WelcomeComponent,
+    canActivate: [unauthGuard]
+  },
+  {
     path: '',
     component: ShellComponent,
+    canActivate: [authGuard],
     children: [
       { path: '', redirectTo: 'inicio', pathMatch: 'full' },
       { path: 'inicio', component: InicioComponent },

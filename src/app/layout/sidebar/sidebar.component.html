@@ -179,5 +179,41 @@
         class="hidden"
       />
     </div>
+
+    <!-- User Profile & Cerrar Sesión Button -->
+    <div class="pt-3 border-t border-[#E6DFDA] dark:border-[#2A2832]">
+      @if (authSession.currentUser(); as user) {
+        <div class="p-2.5 rounded-2xl bg-white/70 dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] space-y-2">
+          <div class="flex items-center gap-2.5 min-w-0">
+            @if (user.avatarUrl) {
+              <img [src]="user.avatarUrl" alt="Avatar" class="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-[#74566E]/20" />
+            } @else {
+              <div 
+                class="w-8 h-8 rounded-full text-white text-xs font-bold flex items-center justify-center shrink-0 shadow-2xs"
+                [style.background-color]="user.color">
+                {{ user.initials }}
+              </div>
+            }
+            <div class="min-w-0 flex-1">
+              <div class="text-xs font-bold text-[#231F20] dark:text-[#F3EFEA] truncate">
+                {{ user.name }}
+              </div>
+              <div class="text-[10px] text-[#635B5E] dark:text-neutral-400 truncate">
+                {{ user.email }}
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            (click)="logout()"
+            class="w-full py-1.5 px-2.5 rounded-xl text-[11px] font-semibold text-[#9B2C2C] dark:text-rose-400 hover:bg-[#FDECEC] dark:hover:bg-[#2F1717] border border-transparent hover:border-[#9B2C2C]/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            title="Cerrar sesión actual">
+            <lucide-icon [img]="LogOutIcon" [size]="13" [strokeWidth]="2"></lucide-icon>
+            <span>Cerrar sesión</span>
+          </button>
+        </div>
+      }
+    </div>
   </div>
 </aside>

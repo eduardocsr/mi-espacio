@@ -18,6 +18,7 @@ import {
   RefreshCw
 } from 'lucide-angular';
 import { WorkspaceService } from '../../core/services/workspace.service';
+import { AuthSessionService } from '../../core/services/auth-session.service';
 
 @Component({
   selector: 'app-topbar',
@@ -27,6 +28,7 @@ import { WorkspaceService } from '../../core/services/workspace.service';
 })
 export class TopbarComponent {
   readonly workspace = inject(WorkspaceService);
+  readonly authSession = inject(AuthSessionService);
   private readonly router = inject(Router);
 
   // User menu state

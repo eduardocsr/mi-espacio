@@ -19,6 +19,7 @@ import {
   RotateCw
 } from 'lucide-angular';
 import { WorkspaceService } from '../../core/services/workspace.service';
+import { AuthSessionService } from '../../core/services/auth-session.service';
 import { TaskItem, Note, Reminder } from '../../core/models/workspace.models';
 
 interface CalendarDay {
@@ -40,6 +41,7 @@ interface CalendarDay {
 })
 export class InicioComponent {
   readonly workspace = inject(WorkspaceService);
+  readonly authSession = inject(AuthSessionService);
   private readonly router = inject(Router);
 
   // Icons
