@@ -183,28 +183,16 @@ export class WorkspaceService {
       this.saveStatus.set('Guardando...');
       const cloudSnapshot = await this.firebaseSync.loadFromCloud(uid);
 
-      const currentLocal = localSnapshot || this.getSnapshot();
-      const localTime = this.getSnapshotTimestamp(currentLocal);
-      const cloudTime = this.getSnapshotTimestamp(cloudSnapshot);
-
       if (cloudSnapshot && this.isValidSnapshot(cloudSnapshot)) {
-        // Si la nube tiene datos y la fecha en la nube es más reciente o igual a la local (o no había datos locales previos):
-        // La nube es la fuente de verdad (contiene borrados y adiciones de otros dispositivos)
-        if (cloudTime >= localTime || !localSnapshot) {
-          this.applySnapshot(cloudSnapshot);
-          this.saveToLocalStorage(cloudSnapshot, uid);
-          await this.storage.saveSnapshot(cloudSnapshot, uid).catch(console.error);
-          this.saveStatus.set('Google Cloud Activo');
-          this.lastSavedAt.set(new Date());
-        } else {
-          // Si lo local es más reciente (cambios hechos offline en este equipo):
-          // Subir la versión local a la nube
-          await this.firebaseSync.syncToCloud(currentLocal, uid);
-          this.saveStatus.set('Google Cloud Activo');
-        }
+        // La nube es la fuente de verdad multi-dispositivo (contiene borrados y adiciones de otros dispositivos)
+        this.applySnapshot(cloudSnapshot);
+        this.saveToLocalStorage(cloudSnapshot, uid);
+        await this.storage.saveSnapshot(cloudSnapshot, uid).catch(console.error);
+        this.saveStatus.set('Google Cloud Activo');
+        this.lastSavedAt.set(new Date());
       } else if (localSnapshot && this.isValidSnapshot(localSnapshot)) {
         // Primera sincronización del usuario: la nube estaba vacía pero este equipo ya tenía datos locales
-        await this.firebaseSync.syncToCloud(currentLocal, uid);
+        await this.firebaseSync.syncToCloud(localSnapshot, uid);
         this.saveStatus.set('Google Cloud Activo');
       } else {
         // Ni la nube ni local tenían datos previos: crear espacio limpio inicial
@@ -234,15 +222,11 @@ export class WorkspaceService {
       // Conectar listener en tiempo real para recibir cambios automáticos desde otros dispositivos
       this.firebaseSync.listenToCloud((remote) => {
         if (remote && this.isValidSnapshot(remote)) {
-          const remoteTime = this.getSnapshotTimestamp(remote);
-          const currentMemoryTime = this.getSnapshotTimestamp(this.getSnapshot());
-          if (remoteTime >= currentMemoryTime) {
-            this.applySnapshot(remote);
-            this.saveToLocalStorage(remote, uid);
-            this.storage.saveSnapshot(remote, uid).catch(console.error);
-            this.saveStatus.set('Google Cloud Activo');
-            this.lastSavedAt.set(new Date());
-          }
+          this.applySnapshot(remote);
+          this.saveToLocalStorage(remote, uid);
+          this.storage.saveSnapshot(remote, uid).catch(console.error);
+          this.saveStatus.set('Google Cloud Activo');
+          this.lastSavedAt.set(new Date());
         }
       }, uid);
     } catch (err) {

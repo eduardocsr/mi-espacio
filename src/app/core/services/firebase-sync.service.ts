@@ -184,8 +184,7 @@ export class FirebaseSyncService {
 
     const userDocRef = doc(this.firestore, 'users', uid, 'workspace', 'data');
     this.unsubscribeCloudListener = onSnapshot(userDocRef, (docSnap) => {
-      // Ignorar escrituras pendientes del dispositivo local para evitar rebotes o carreras
-      if (docSnap.exists() && !docSnap.metadata.hasPendingWrites) {
+      if (docSnap.exists()) {
         const remoteData = docSnap.data() as WorkspaceSnapshot;
         this.isApplyingRemoteUpdate = true;
         try {
