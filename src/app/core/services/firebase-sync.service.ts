@@ -114,9 +114,10 @@ export class FirebaseSyncService {
   // SINCRONIZACIÓN CLOUD FIRESTORE
   // =========================================================================
 
-  async syncToCloud(snapshot: WorkspaceSnapshot): Promise<void> {
+  async syncToCloud(snapshot: WorkspaceSnapshot, targetUid?: string): Promise<void> {
     const user = this.currentUser();
-    if (!user || this.isApplyingRemoteUpdate) {
+    const uid = targetUid || user?.uid;
+    if (!uid || this.isApplyingRemoteUpdate) {
       return;
     }
 
@@ -124,14 +125,14 @@ export class FirebaseSyncService {
       this.isSyncing.set(true);
       this.syncState.set('syncing');
 
-      const userDocRef = doc(this.firestore, 'users', user.uid, 'workspace', 'data');
+      const userDocRef = doc(this.firestore, 'users', uid, 'workspace', 'data');
       
       // Sanitizar snapshot para Firestore (evitar clases complejas o undefined)
       const cleanSnapshot = JSON.parse(JSON.stringify(snapshot));
       cleanSnapshot.updatedAt = new Date().toISOString();
-      cleanSnapshot.userId = user.uid;
+      cleanSnapshot.userId = uid;
 
-      await setDoc(userDocRef, cleanSnapshot, { merge: true });
+      await setDoc(userDocRef, cleanSnapshot);
 
       this.lastSyncTime.set(new Date());
       this.syncState.set('synced');
@@ -143,15 +144,16 @@ export class FirebaseSyncService {
     }
   }
 
-  async loadFromCloud(): Promise<WorkspaceSnapshot | null> {
+  async loadFromCloud(targetUid?: string): Promise<WorkspaceSnapshot | null> {
     const user = this.currentUser();
-    if (!user) {
+    const uid = targetUid || user?.uid;
+    if (!uid) {
       return null;
     }
 
     try {
       this.isSyncing.set(true);
-      const userDocRef = doc(this.firestore, 'users', user.uid, 'workspace', 'data');
+      const userDocRef = doc(this.firestore, 'users', uid, 'workspace', 'data');
       const snap = await getDoc(userDocRef);
 
       if (snap.exists()) {
@@ -170,18 +172,20 @@ export class FirebaseSyncService {
     }
   }
 
-  // Listener en tiempo real: si editas en otra computadora, se actualiza en vivo
-  listenToCloud(onUpdate: (remoteSnapshot: WorkspaceSnapshot) => void): void {
+  // Listener en tiempo real: si editas o borras en otra computadora, se actualiza en vivo al instante
+  listenToCloud(onUpdate: (remoteSnapshot: WorkspaceSnapshot) => void, targetUid?: string): void {
     const user = this.currentUser();
-    if (!user) return;
+    const uid = targetUid || user?.uid;
+    if (!uid) return;
 
     if (this.unsubscribeCloudListener) {
       this.unsubscribeCloudListener();
     }
 
-    const userDocRef = doc(this.firestore, 'users', user.uid, 'workspace', 'data');
+    const userDocRef = doc(this.firestore, 'users', uid, 'workspace', 'data');
     this.unsubscribeCloudListener = onSnapshot(userDocRef, (docSnap) => {
-      if (docSnap.exists()) {
+      // Ignorar escrituras pendientes del dispositivo local para evitar rebotes o carreras
+      if (docSnap.exists() && !docSnap.metadata.hasPendingWrites) {
         const remoteData = docSnap.data() as WorkspaceSnapshot;
         this.isApplyingRemoteUpdate = true;
         try {

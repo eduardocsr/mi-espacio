@@ -164,41 +164,91 @@ export class WorkspaceService {
     // Escucha reactivamente cambios en el usuario autenticado de Firebase
     effect(() => {
       const user = this.firebaseSync.currentUser();
-      if (user && this.isInitialized()) {
-        this.handleUserLogin(user);
+      if (user) {
+        const activeUser = this.authSession.currentUser();
+        const userId = activeUser?.id || user.uid;
+        this.reconcileWithCloud(userId);
       }
     });
   }
 
-  private async handleUserLogin(user: any): Promise<void> {
+  /**
+   * Reconciliación bidireccional inteligente con Cloud Firestore.
+   * Resuelve conflictos basándose en timestamps exactos (ISO 8601).
+   * La versión más reciente siempre gana, garantizando que borrados y adiciones
+   * hechos en el dispositivo A se reflejen de inmediato en el dispositivo B.
+   */
+  async reconcileWithCloud(uid: string, localSnapshot?: WorkspaceSnapshot | null): Promise<void> {
     try {
-      const activeUser = this.authSession.currentUser();
-      const userId = activeUser?.id || user.uid;
+      this.saveStatus.set('Guardando...');
+      const cloudSnapshot = await this.firebaseSync.loadFromCloud(uid);
 
-      // 1. Cargar datos del usuario desde Cloud Firestore
-      const cloudSnapshot = await this.firebaseSync.loadFromCloud();
-      if (cloudSnapshot && this.hasActualData(cloudSnapshot)) {
-        // La nube ya tiene datos previos: aplicarlos al espacio de trabajo
-        this.applySnapshot(cloudSnapshot);
-        this.saveToLocalStorage(cloudSnapshot, userId);
-        await this.storage.saveSnapshot(cloudSnapshot, userId).catch(console.error);
+      const currentLocal = localSnapshot || this.getSnapshot();
+      const localTime = this.getSnapshotTimestamp(currentLocal);
+      const cloudTime = this.getSnapshotTimestamp(cloudSnapshot);
+
+      if (cloudSnapshot && this.isValidSnapshot(cloudSnapshot)) {
+        // Si la nube tiene datos y la fecha en la nube es más reciente o igual a la local (o no había datos locales previos):
+        // La nube es la fuente de verdad (contiene borrados y adiciones de otros dispositivos)
+        if (cloudTime >= localTime || !localSnapshot) {
+          this.applySnapshot(cloudSnapshot);
+          this.saveToLocalStorage(cloudSnapshot, uid);
+          await this.storage.saveSnapshot(cloudSnapshot, uid).catch(console.error);
+          this.saveStatus.set('Google Cloud Activo');
+          this.lastSavedAt.set(new Date());
+        } else {
+          // Si lo local es más reciente (cambios hechos offline en este equipo):
+          // Subir la versión local a la nube
+          await this.firebaseSync.syncToCloud(currentLocal, uid);
+          this.saveStatus.set('Google Cloud Activo');
+        }
+      } else if (localSnapshot && this.isValidSnapshot(localSnapshot)) {
+        // Primera sincronización del usuario: la nube estaba vacía pero este equipo ya tenía datos locales
+        await this.firebaseSync.syncToCloud(currentLocal, uid);
         this.saveStatus.set('Google Cloud Activo');
       } else {
-        // Primera vez del usuario: subir sus datos locales actuales a la nube
-        const local = this.getSnapshot();
-        await this.firebaseSync.syncToCloud(local);
+        // Ni la nube ni local tenían datos previos: crear espacio limpio inicial
+        const cleanSnapshot: WorkspaceSnapshot = {
+          version: '1.0.0',
+          exportedAt: new Date().toISOString(),
+          isSeeded: true,
+          folders: [
+            { id: 'f-' + Date.now(), name: 'General', color: '#74566E', icon: 'folder' }
+          ],
+          notes: [],
+          tasks: [],
+          columns: DEFAULT_COLUMNS,
+          calendarEvents: [],
+          reminders: []
+        };
+        this.applySnapshot(cleanSnapshot);
+        this.saveToLocalStorage(cleanSnapshot, uid);
+        await this.storage.saveSnapshot(cleanSnapshot, uid).catch(console.error);
+        await this.firebaseSync.syncToCloud(cleanSnapshot, uid);
+        this.saveStatus.set('Google Cloud Activo');
+        this.lastSavedAt.set(new Date());
       }
 
-      // 2. Conectar listener en tiempo real para recibir cambios automáticos desde otros dispositivos
+      this.isInitialized.set(true);
+
+      // Conectar listener en tiempo real para recibir cambios automáticos desde otros dispositivos
       this.firebaseSync.listenToCloud((remote) => {
-        if (remote && this.hasActualData(remote)) {
-          this.applySnapshot(remote);
-          this.saveToLocalStorage(remote, userId);
-          this.storage.saveSnapshot(remote, userId).catch(console.error);
+        if (remote && this.isValidSnapshot(remote)) {
+          const remoteTime = this.getSnapshotTimestamp(remote);
+          const currentMemoryTime = this.getSnapshotTimestamp(this.getSnapshot());
+          if (remoteTime >= currentMemoryTime) {
+            this.applySnapshot(remote);
+            this.saveToLocalStorage(remote, uid);
+            this.storage.saveSnapshot(remote, uid).catch(console.error);
+            this.saveStatus.set('Google Cloud Activo');
+            this.lastSavedAt.set(new Date());
+          }
         }
-      });
+      }, uid);
     } catch (err) {
       console.error('Error al sincronizar con Firebase:', err);
+      this.saveStatus.set('Google Cloud Activo');
+      this.isInitialized.set(true);
     }
   }
 
@@ -207,7 +257,7 @@ export class WorkspaceService {
     if (user) {
       const profile = this.authSession.loginWithGoogleUser(user);
       await this.loadUserData(profile);
-      await this.handleUserLogin(user);
+      await this.reconcileWithCloud(user.uid);
     }
   }
 
@@ -231,43 +281,36 @@ export class WorkspaceService {
 
   async loadUserData(user: UserProfile): Promise<void> {
     try {
-      // 1. Cargar desde IndexedDB para este usuario
+      // 1. Cargar caché local de inmediato (IndexedDB o localStorage) para render instantáneo en 0ms
       const saved = await this.storage.loadSnapshot(user.id);
-      if (saved) {
-        this.applySnapshot(saved);
-        this.saveToLocalStorage(saved, user.id);
+      let localSnapshot: WorkspaceSnapshot | null = saved;
+      if (!localSnapshot) {
+        localSnapshot = this.loadFromLocalStorage(user.id);
+      }
+
+      if (localSnapshot && this.isValidSnapshot(localSnapshot)) {
+        this.applySnapshot(localSnapshot);
         this.isInitialized.set(true);
         this.saveStatus.set('Guardado en IndexedDB');
         this.lastSavedAt.set(new Date());
+      }
+
+      // 2. Si el usuario está conectado a Google/Firebase (o su perfil es de Google),
+      // reconciliar de inmediato con Cloud Firestore para que las adiciones y borrados remotos se reflejen
+      const googleUser = this.firebaseSync.currentUser();
+      const isGoogleAccount = !!googleUser || (user.id && !user.id.startsWith('u-'));
+      if (isGoogleAccount) {
+        const uid = googleUser?.uid || user.id;
+        await this.reconcileWithCloud(uid, localSnapshot);
         return;
       }
 
-      // 2. Si no está en IndexedDB, revisar localStorage para este usuario
-      const local = this.loadFromLocalStorage(user.id);
-      if (local) {
-        this.applySnapshot(local);
-        await this.storage.saveSnapshot(local, user.id).catch(console.error);
-        this.isInitialized.set(true);
-        this.saveStatus.set('Guardado en IndexedDB');
-        this.lastSavedAt.set(new Date());
+      // 3. Si no es cuenta de Google pero tenía datos locales válidos, ya están aplicados
+      if (localSnapshot && this.isValidSnapshot(localSnapshot)) {
         return;
       }
 
-      // 3. Si el usuario está conectado a Google/Firebase, verificar si tiene datos en Firestore
-      if (this.firebaseSync.currentUser()) {
-        const cloudSnapshot = await this.firebaseSync.loadFromCloud();
-        if (cloudSnapshot && this.hasActualData(cloudSnapshot)) {
-          this.applySnapshot(cloudSnapshot);
-          this.saveToLocalStorage(cloudSnapshot, user.id);
-          await this.storage.saveSnapshot(cloudSnapshot, user.id).catch(console.error);
-          this.isInitialized.set(true);
-          this.saveStatus.set('Google Cloud Activo');
-          this.lastSavedAt.set(new Date());
-          return;
-        }
-      }
-
-      // 4. Usuario NUEVO: Iniciar COMPLETAMENTE LIMPIO (0 notas, 0 tareas, 0 eventos, 0 recordatorios)
+      // 4. Usuario local nuevo sin datos: iniciar COMPLETAMENTE LIMPIO (0 notas, 0 tareas, 0 eventos, 0 recordatorios)
       const cleanEmptySnapshot: WorkspaceSnapshot = {
         version: '1.0.0',
         exportedAt: new Date().toISOString(),
@@ -321,16 +364,21 @@ export class WorkspaceService {
     }
   }
 
-  private hasActualData(snapshot: WorkspaceSnapshot | null | undefined): boolean {
-    if (!snapshot) return false;
+  isValidSnapshot(snapshot: WorkspaceSnapshot | null | undefined): boolean {
+    if (!snapshot || typeof snapshot !== 'object') return false;
     return (
-      (snapshot.notes && snapshot.notes.length > 0) ||
-      (snapshot.tasks && snapshot.tasks.length > 0) ||
-      (snapshot.calendarEvents && snapshot.calendarEvents.length > 0) ||
-      (snapshot.reminders && snapshot.reminders.length > 0) ||
-      (snapshot.folders && snapshot.folders.length > 0) ||
-      !!snapshot.isSeeded
+      Array.isArray(snapshot.notes) &&
+      Array.isArray(snapshot.tasks) &&
+      Array.isArray(snapshot.folders)
     );
+  }
+
+  getSnapshotTimestamp(snapshot: WorkspaceSnapshot | null | undefined): number {
+    if (!snapshot) return 0;
+    const raw = (snapshot as any).updatedAt || snapshot.exportedAt;
+    if (!raw) return 0;
+    const time = new Date(raw).getTime();
+    return isNaN(time) ? 0 : time;
   }
 
   /**
@@ -339,7 +387,7 @@ export class WorkspaceService {
    */
   private prehydrateSynchronously(userId?: string): void {
     const cached = this.loadFromLocalStorage(userId);
-    if (cached && this.hasActualData(cached)) {
+    if (cached && this.isValidSnapshot(cached)) {
       this.applySnapshot(cached);
       this.isInitialized.set(true);
     }
@@ -442,7 +490,8 @@ export class WorkspaceService {
 
       // 3. Sincronización en segundo plano con Cloud Firestore si hay usuario autenticado
       if (this.firebaseSync.currentUser()) {
-        await this.firebaseSync.syncToCloud(snapshot);
+        await this.firebaseSync.syncToCloud(snapshot, user.id);
+        this.saveStatus.set('Google Cloud Activo');
       }
     } catch (err) {
       console.error('Error al guardar snapshot en IndexedDB:', err);

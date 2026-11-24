@@ -107,17 +107,13 @@ export class WelcomeComponent {
     }
   }
 
-  // Inicio de sesión con Google (Firebase)
+  // Inicio de sesión con Google (Firebase) con sincronización multi-dispositivo
   async loginWithGoogle(): Promise<void> {
     try {
       this.isLoading.set(true);
       this.errorMessage.set(null);
-      const googleUser = await this.firebaseSync.loginWithGoogle();
-      if (googleUser) {
-        const profile = this.auth.loginWithGoogleUser(googleUser);
-        await this.workspace.loadUserData(profile);
-        this.router.navigate(['/inicio']);
-      }
+      await this.workspace.loginWithGoogle();
+      this.router.navigate(['/inicio']);
     } catch (err: any) {
       this.errorMessage.set('No se pudo completar el inicio de sesión con Google. Puedes usar el acceso rápido con tu nombre.');
     } finally {

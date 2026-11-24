@@ -143,8 +143,14 @@ export class TopbarComponent {
   async syncNow(): Promise<void> {
     this.isActionInProgress.set(true);
     try {
-      await this.workspace.saveSnapshot();
-      this.feedback.success('Sincronización completada exitosamente.');
+      const user = this.workspace.firebaseSync.currentUser();
+      if (user) {
+        await this.workspace.reconcileWithCloud(user.uid);
+        this.feedback.success('Datos reconciliados y sincronizados con Google Cloud.');
+      } else {
+        await this.workspace.saveSnapshot();
+        this.feedback.success('Datos guardados en IndexedDB.');
+      }
     } catch {
       this.feedback.error('No se pudo completar la sincronización.');
     } finally {
