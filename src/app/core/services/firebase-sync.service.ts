@@ -241,9 +241,14 @@ export class FirebaseSyncService {
     this.isUploading.set(true);
     try {
       const fileRef = ref(this.storage, storagePath);
-      await uploadBytes(fileRef, file, {
-        contentType: file.type
-      });
+      
+      // Timeout de 8 segundos para evitar que el SDK de Firebase reintente indefinidamente si hay CORS o 404
+      const uploadPromise = uploadBytes(fileRef, file, { contentType: file.type });
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('TIMEOUT_STORAGE_CORS')), 8000)
+      );
+
+      await Promise.race([uploadPromise, timeoutPromise]);
       const downloadUrl = await getDownloadURL(fileRef);
 
       const attachment: FileAttachment = {

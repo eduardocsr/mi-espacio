@@ -635,17 +635,65 @@ export class ApuntesComponent implements OnInit, OnDestroy {
     const file = input.files[0];
     try {
       this.isUploadingMedia.set(true);
-      const attachment = await this.workspace.firebaseSync.uploadDocument(file);
-      // Insertar enlace al documento en el editor
-      const linkHtml = `<p>📎 <a href="${attachment.url}" target="_blank" rel="noopener noreferrer"><strong>${attachment.name}</strong> (${(attachment.size / 1024).toFixed(1)} KB)</a></p>`;
+      let attachmentUrl = '';
+      let isFallback = false;
+
+      try {
+        const attachment = await this.workspace.firebaseSync.uploadDocument(file);
+        attachmentUrl = attachment.url;
+      } catch (storageError) {
+        console.warn('Firebase Storage no disponible (CORS o 404). Usando fallback local para el archivo.', storageError);
+        
+        // Si el archivo es menor a 10 MB, lo adjuntamos como Data URL descargable
+        if (file.size <= 10 * 1024 * 1024) {
+          isFallback = true;
+          attachmentUrl = await this.readFileAsDataUrl(file);
+        } else {
+          throw new Error('FILE_TOO_LARGE_FOR_LOCAL');
+        }
+      }
+
+      const sizeKb = (file.size / 1024).toFixed(1);
+      const isZipOrRar = file.name.endsWith('.zip') || file.name.endsWith('.rar') || file.name.endsWith('.7z');
+      const icon = isZipOrRar ? '📦' : '📎';
+
+      // Insertar enlace al documento en el editor con opción de descarga
+      const linkHtml = `<p>${icon} <a href="${attachmentUrl}" download="${file.name}" target="_blank" rel="noopener noreferrer"><strong>${file.name}</strong> (${sizeKb} KB)</a></p>`;
       this.editor?.chain().focus().insertContent(linkHtml).run();
-    } catch (err) {
+
+      // Guardar cambio en la nota de inmediato
+      const json = this.editor?.getJSON();
+      const text = this.editor?.getText();
+      const note = this.currentNote();
+      if (note && json) {
+        this.workspace.updateNote(note.id, { contentJson: json, plainText: text });
+      }
+
+      if (isFallback) {
+        this.showToast(`Archivo "${file.name}" adjuntado a la nota.`);
+      } else {
+        this.showToast(`Archivo "${file.name}" subido a la nube.`);
+      }
+    } catch (err: any) {
       console.error('Error al adjuntar archivo:', err);
-      alert('No se pudo subir el archivo. Intenta de nuevo.');
+      if (err?.message === 'FILE_TOO_LARGE_FOR_LOCAL') {
+        alert('El archivo supera los 10 MB y Firebase Storage no está disponible.\n\nPor favor usa la opción "📁 Vincular Google Drive" para archivos de gran tamaño.');
+      } else {
+        alert('No se pudo adjuntar el archivo. Puedes vincularlo directamente con Google Drive.');
+      }
     } finally {
       this.isUploadingMedia.set(false);
       input.value = '';
     }
+  }
+
+  private readFileAsDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 
   promptDriveLink(): void {
