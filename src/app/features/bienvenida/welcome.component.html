@@ -176,9 +176,17 @@
                         [style.background-color]="p.color">
                         {{ p.initials }}
                       </div>
-                      <div class="min-w-0 truncate">
-                        <div class="text-xs font-bold text-[#231F20] dark:text-[#F3EFEA] truncate">
-                          {{ p.name }}
+                      <div class="min-w-0 truncate flex-1">
+                        <div class="flex items-center gap-1.5 truncate">
+                          <span class="text-xs font-bold text-[#231F20] dark:text-[#F3EFEA] truncate">
+                            {{ p.name }}
+                          </span>
+                          @if (p.cloudLinked) {
+                            <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-mono bg-[#E6F3EC] dark:bg-[#192A21] text-[#246A49] dark:text-[#52B788] font-bold shrink-0">
+                              <lucide-icon [img]="CloudIcon" [size]="9" [strokeWidth]="2.5"></lucide-icon>
+                              Google
+                            </span>
+                          }
                         </div>
                         <div class="text-[10px] text-[#635B5E] dark:text-neutral-400 truncate">
                           {{ p.email }}

@@ -82,6 +82,7 @@ export class AuthSessionService {
 
   /**
    * Conecta con la cuenta de Google (Firebase) sincronizando el perfil.
+   * Guarda cloudLinked: true y googleUid para reconexión automática en futuros accesos.
    */
   loginWithGoogleUser(user: { uid: string; displayName?: string | null; email?: string | null; photoURL?: string | null }): UserProfile {
     const name = user.displayName || user.email?.split('@')[0] || 'Usuario';
@@ -89,16 +90,28 @@ export class AuthSessionService {
     const initials = this.calculateInitials(name);
     const color = '#74566E';
 
-    const existing = this.savedProfiles().find(p => p.id === user.uid || p.email === email);
+    // Buscar si ya existe por uid o por correo (ej. usuario local previo con mismo correo)
+    const existing = this.savedProfiles().find(p =>
+      p.id === user.uid ||
+      (p.email && email && p.email.toLowerCase() === email.toLowerCase())
+    );
+
     const profile: UserProfile = {
       id: user.uid,
       name,
       email,
       initials,
       color: existing?.color || color,
-      avatarUrl: user.photoURL || undefined,
-      createdAt: existing?.createdAt || new Date().toISOString()
+      avatarUrl: user.photoURL || existing?.avatarUrl || undefined,
+      createdAt: existing?.createdAt || new Date().toISOString(),
+      cloudLinked: true,
+      googleUid: user.uid
     };
+
+    // Si existía un perfil previo registrado con un id local (ej. u-123...), removerlo para unificar
+    if (existing && existing.id !== user.uid) {
+      this.removeProfile(existing.id);
+    }
 
     this.saveProfile(profile);
     this.setCurrentUser(profile);

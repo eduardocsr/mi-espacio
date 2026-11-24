@@ -120,4 +120,6 @@ export interface UserProfile {
   color: string;
   avatarUrl?: string;
   createdAt: string;
+  cloudLinked?: boolean;
+  googleUid?: string;
 }

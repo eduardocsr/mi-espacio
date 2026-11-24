@@ -15,7 +15,8 @@ import {
   Sun,
   ShieldCheck,
   Zap,
-  Trash2
+  Trash2,
+  Cloud
 } from 'lucide-angular';
 import { AuthSessionService } from '../../core/services/auth-session.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
@@ -55,12 +56,21 @@ export class WelcomeComponent {
   readonly ShieldCheckIcon = ShieldCheck;
   readonly ZapIcon = Zap;
   readonly Trash2Icon = Trash2;
+  readonly CloudIcon = Cloud;
 
   // Acceso o creación de perfil local
   async submitNewProfile(): Promise<void> {
     const name = this.userName().trim();
     if (!name) {
       this.errorMessage.set('Por favor ingresa tu nombre para personalizar tu espacio.');
+      return;
+    }
+
+    const email = this.userEmail().trim().toLowerCase();
+    // Si ya existe un perfil vinculado a la nube con ese correo, reconectar directamente
+    const existing = this.auth.savedProfiles().find(p => email && p.email?.toLowerCase() === email);
+    if (existing && existing.cloudLinked) {
+      await this.selectProfile(existing);
       return;
     }
 
@@ -84,9 +94,20 @@ export class WelcomeComponent {
       this.isLoading.set(true);
       this.auth.loginWithProfile(profile);
       await this.workspace.loadUserData(profile);
+
+      // Si el perfil tiene Google Cloud vinculado, intentar reconectar automáticamente
+      if (profile.cloudLinked) {
+        if (!this.firebaseSync.currentUser()) {
+          await this.workspace.loginWithGoogle().catch(err => {
+            console.warn('Reconexión con Google omitida temporalmente:', err);
+          });
+        }
+      }
+
       this.router.navigate(['/inicio']);
     } catch (err: any) {
-      this.errorMessage.set(err.message || 'Error al cargar perfil.');
+      console.warn('Accediendo con datos locales de IndexedDB:', err);
+      this.router.navigate(['/inicio']);
     } finally {
       this.isLoading.set(false);
     }

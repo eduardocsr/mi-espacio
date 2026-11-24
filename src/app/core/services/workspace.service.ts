@@ -246,9 +246,24 @@ export class WorkspaceService {
   }
 
   async logout(): Promise<void> {
+    // 1. Asegurar persistencia del snapshot en IndexedDB y localStorage antes de cerrar
+    const user = this.authSession.currentUser();
+    if (user && this.isInitialized()) {
+      const snapshot = this.getSnapshot();
+      await this.storage.saveSnapshot(snapshot, user.id).catch(console.error);
+      this.saveToLocalStorage(snapshot, user.id);
+    }
+
+    // 2. Limpiar memoria activa en señales
     this.clearInMemoryWorkspace();
+
+    // 3. Desconectar token de Firebase Auth
     await this.firebaseSync.logout();
+
+    // 4. Limpiar sesión en AuthSessionService (conserva perfiles guardados y snapshot en IndexedDB)
     this.authSession.logout();
+
+    // 5. Redirigir a bienvenida
     this.router.navigate(['/bienvenida']);
   }
 
@@ -266,7 +281,11 @@ export class WorkspaceService {
   async loadUserData(user: UserProfile): Promise<void> {
     try {
       // 1. Cargar caché local de inmediato (IndexedDB o localStorage) para render instantáneo en 0ms
-      const saved = await this.storage.loadSnapshot(user.id);
+      let saved = await this.storage.loadSnapshot(user.id);
+      if (!saved && user.googleUid && user.googleUid !== user.id) {
+        saved = await this.storage.loadSnapshot(user.googleUid);
+      }
+
       let localSnapshot: WorkspaceSnapshot | null = saved;
       if (!localSnapshot) {
         localSnapshot = this.loadFromLocalStorage(user.id);
@@ -279,12 +298,12 @@ export class WorkspaceService {
         this.lastSavedAt.set(new Date());
       }
 
-      // 2. Si el usuario está conectado a Google/Firebase (o su perfil es de Google),
-      // reconciliar de inmediato con Cloud Firestore para que las adiciones y borrados remotos se reflejen
+      // 2. Si el usuario está conectado a Google/Firebase o tiene cloudLinked activo:
+      // Reconciliar de inmediato con Cloud Firestore para descargar la última versión
       const googleUser = this.firebaseSync.currentUser();
-      const isGoogleAccount = !!googleUser || (user.id && !user.id.startsWith('u-'));
+      const isGoogleAccount = !!googleUser || !!user.cloudLinked || (user.id && !user.id.startsWith('u-'));
       if (isGoogleAccount) {
-        const uid = googleUser?.uid || user.id;
+        const uid = googleUser?.uid || user.googleUid || user.id;
         await this.reconcileWithCloud(uid, localSnapshot);
         return;
       }
