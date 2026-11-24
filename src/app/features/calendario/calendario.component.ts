@@ -18,6 +18,7 @@ import {
   MapPin
 } from 'lucide-angular';
 import { WorkspaceService } from '../../core/services/workspace.service';
+import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { CalendarCategory, CalendarEvent, TaskItem } from '../../core/models/workspace.models';
 
 interface CalendarCell {
@@ -40,6 +41,7 @@ interface CalendarCell {
 })
 export class CalendarioComponent implements OnInit {
   readonly workspace = inject(WorkspaceService);
+  readonly feedback = inject(UiFeedbackService);
   private readonly route = inject(ActivatedRoute);
 
   // Icons
@@ -279,9 +281,16 @@ export class CalendarioComponent implements OnInit {
     this.closeEventModal();
   }
 
-  deleteEvent(id: string): void {
-    if (confirm('¿Eliminar este evento del calendario?')) {
+  async deleteEvent(id: string): Promise<void> {
+    const confirmed = await this.feedback.confirm({
+      title: 'Eliminar evento',
+      message: '¿Estás seguro de que deseas eliminar este evento del calendario?',
+      confirmLabel: 'Eliminar evento',
+      tone: 'danger'
+    });
+    if (confirmed) {
       this.workspace.deleteCalendarEvent(id);
+      this.feedback.info('Evento eliminado del calendario');
     }
   }
 

@@ -72,6 +72,7 @@ import Image from '@tiptap/extension-image';
 import { common, createLowlight } from 'lowlight';
 
 import { WorkspaceService } from '../../core/services/workspace.service';
+import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { Note, NoteFolder, NoteStatus, NoteAttachment } from '../../core/models/workspace.models';
 import { compressImageToDataUrl } from '../../core/utils/image-compressor';
 
@@ -195,6 +196,7 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
 })
 export class ApuntesComponent implements OnInit, OnDestroy {
   readonly workspace = inject(WorkspaceService);
+  readonly feedback = inject(UiFeedbackService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly sanitizer = inject(DomSanitizer);
@@ -315,7 +317,6 @@ export class ApuntesComponent implements OnInit, OnDestroy {
 
   // Save status indicator linked to WorkspaceService real IndexedDB persistence
   readonly saveStatus = this.workspace.saveStatus;
-  toastMessage = signal<string | null>(null);
 
   // Tiptap Editor instance
   editor: Editor | null = null;
@@ -578,11 +579,18 @@ export class ApuntesComponent implements OnInit, OnDestroy {
     this.workspace.updateNote(note.id, { title: newTitle });
   }
 
-  deleteCurrentNote(): void {
+  async deleteCurrentNote(): Promise<void> {
     const note = this.currentNote();
     if (!note) return;
-    if (confirm(`¿Eliminar la nota "${note.title}"?`)) {
+    const confirmed = await this.feedback.confirm({
+      title: 'Eliminar apunte',
+      message: `¿Estás seguro de que deseas eliminar permanentemente "${note.title}"?`,
+      confirmLabel: 'Eliminar apunte',
+      tone: 'danger'
+    });
+    if (confirmed) {
       this.workspace.deleteNote(note.id);
+      this.feedback.info('Apunte eliminado');
       const remaining = this.workspace.notes();
       if (remaining.length > 0) {
         this.selectNote(remaining[0]);
@@ -649,7 +657,7 @@ export class ApuntesComponent implements OnInit, OnDestroy {
     const file = input.files[0];
     const note = this.currentNote();
     if (!note) {
-      alert('Por favor selecciona o crea una nota primero.');
+      this.feedback.warning('Por favor selecciona o crea una nota antes de adjuntar un archivo.');
       return;
     }
 
@@ -714,9 +722,12 @@ export class ApuntesComponent implements OnInit, OnDestroy {
     } catch (err: any) {
       console.error('Error al adjuntar archivo:', err);
       if (err?.message === 'FILE_TOO_LARGE_FOR_LOCAL') {
-        alert('El archivo supera los 10 MB y Firebase Storage no está disponible.\n\nPor favor usa la opción "📁 Vincular Google Drive" para archivos de gran tamaño.');
+        this.feedback.warning(
+          'El archivo supera los 10 MB. Para archivos de gran tamaño, usa la opción "📁 Vincular Google Drive".',
+          'Archivo pesado'
+        );
       } else {
-        alert('No se pudo adjuntar el archivo. Puedes vincularlo directamente con Google Drive.');
+        this.feedback.error('No se pudo adjuntar el archivo. Intenta vincularlo con Google Drive.');
       }
     } finally {
       this.isUploadingMedia.set(false);
@@ -766,13 +777,19 @@ export class ApuntesComponent implements OnInit, OnDestroy {
     this.activePdfPreview.set(null);
   }
 
-  removeAttachment(attId: string): void {
+  async removeAttachment(attId: string): Promise<void> {
     const note = this.currentNote();
     if (!note || !note.attachments) return;
-    if (confirm('¿Eliminar este archivo adjunto de la nota?')) {
+    const confirmed = await this.feedback.confirm({
+      title: 'Eliminar archivo adjunto',
+      message: '¿Estás seguro de que deseas quitar este archivo adjunto de la nota?',
+      confirmLabel: 'Eliminar',
+      tone: 'danger'
+    });
+    if (confirmed) {
       const updated = note.attachments.filter(a => a.id !== attId);
       this.workspace.updateNote(note.id, { attachments: updated });
-      this.showToast('Archivo adjunto eliminado');
+      this.feedback.info('Archivo adjunto eliminado');
     }
   }
 
@@ -796,12 +813,19 @@ export class ApuntesComponent implements OnInit, OnDestroy {
     });
   }
 
-  promptDriveLink(): void {
-    const url = prompt('Ingresa el enlace público de tu archivo o documento en Google Drive:');
+  async promptDriveLink(): Promise<void> {
+    const url = await this.feedback.prompt({
+      title: 'Vincular Google Drive',
+      message: 'Ingresa el enlace público de tu archivo o documento en Google Drive:',
+      placeholder: 'https://drive.google.com/file/d/...',
+      confirmLabel: 'Vincular enlace',
+      inputType: 'url'
+    });
     if (url && url.trim()) {
       const driveUrl = url.trim();
       const driveHtml = `<p>📄 <a href="${driveUrl}" target="_blank" rel="noopener noreferrer"><strong>Archivo en Google Drive</strong></a></p>`;
       this.editor?.chain().focus().insertContent(driveHtml).run();
+      this.feedback.success('Enlace de Google Drive añadido a la nota.');
     }
   }
 
@@ -952,7 +976,7 @@ export class ApuntesComponent implements OnInit, OnDestroy {
 
   speakNote(): void {
     if (typeof window === 'undefined' || !window.speechSynthesis) {
-      alert('Tu navegador no soporta síntesis de voz.');
+      this.feedback.warning('Tu navegador no soporta la síntesis de voz.');
       return;
     }
 
@@ -1010,12 +1034,14 @@ export class ApuntesComponent implements OnInit, OnDestroy {
       subtasks: []
     });
 
-    this.showToast('Tarea agregada exitosamente al tablero Kanban');
+    this.feedback.success('Tarea agregada exitosamente al tablero Kanban', 'Tarea creada', {
+      actionLabel: 'Ir a Tareas →',
+      onAction: () => this.router.navigate(['/tareas'])
+    });
   }
 
   showToast(msg: string): void {
-    this.toastMessage.set(msg);
-    setTimeout(() => this.toastMessage.set(null), 3000);
+    this.feedback.info(msg);
   }
 
   isFormatActive(name: string, attributes?: Record<string, any>): boolean {
@@ -1117,14 +1143,21 @@ export class ApuntesComponent implements OnInit, OnDestroy {
     this.editor?.chain().focus().toggleCodeBlock({ language: lang }).run();
   }
 
-  setLink(): void {
-    const prevUrl = this.editor?.getAttributes('link')['href'];
-    const url = window.prompt('Ingresa la URL del enlace:', prevUrl);
+  async setLink(): Promise<void> {
+    const prevUrl = this.editor?.getAttributes('link')['href'] || '';
+    const url = await this.feedback.prompt({
+      title: 'Insertar hipervínculo',
+      message: 'Ingresa la dirección web (URL) para el texto seleccionado:',
+      placeholder: 'https://ejemplo.com',
+      defaultValue: prevUrl,
+      confirmLabel: 'Guardar enlace',
+      inputType: 'url'
+    });
     if (url === null) return;
-    if (url === '') {
+    if (url.trim() === '') {
       this.editor?.chain().focus().unsetLink().run();
     } else {
-      this.editor?.chain().focus().setLink({ href: url }).run();
+      this.editor?.chain().focus().setLink({ href: url.trim() }).run();
     }
   }
 

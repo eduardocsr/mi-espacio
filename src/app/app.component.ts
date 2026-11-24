@@ -1,9 +1,11 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { FeedbackHostComponent } from './layout/feedback/feedback-host.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  standalone: true,
+  imports: [RouterOutlet, FeedbackHostComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })

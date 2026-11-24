@@ -326,14 +326,6 @@
         </div>
       </div>
 
-      <!-- Feedback Toast Notification -->
-      @if (toastMessage()) {
-        <div class="px-6 py-2 bg-[#E6F3EC] text-[#246A49] border-b border-[#246A49]/20 text-xs font-semibold flex items-center justify-between animate-in fade-in">
-          <span>{{ toastMessage() }}</span>
-          <button type="button" routerLink="/tareas" class="underline font-bold">Ir a Tareas →</button>
-        </div>
-      }
-
       <!-- Tiptap Editorial Toolbar -->
       <div class="px-3 sm:px-6 py-2 border-b border-[#EAE2DE] dark:border-[#2A2832] flex items-center gap-1 sm:gap-1.5 flex-wrap shrink-0 bg-[#FAF7F5]/30 dark:bg-[#121115]/30" (click)="$event.stopPropagation()">
         <!-- Undo / Redo -->

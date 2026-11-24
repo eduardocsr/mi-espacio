@@ -20,6 +20,7 @@ import {
 import { AuthSessionService } from '../../core/services/auth-session.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { FirebaseSyncService } from '../../core/services/firebase-sync.service';
+import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { UserProfile } from '../../core/models/workspace.models';
 
 @Component({
@@ -32,6 +33,7 @@ export class WelcomeComponent {
   readonly auth = inject(AuthSessionService);
   readonly workspace = inject(WorkspaceService);
   readonly firebaseSync = inject(FirebaseSyncService);
+  readonly feedback = inject(UiFeedbackService);
   private readonly router = inject(Router);
 
   // Form inputs
@@ -91,10 +93,17 @@ export class WelcomeComponent {
   }
 
   // Eliminar perfil guardado del selector
-  deleteProfile(event: Event, profileId: string): void {
+  async deleteProfile(event: Event, profileId: string): Promise<void> {
     event.stopPropagation();
-    if (confirm('¿Eliminar este perfil del selector rápido de este navegador?')) {
+    const confirmed = await this.feedback.confirm({
+      title: 'Eliminar perfil guardado',
+      message: '¿Deseas quitar este perfil del selector rápido de este navegador?',
+      confirmLabel: 'Quitar perfil',
+      tone: 'danger'
+    });
+    if (confirmed) {
       this.auth.removeProfile(profileId);
+      this.feedback.info('Perfil eliminado del selector rápido');
     }
   }
 

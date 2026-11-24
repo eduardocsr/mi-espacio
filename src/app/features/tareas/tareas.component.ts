@@ -43,6 +43,7 @@ import {
   RotateCcw
 } from 'lucide-angular';
 import { WorkspaceService } from '../../core/services/workspace.service';
+import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import {
   IssueType,
   KanbanColumn,
@@ -61,6 +62,7 @@ import {
 })
 export class TareasComponent {
   readonly workspace = inject(WorkspaceService);
+  readonly feedback = inject(UiFeedbackService);
   private readonly router = inject(Router);
 
   // Icons
@@ -436,10 +438,17 @@ export class TareasComponent {
     this.router.navigate(['/apuntes'], { queryParams: { id: noteId } });
   }
 
-  deleteTask(taskId: string): void {
-    if (confirm('¿Eliminar esta tarea permanentemente?')) {
+  async deleteTask(taskId: string): Promise<void> {
+    const confirmed = await this.feedback.confirm({
+      title: 'Eliminar tarea',
+      message: '¿Estás seguro de que deseas eliminar esta tarea permanentemente?',
+      confirmLabel: 'Eliminar tarea',
+      tone: 'danger'
+    });
+    if (confirmed) {
       this.workspace.deleteTask(taskId);
       this.closeDetail();
+      this.feedback.info('Tarea eliminada del tablero');
     }
   }
 
@@ -597,7 +606,7 @@ export class TareasComponent {
   openDeleteColumnModal(col: KanbanColumn): void {
     this.activeMenuColumnId.set(null);
     if (this.workspace.columns().length <= 1) {
-      alert('No puedes eliminar la única columna del tablero.');
+      this.feedback.warning('No puedes eliminar la única columna del tablero.', 'Acción no permitida');
       return;
     }
     this.deletingColumn.set(col);
@@ -617,11 +626,12 @@ export class TareasComponent {
     if (!col) return;
     const count = this.workspace.tasks().filter(t => t.status === col.id).length;
     if (count > 0 && !this.fallbackColumnId()) {
-      alert('Por favor selecciona una columna destino para reasignar las tareas.');
+      this.feedback.warning('Por favor selecciona una columna destino para reasignar las tareas.');
       return;
     }
     this.workspace.deleteColumn(col.id, this.fallbackColumnId());
     this.closeDeleteColumnModal();
+    this.feedback.info(`Columna "${col.label}" eliminada`);
   }
 
   // Style helpers for IssueType

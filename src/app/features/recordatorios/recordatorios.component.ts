@@ -18,6 +18,7 @@ import {
 } from 'lucide-angular';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { ReminderAlertService } from '../../core/services/reminder-alert.service';
+import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { Reminder, ReminderRecurrence } from '../../core/models/workspace.models';
 
 // Vista /recordatorios (Alertas, Recurrencias y Resumen)
@@ -30,6 +31,7 @@ import { Reminder, ReminderRecurrence } from '../../core/models/workspace.models
 export class RecordatoriosComponent {
   readonly workspace = inject(WorkspaceService);
   readonly alertService = inject(ReminderAlertService);
+  readonly feedback = inject(UiFeedbackService);
 
   // Icons
   readonly BellIcon = Bell;
@@ -189,12 +191,19 @@ export class RecordatoriosComponent {
     this.workspace.toggleReminderCompleted(id);
   }
 
-  deleteReminder(id: string): void {
-    if (confirm('¿Eliminar este recordatorio?')) {
+  async deleteReminder(id: string): Promise<void> {
+    const confirmed = await this.feedback.confirm({
+      title: 'Eliminar recordatorio',
+      message: '¿Estás seguro de que deseas eliminar este recordatorio?',
+      confirmLabel: 'Eliminar',
+      tone: 'danger'
+    });
+    if (confirmed) {
       this.workspace.deleteReminder(id);
       if (this.editingReminderId() === id) {
         this.openCreateForm();
       }
+      this.feedback.info('Recordatorio eliminado');
     }
   }
 

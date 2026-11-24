@@ -19,6 +19,7 @@ import {
 } from 'lucide-angular';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { AuthSessionService } from '../../core/services/auth-session.service';
+import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 
 @Component({
   selector: 'app-topbar',
@@ -29,6 +30,7 @@ import { AuthSessionService } from '../../core/services/auth-session.service';
 export class TopbarComponent {
   readonly workspace = inject(WorkspaceService);
   readonly authSession = inject(AuthSessionService);
+  readonly feedback = inject(UiFeedbackService);
   private readonly router = inject(Router);
 
   // User menu state
@@ -88,10 +90,19 @@ export class TopbarComponent {
   }
 
   async logout(): Promise<void> {
+    const confirmed = await this.feedback.confirm({
+      title: 'Cerrar sesión',
+      message: '¿Deseas cerrar tu sesión activa?',
+      confirmLabel: 'Cerrar sesión',
+      tone: 'primary'
+    });
+    if (!confirmed) return;
+
     this.isActionInProgress.set(true);
     try {
       await this.workspace.logout();
       this.closeUserMenu();
+      this.feedback.info('Has cerrado sesión');
     } finally {
       this.isActionInProgress.set(false);
     }
@@ -99,6 +110,7 @@ export class TopbarComponent {
 
   exportBackup(): void {
     this.workspace.exportBackup();
+    this.feedback.success('Archivo de respaldo descargado correctamente.');
     this.closeUserMenu();
   }
 
@@ -117,9 +129,9 @@ export class TopbarComponent {
       if (text) {
         const success = await this.workspace.importBackup(text);
         if (success) {
-          alert('¡Respaldo importado exitosamente!');
+          this.feedback.success('Tus notas y datos se han restaurado con éxito.', '¡Respaldo importado!');
         } else {
-          alert('El archivo de respaldo no es válido.');
+          this.feedback.error('El archivo de respaldo no tiene un formato JSON válido.', 'Error al importar');
         }
       }
       this.closeUserMenu();
@@ -132,6 +144,9 @@ export class TopbarComponent {
     this.isActionInProgress.set(true);
     try {
       await this.workspace.saveSnapshot();
+      this.feedback.success('Sincronización completada exitosamente.');
+    } catch {
+      this.feedback.error('No se pudo completar la sincronización.');
     } finally {
       this.isActionInProgress.set(false);
     }

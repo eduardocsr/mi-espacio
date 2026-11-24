@@ -22,6 +22,7 @@ import {
 } from 'lucide-angular';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { AuthSessionService } from '../../core/services/auth-session.service';
+import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -32,6 +33,7 @@ import { AuthSessionService } from '../../core/services/auth-session.service';
 export class SidebarComponent {
   readonly workspace = inject(WorkspaceService);
   readonly authSession = inject(AuthSessionService);
+  readonly feedback = inject(UiFeedbackService);
   private readonly router = inject(Router);
 
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
@@ -54,10 +56,17 @@ export class SidebarComponent {
   readonly XIcon = X;
   readonly LogOutIcon = LogOut;
 
-  logout(): void {
-    if (confirm('¿Deseas cerrar tu sesión? Podrás volver a entrar con tu perfil cuando quieras.')) {
+  async logout(): Promise<void> {
+    const confirmed = await this.feedback.confirm({
+      title: 'Cerrar sesión',
+      message: '¿Deseas cerrar tu sesión? Tus notas permanecerán seguras y podrás volver a ingresar en cualquier momento.',
+      confirmLabel: 'Cerrar sesión',
+      tone: 'primary'
+    });
+    if (confirmed) {
       this.closeMobileDrawer();
-      this.workspace.logout();
+      await this.workspace.logout();
+      this.feedback.info('Has cerrado sesión correctamente');
     }
   }
 
