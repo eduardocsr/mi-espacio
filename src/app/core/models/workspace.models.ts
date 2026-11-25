@@ -83,6 +83,8 @@ export interface CalendarEvent {
   date: string; // YYYY-MM-DD
   startTime: string; // HH:mm
   endTime?: string; // HH:mm
+  allDay?: boolean;
+  recurrence?: 'none' | 'daily' | 'weekly' | 'monthly';
   notes?: string;
 }
 
