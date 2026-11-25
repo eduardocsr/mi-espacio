@@ -54,6 +54,9 @@ export class WorkspaceService {
   readonly saveStatus = signal<'Guardado en IndexedDB' | 'Guardando...' | 'Error al guardar' | 'Google Cloud Activo'>('Guardado en IndexedDB');
   readonly lastSavedAt = signal<Date | null>(null);
 
+  // Identificador único de sesión / dispositivo para sincronización en tiempo real determinista
+  readonly deviceId: string = this.initDeviceId();
+
   // Debounce save timer
   private saveDebounceTimer: any = null;
 
@@ -139,6 +142,22 @@ export class WorkspaceService {
       reminders: matchedReminders
     };
   });
+
+  private initDeviceId(): string {
+    const key = 'mi_espacio_device_id';
+    try {
+      let id = sessionStorage.getItem(key);
+      if (!id) {
+        id = typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : 'dev-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+        sessionStorage.setItem(key, id);
+      }
+      return id;
+    } catch {
+      return 'dev-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+    }
+  }
 
   private getStorageKey(userId?: string): string {
     const id = userId || this.authSession.currentUser()?.id;
@@ -645,7 +664,8 @@ export class WorkspaceService {
       comments: [],
       attachments: [],
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
+      updatedByDevice: this.deviceId
     };
 
     this.notes.update(current => [newNote, ...current]);
@@ -655,8 +675,9 @@ export class WorkspaceService {
 
   updateNote(id: string, updates: Partial<Note>): void {
     const now = new Date().toISOString();
+    const updatedByDevice = updates.updatedByDevice || this.deviceId;
     this.notes.update(current =>
-      current.map(n => (n.id === id ? { ...n, ...updates, updatedAt: updates.updatedAt || now } : n))
+      current.map(n => (n.id === id ? { ...n, ...updates, updatedAt: updates.updatedAt || now, updatedByDevice } : n))
     );
 
     // Si solo es tipeo de contenido en Tiptap (contentJson, html, plainText), usar debounce corto de 800ms

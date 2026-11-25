@@ -31,6 +31,7 @@ export interface Note {
   attachments?: NoteAttachment[];
   createdAt: string;
   updatedAt: string;
+  updatedByDevice?: string;
 }
 
 export interface SubTask {
@@ -70,6 +71,7 @@ export interface TaskItem {
   linkedNoteId?: string;
   createdAt: string;
   updatedAt: string;
+  updatedByDevice?: string;
 }
 
 export type CalendarCategory = 'Reunión' | 'Pago' | 'Estudio' | 'Ejercicio' | 'Entrega';
