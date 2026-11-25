@@ -85,8 +85,8 @@
           @let isCollapsed = isFolderCollapsed(folder.id);
 
           <div class="space-y-0.5">
-            <!-- Folder row -->
-            <div class="group/folder flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-medium text-[#231F20] dark:text-[#F3EFEA] hover:bg-[#EAE2DE]/60 dark:hover:bg-[#201E27] transition-colors">
+            <!-- Folder row (Sticky Header) -->
+            <div class="group/folder sticky top-0 z-10 flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-medium text-[#231F20] dark:text-[#F3EFEA] bg-[#F4EFEA] dark:bg-[#19171E] hover:bg-[#EAE2DE] dark:hover:bg-[#201E27] transition-colors shadow-2xs">
               <button
                 type="button"
                 (click)="toggleFolderCollapse(folder.id)"
@@ -109,20 +109,22 @@
                   title="Crear apunte en {{ folder.name }}">
                   <lucide-icon [img]="PlusIcon" [size]="13" [strokeWidth]="2.5"></lucide-icon>
                 </button>
-                <span class="text-[11px] text-[#635B5E] dark:text-neutral-400 tabular-nums">
+                <span class="text-[11px] text-[#635B5E] dark:text-neutral-400 tabular-nums font-semibold">
                   {{ notesInFolder.length }}
                 </span>
               </div>
             </div>
 
-            <!-- Notes inside folder -->
+            <!-- Notes inside folder (Capped to max-h-64 when > 8 notes) -->
             @if (!isCollapsed) {
-              <div class="pl-5 space-y-0.5">
+              <div
+                class="pl-4 pr-1 space-y-0.5"
+                [ngClass]="{ 'max-h-64 overflow-y-auto overscroll-contain pr-1': notesInFolder.length > 8 }">
                 @for (note of notesInFolder; track note.id) {
                   <button
                     type="button"
                     (click)="selectNote(note)"
-                    class="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition-colors text-left truncate"
+                    class="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition-colors text-left truncate cursor-pointer"
                     [ngClass]="{
                       'bg-[#EAE2DE] dark:bg-[#25232D] font-semibold text-[#74566E] dark:text-[#9D7B96]': currentNote()?.id === note.id,
                       'text-[#635B5E] dark:text-neutral-400 hover:bg-[#EAE2DE]/40 dark:hover:bg-[#201E27]': currentNote()?.id !== note.id
