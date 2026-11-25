@@ -305,10 +305,10 @@
       
       <!-- Dynamic Columns Loop -->
       @for (col of workspace.sortedColumns(); track col.id; let colIdx = $index; let isFirst = $first; let isLast = $last) {
-        <div class="w-[85vw] sm:w-[310px] md:w-[320px] shrink-0 snap-start bg-[#FAF7F5] dark:bg-[#16151B] rounded-2xl border border-[#EAE2DE] dark:border-[#2A2832] p-3.5 sm:p-4 flex flex-col min-h-[540px]">
+        <div class="w-[85vw] sm:w-[310px] md:w-[320px] shrink-0 snap-start bg-[#FAF7F5] dark:bg-[#16151B] rounded-2xl border border-[#EAE2DE] dark:border-[#2A2832] p-3.5 sm:p-4 flex flex-col max-h-[calc(100vh-220px)] min-h-[480px]">
           
           <!-- Column Header -->
-          <div class="flex items-center justify-between pb-3 mb-3 border-b border-[#EAE2DE] dark:border-[#2A2832]">
+          <div class="flex items-center justify-between pb-3 mb-3 border-b border-[#EAE2DE] dark:border-[#2A2832] shrink-0">
             <div class="flex items-center gap-2 min-w-0">
               <div 
                 class="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
@@ -397,7 +397,7 @@
             [id]="'col-' + col.id"
             [cdkDropListData]="getTasksForColumn(col.id)"
             (cdkDropListDropped)="onDrop($event, col.id)"
-            class="flex-1 flex flex-col space-y-3 min-h-[420px] pb-16">
+            class="flex-1 flex flex-col space-y-3 overflow-y-auto pr-1.5 min-h-0 pb-3">
             @for (task of getTasksForColumn(col.id); track task.id) {
               <div
                 cdkDrag
@@ -520,7 +520,7 @@
           </div>
 
           <!-- Quick Task Input or Button -->
-          <div class="mt-3 pt-2 border-t border-[#EAE2DE] dark:border-[#2A2832]">
+          <div class="mt-auto pt-2 border-t border-[#EAE2DE] dark:border-[#2A2832] shrink-0">
             @if (quickColumnStatus() === col.id) {
               <div class="space-y-2 animate-in fade-in">
                 <input
@@ -571,10 +571,10 @@
   <!-- ============================================================== -->
   @if (viewMode() === 'list') {
     <section class="bg-white dark:bg-[#19181E] rounded-2xl border border-[#EAE2DE] dark:border-[#2A2832] shadow-xs overflow-hidden">
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto max-h-[calc(100vh-230px)] overflow-y-auto">
         <table class="w-full text-left border-collapse text-xs">
-          <thead>
-            <tr class="border-b border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5]/80 dark:bg-[#16151B]/80 text-[#635B5E] dark:text-neutral-400 text-[11px] font-bold uppercase tracking-wider">
+          <thead class="sticky top-0 z-10 bg-[#FAF7F5] dark:bg-[#16151B]">
+            <tr class="border-b border-[#EAE2DE] dark:border-[#2A2832] text-[#635B5E] dark:text-neutral-400 text-[11px] font-bold uppercase tracking-wider">
               <th class="py-3 px-4 w-12 text-center">Tipo</th>
               <th class="py-3 px-4 w-24">Clave</th>
               <th class="py-3 px-4 min-w-[240px]">Título e incidencia</th>

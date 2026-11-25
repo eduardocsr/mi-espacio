@@ -211,10 +211,10 @@
   <main class="flex-1 flex-col h-full overflow-hidden bg-white dark:bg-[#19181E] min-w-0" [ngClass]="activeMobileTab() === 'editor' ? 'flex' : 'hidden lg:flex'">
     @if (currentNote()) {
       <!-- Top Action Bar / Breadcrumbs -->
-      <div class="px-3 sm:px-6 py-2 sm:py-2.5 border-b border-[#EAE2DE] dark:border-[#2A2832] flex items-center justify-between gap-2 sm:gap-4 shrink-0 bg-[#FAF7F5]/50 dark:bg-[#16151B]/50 flex-wrap sm:flex-nowrap">
+      <div class="px-3 sm:px-6 py-2 sm:py-2.5 border-b border-[#EAE2DE] dark:border-[#2A2832] flex items-center justify-between gap-2 sm:gap-4 shrink-0 bg-[#FAF7F5]/50 dark:bg-[#16151B]/50 flex-nowrap min-w-0">
         <!-- Breadcrumbs & Saved status -->
-        <div class="flex items-center gap-2 text-xs text-[#635B5E] dark:text-neutral-400 min-w-0">
-          <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] shadow-2xs hover:border-[#74566E]/50 transition-colors" title="Cambiar carpeta de este apunte">
+        <div class="flex items-center gap-2 text-xs text-[#635B5E] dark:text-neutral-400 min-w-0 flex-1 overflow-hidden">
+          <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] shadow-2xs hover:border-[#74566E]/50 transition-colors shrink-0" title="Cambiar carpeta de este apunte">
             <div class="w-2.5 h-2.5 rounded-sm shrink-0" [style.background-color]="currentFolder()?.color || '#74566E'"></div>
             <select
               [ngModel]="currentNote()?.folderId"
@@ -225,27 +225,29 @@
               }
             </select>
           </div>
-          <span>/</span>
-          <span class="truncate text-[#635B5E] max-w-[180px]">{{ currentNote()?.title || 'Sin título' }}</span>
-          <span 
-            class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-mono border ml-2 transition-colors select-none"
-            [ngClass]="{
-              'bg-white dark:bg-[#19181E] border-[#EAE2DE] dark:border-[#2A2832] text-[#246A49] dark:text-[#52B788]': workspace.saveStatus() === 'Guardado en IndexedDB',
-              'bg-[#FEF9E7] dark:bg-[#2B2313] text-[#975A16] dark:text-[#E9B949] border-[#975A16]/20 animate-pulse': workspace.saveStatus() === 'Guardando...',
-              'bg-[#FDECEC] dark:bg-[#2F1717] text-[#9B2C2C] dark:text-[#E57373] border-[#9B2C2C]/20': workspace.saveStatus() === 'Error al guardar'
-            }">
-            @if (workspace.saveStatus() === 'Guardando...') {
+          <span class="shrink-0">/</span>
+          <span class="truncate text-[#635B5E] min-w-0 max-w-[120px] sm:max-w-[180px] md:max-w-[240px]">{{ currentNote()?.title || 'Sin título' }}</span>
+
+          @if (workspace.saveStatus() === 'Guardando...') {
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-mono border ml-1 bg-[#FEF9E7] dark:bg-[#2B2313] text-[#975A16] dark:text-[#E9B949] border-[#975A16]/20 animate-pulse select-none shrink-0">
               <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
-              <span>Guardando...</span>
-            } @else {
+              <span class="hidden sm:inline">Guardando...</span>
+            </span>
+          } @else if (workspace.saveStatus() === 'Error al guardar') {
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-mono border ml-1 bg-[#FDECEC] dark:bg-[#2F1717] text-[#9B2C2C] dark:text-[#E57373] border-[#9B2C2C]/20 select-none shrink-0">
+              <lucide-icon [img]="CheckIcon" [size]="11" [strokeWidth]="2"></lucide-icon>
+              <span>Error</span>
+            </span>
+          } @else {
+            <span class="hidden 2xl:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-mono border ml-1 transition-colors select-none shrink-0 bg-white dark:bg-[#19181E] border-[#EAE2DE] dark:border-[#2A2832] text-[#246A49] dark:text-[#52B788]">
               <lucide-icon [img]="CheckIcon" [size]="11" [strokeWidth]="2"></lucide-icon>
               <span>{{ workspace.saveStatus() }}</span>
-            }
-          </span>
+            </span>
+          }
         </div>
 
         <!-- Top Right Utilities: TTS, HTML Preview, Kanban Task, Star, Delete -->
-        <div class="flex items-center gap-1.5 shrink-0">
+        <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
           <!-- Text to Speech Button -->
           <div class="flex items-center bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] rounded-lg p-0.5">
             <button
@@ -262,7 +264,7 @@
                 <span>Detener</span>
               } @else {
                 <lucide-icon [img]="Volume2Icon" [size]="14" [strokeWidth]="1.75"></lucide-icon>
-                <span class="hidden sm:inline">Leer nota</span>
+                <span class="hidden md:inline">Leer nota</span>
               }
             </button>
             <select
@@ -279,7 +281,7 @@
           <button
             type="button"
             (click)="toggleHtmlPreview()"
-            class="px-2.5 py-1 rounded-lg border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] text-xs font-medium text-[#635B5E] hover:text-[#74566E] hover:border-[#74566E]/40 transition-colors flex items-center gap-1.5"
+            class="px-2 sm:px-2.5 py-1 rounded-lg border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] text-xs font-medium text-[#635B5E] hover:text-[#74566E] hover:border-[#74566E]/40 transition-colors flex items-center gap-1.5"
             [ngClass]="{ 'bg-[#EFEAF6] text-[#74566E] border-[#74566E]/40': showHtmlPreview() }"
             title="Previsualizar bloque HTML en iframe aislado">
             @if (showHtmlPreview()) {
@@ -287,7 +289,7 @@
               <span>Cerrar HTML</span>
             } @else {
               <lucide-icon [img]="EyeIcon" [size]="14" [strokeWidth]="1.75"></lucide-icon>
-              <span class="hidden sm:inline">Previsualizar HTML</span>
+              <span class="hidden lg:inline">Previsualizar HTML</span>
             }
           </button>
 
@@ -295,10 +297,10 @@
           <button
             type="button"
             (click)="createTaskFromNote()"
-            class="px-2.5 py-1 rounded-lg border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] text-xs font-semibold text-[#246A49] hover:bg-[#E6F3EC] hover:border-[#246A49]/30 transition-colors flex items-center gap-1.5 cursor-pointer"
+            class="px-2 sm:px-2.5 py-1 rounded-lg border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] text-xs font-semibold text-[#246A49] hover:bg-[#E6F3EC] hover:border-[#246A49]/30 transition-colors flex items-center gap-1.5 cursor-pointer"
             title="Convertir esta nota en tarea del tablero Kanban">
             <lucide-icon [img]="CheckCircle2Icon" [size]="14" [strokeWidth]="2"></lucide-icon>
-            <span class="hidden md:inline">Crear tarea</span>
+            <span class="hidden xl:inline">Crear tarea</span>
           </button>
 
           <!-- Star Favorite -->
