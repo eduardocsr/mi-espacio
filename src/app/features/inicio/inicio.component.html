@@ -149,7 +149,7 @@
 
     <!-- Column 1: Notas Recientes (4 cols) -->
     <div class="lg:col-span-4 bg-white dark:bg-[#19181E] rounded-2xl border border-[#EAE2DE] dark:border-[#2A2832] p-5 flex flex-col justify-between shadow-xs">
-      <div>
+      <div class="flex-1 flex flex-col min-h-0">
         <div class="flex items-center justify-between pb-3.5 mb-3 border-b border-[#EAE2DE] dark:border-[#2A2832]">
           <div class="flex items-center gap-2">
             <lucide-icon [img]="FileTextIcon" [size]="18" [strokeWidth]="1.75" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
@@ -166,7 +166,7 @@
         </div>
 
         <!-- Notes List -->
-        <div class="space-y-2">
+        <div class="space-y-2 max-h-[340px] overflow-y-auto pr-1">
           @for (note of workspace.recentNotes(); track note.id) {
             <div
               (click)="openNote(note.id)"
@@ -196,12 +196,6 @@
               No tienes notas aún.
             </div>
           }
-
-          @if (todayTasksList().length === 0) {
-            <div class="py-8 text-center text-xs text-[#635B5E] dark:text-neutral-400">
-              No tienes tareas pendientes para hoy. ¡Todo al día!
-            </div>
-          }
         </div>
       </div>
 
@@ -219,7 +213,7 @@
 
     <!-- Column 2: Tareas de Hoy (4 cols) with Interactive Checkboxes -->
     <div class="lg:col-span-4 bg-white dark:bg-[#19181E] rounded-2xl border border-[#EAE2DE] dark:border-[#2A2832] p-5 flex flex-col justify-between shadow-xs">
-      <div>
+      <div class="flex-1 flex flex-col min-h-0">
         <div class="flex items-center justify-between pb-3.5 mb-3 border-b border-[#EAE2DE] dark:border-[#2A2832]">
           <div class="flex items-center gap-2">
             <lucide-icon [img]="CheckCircle2Icon" [size]="18" [strokeWidth]="1.75" class="text-[#246A49] dark:text-[#4B8161]"></lucide-icon>
@@ -239,7 +233,7 @@
         </div>
 
         <!-- Tasks List with Interactive Real-Time Checkbox -->
-        <div class="space-y-2">
+        <div class="space-y-2 max-h-[340px] overflow-y-auto pr-1">
           @for (task of todayTasksList(); track task.id) {
             <div class="flex items-center justify-between p-2.5 rounded-xl hover:bg-[#FAF7F5] dark:hover:bg-[#121115] transition-colors group">
               <!-- Checkbox & Title -->
@@ -400,12 +394,6 @@
                 </div>
               }
             </button>
-          }
-
-          @if (todayTasksList().length === 0) {
-            <div class="py-8 text-center text-xs text-[#635B5E] dark:text-neutral-400">
-              No tienes tareas pendientes para hoy. ¡Todo al día!
-            </div>
           }
         </div>
       </div>

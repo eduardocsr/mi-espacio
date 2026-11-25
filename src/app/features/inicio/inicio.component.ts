@@ -128,7 +128,7 @@ export class InicioComponent {
     const all = this.workspace.tasks();
     const forToday = all.filter(t => t.dueDate === today);
     if (forToday.length > 0) return forToday;
-    return all.slice(0, 5);
+    return all.slice(0, 30);
   });
 
   readonly todayTasksCompletedCount = computed(() => {
