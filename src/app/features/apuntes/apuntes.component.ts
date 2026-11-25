@@ -294,6 +294,11 @@ export class ApuntesComponent implements OnInit, OnDestroy {
 
   // Right sidebar tab ('info' | 'comments')
   rightTab = signal<'info' | 'comments'>('info');
+  showDetailsPanel = signal<boolean>(typeof window !== 'undefined' ? window.innerWidth >= 1536 : false);
+
+  toggleDetailsPanel(): void {
+    this.showDetailsPanel.update(v => !v);
+  }
 
   // Folders collapse state
   collapsedFolders = signal<Record<string, boolean>>({});
