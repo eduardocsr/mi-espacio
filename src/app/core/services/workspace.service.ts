@@ -584,7 +584,47 @@ export class WorkspaceService {
 
   private applySnapshot(saved: WorkspaceSnapshot): void {
     this.folders.set(saved.folders || []);
-    this.notes.set(saved.notes || []);
+
+    const currentNotes = this.notes();
+    if (!currentNotes || currentNotes.length === 0) {
+      this.notes.set(saved.notes || []);
+    } else {
+      const incomingNotes = saved.notes || [];
+      const incomingMap = new Map<string, Note>(incomingNotes.map(n => [n.id, n]));
+      const currentMap = new Map<string, Note>(currentNotes.map(n => [n.id, n]));
+      const mergedNotes: Note[] = [];
+
+      // 1. Reconciliar notas que vienen de la nube
+      for (const remoteNote of incomingNotes) {
+        const localNote = currentMap.get(remoteNote.id);
+        if (!localNote) {
+          mergedNotes.push(remoteNote);
+        } else {
+          const localTime = new Date(localNote.updatedAt).getTime() || 0;
+          const remoteTime = new Date(remoteNote.updatedAt).getTime() || 0;
+
+          // Si la versión local es más reciente que la remota, proteger la edición local del usuario
+          if (localTime > remoteTime) {
+            mergedNotes.push(localNote);
+          } else {
+            mergedNotes.push(remoteNote);
+          }
+        }
+      }
+
+      // 2. Conservar notas locales recién creadas que aún no están en el snapshot remoto
+      for (const localNote of currentNotes) {
+        if (!incomingMap.has(localNote.id)) {
+          const localTime = new Date(localNote.updatedAt).getTime() || 0;
+          const exportTime = saved.exportedAt ? new Date(saved.exportedAt).getTime() : 0;
+          if (localTime > exportTime) {
+            mergedNotes.push(localNote);
+          }
+        }
+      }
+
+      this.notes.set(mergedNotes);
+    }
 
     const normalizedTasks: TaskItem[] = (saved.tasks || []).map((t, idx) => ({
       ...t,

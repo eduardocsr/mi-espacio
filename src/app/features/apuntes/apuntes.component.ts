@@ -206,6 +206,7 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   private isInternalUpdate = false;
   private lastLocalKeystrokeAt = 0;
   private deferredRemoteUpdateTimer: any = null;
+  private pendingRemoteContent: { content: any; noteTime: number } | null = null;
 
   // Lucide Icons
   readonly FileTextIcon = FileText;
@@ -386,6 +387,13 @@ export class ApuntesComponent implements OnInit, OnDestroy {
         return;
       }
 
+      // Si el usuario local pulsó teclas DESPUÉS de que se generó la actualización remota,
+      // la edición local es más reciente. No sobrescribir lo que el usuario está escribiendo.
+      const remoteNoteTime = new Date(note.updatedAt).getTime() || 0;
+      if (this.lastLocalKeystrokeAt > remoteNoteTime) {
+        return;
+      }
+
       // Comprobar si el contenido entrante difiere del contenido actual del editor
       const incomingHtml = note.html || '';
       const currentHtml = this.editor.getHTML();
@@ -399,11 +407,20 @@ export class ApuntesComponent implements OnInit, OnDestroy {
         return;
       }
 
-      const applyRemoteContent = () => {
+      const applyRemoteContent = (content: any) => {
         if (!this.editor || this.loadedNoteId !== note.id) return;
         this.isInternalUpdate = true;
         try {
-          this.editor.commands.setContent(contentToApply, { emitUpdate: false });
+          // Preservar la posición del cursor si el editor tiene foco activo (evita saltos al inicio)
+          const { from, to } = this.editor.state.selection;
+          this.editor.commands.setContent(content, { emitUpdate: false });
+          const maxPos = this.editor.state.doc.content.size;
+          if (from !== undefined && to !== undefined) {
+            this.editor.commands.setTextSelection({
+              from: Math.min(from, maxPos),
+              to: Math.min(to, maxPos)
+            });
+          }
           this.extractHtmlPreview();
         } finally {
           setTimeout(() => {
@@ -412,23 +429,31 @@ export class ApuntesComponent implements OnInit, OnDestroy {
         }
       };
 
-      // Control determinista por tiempo desde última pulsación local (eliminando bloqueo rígido por editor.isFocused en móviles)
+      // Control determinista por tiempo desde última pulsación local
       const timeSinceKeystroke = Date.now() - this.lastLocalKeystrokeAt;
-      if (timeSinceKeystroke >= 1200) {
+      if (timeSinceKeystroke >= 1000) {
         if (this.deferredRemoteUpdateTimer) {
           clearTimeout(this.deferredRemoteUpdateTimer);
           this.deferredRemoteUpdateTimer = null;
         }
-        applyRemoteContent();
+        this.pendingRemoteContent = null;
+        applyRemoteContent(contentToApply);
       } else {
-        // El usuario está tecleando activamente (< 1200ms): programar aplicación limpia tras 1.2s de inactividad
+        // El usuario está tecleando activamente (< 1000ms):
+        // Guardar el contenido remoto pendiente para aplicarlo en cuanto haya una pausa en el tecleo
+        this.pendingRemoteContent = { content: contentToApply, noteTime: remoteNoteTime };
         if (this.deferredRemoteUpdateTimer) {
           clearTimeout(this.deferredRemoteUpdateTimer);
         }
-        const delay = Math.max(100, 1200 - timeSinceKeystroke);
+        const delay = Math.max(100, 1000 - timeSinceKeystroke);
         this.deferredRemoteUpdateTimer = setTimeout(() => {
           this.deferredRemoteUpdateTimer = null;
-          applyRemoteContent();
+          if (this.pendingRemoteContent) {
+            if (this.lastLocalKeystrokeAt <= this.pendingRemoteContent.noteTime) {
+              applyRemoteContent(this.pendingRemoteContent.content);
+            }
+            this.pendingRemoteContent = null;
+          }
         }, delay);
       }
     });
@@ -450,6 +475,7 @@ export class ApuntesComponent implements OnInit, OnDestroy {
       clearTimeout(this.deferredRemoteUpdateTimer);
       this.deferredRemoteUpdateTimer = null;
     }
+    this.pendingRemoteContent = null;
     if (this.editor) {
       this.editor.destroy();
       this.editor = null;
@@ -569,9 +595,12 @@ export class ApuntesComponent implements OnInit, OnDestroy {
           return;
         }
         this.lastLocalKeystrokeAt = Date.now();
-        if (this.deferredRemoteUpdateTimer) {
-          clearTimeout(this.deferredRemoteUpdateTimer);
-          this.deferredRemoteUpdateTimer = null;
+        if (this.pendingRemoteContent && this.lastLocalKeystrokeAt > this.pendingRemoteContent.noteTime) {
+          this.pendingRemoteContent = null;
+          if (this.deferredRemoteUpdateTimer) {
+            clearTimeout(this.deferredRemoteUpdateTimer);
+            this.deferredRemoteUpdateTimer = null;
+          }
         }
         const json = editor.getJSON();
         const html = editor.getHTML();
@@ -602,6 +631,7 @@ export class ApuntesComponent implements OnInit, OnDestroy {
       clearTimeout(this.deferredRemoteUpdateTimer);
       this.deferredRemoteUpdateTimer = null;
     }
+    this.pendingRemoteContent = null;
     this.loadedNoteId = note.id;
     const content = note.contentJson || (note.html ? note.html : (note.plainText ? note.plainText : {
       type: 'doc',

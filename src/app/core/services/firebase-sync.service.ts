@@ -138,7 +138,7 @@ export class FirebaseSyncService {
   async syncToCloud(snapshot: WorkspaceSnapshot, targetUid?: string): Promise<void> {
     const user = this.currentUser();
     const uid = targetUid || user?.uid;
-    if (!uid || this.isApplyingRemoteUpdate) {
+    if (!uid) {
       return;
     }
 
@@ -205,6 +205,10 @@ export class FirebaseSyncService {
 
     const userDocRef = doc(this.firestore, 'users', uid, 'workspace', 'data');
     this.unsubscribeCloudListener = onSnapshot(userDocRef, (docSnap) => {
+      // Ignorar escrituras locales no confirmadas por el servidor de este mismo cliente
+      if (docSnap.metadata.hasPendingWrites) {
+        return;
+      }
       if (docSnap.exists()) {
         const remoteData = docSnap.data() as WorkspaceSnapshot;
         this.isApplyingRemoteUpdate = true;
