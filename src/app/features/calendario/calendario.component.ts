@@ -22,7 +22,8 @@ import {
   List,
   Repeat,
   Sparkles,
-  Filter
+  Filter,
+  X
 } from 'lucide-angular';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
@@ -101,6 +102,7 @@ export class CalendarioComponent implements OnInit {
   readonly RepeatIcon = Repeat;
   readonly SparklesIcon = Sparkles;
   readonly FilterIcon = Filter;
+  readonly XIcon = X;
 
   // State
   currentDate = signal<Date>(new Date());

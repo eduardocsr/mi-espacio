@@ -215,7 +215,7 @@
                 <!-- Synced Task Deadlines (Up to 1) -->
                 @for (task of cell.tasks.slice(0, 1); track task.id) {
                   <div class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#FAF7F5] dark:bg-[#2A2832] text-[#231F20] dark:text-[#F3EFEA] border border-[#EAE2DE] dark:border-[#2A2832] truncate flex items-center gap-1">
-                    <span class="text-[9px] font-bold text-[#74566E] dark:text-[#9D7B96]">✓</span>
+                    <lucide-icon [img]="CheckIcon" [size]="11" [strokeWidth]="2.5" class="w-3 h-3 text-[#74566E] dark:text-[#9D7B96] shrink-0 text-current"></lucide-icon>
                     <span class="truncate" [class.line-through]="isTaskDone(task)">{{ task.title }}</span>
                   </div>
                 }
@@ -281,13 +281,13 @@
                   }
                   @for (task of day.tasks; track task.id) {
                     <div class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#FAF7F5] dark:bg-[#2A2832] text-[#231F20] dark:text-[#F3EFEA] border border-[#EAE2DE] dark:border-[#2A2832] truncate flex items-center gap-1">
-                      <span class="text-[9px] font-bold text-[#74566E] dark:text-[#9D7B96]">✓</span>
+                      <lucide-icon [img]="CheckIcon" [size]="11" [strokeWidth]="2.5" class="w-3 h-3 text-[#74566E] dark:text-[#9D7B96] shrink-0 text-current"></lucide-icon>
                       <span class="truncate" [class.line-through]="isTaskDone(task)">{{ task.title }}</span>
                     </div>
                   }
                   @for (rem of day.reminders; track rem.id) {
                     <div class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#FAF7F5] dark:bg-[#121115] text-[#635B5E] dark:text-neutral-400 truncate flex items-center gap-1">
-                      <span class="text-[9px]">🔔</span>
+                      <lucide-icon [img]="BellIcon" [size]="11" [strokeWidth]="1.75" class="w-3 h-3 shrink-0 text-current"></lucide-icon>
                       <span class="truncate" [class.line-through]="rem.completed">{{ rem.title }}</span>
                     </div>
                   }
@@ -367,7 +367,7 @@
                   @for (task of group.tasks; track task.id) {
                     <div class="p-2 rounded-lg text-xs flex items-center justify-between gap-2 bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832]">
                       <div class="flex items-center gap-2 truncate">
-                        <span class="text-[#74566E] dark:text-[#9D7B96] font-bold">✓</span>
+                        <lucide-icon [img]="CheckIcon" [size]="12" [strokeWidth]="2.5" class="w-3.5 h-3.5 text-[#74566E] dark:text-[#9D7B96] shrink-0 text-current"></lucide-icon>
                         <span class="truncate" [class.line-through]="isTaskDone(task)">{{ task.title }}</span>
                       </div>
                       <span class="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-white dark:bg-[#19181E] text-[#635B5E]">
@@ -380,7 +380,7 @@
                   @for (rem of group.reminders; track rem.id) {
                     <div class="p-2 rounded-lg text-xs flex items-center justify-between gap-2 bg-[#FAF7F5] dark:bg-[#121115]">
                       <div class="flex items-center gap-2 truncate">
-                        <span>🔔</span>
+                        <lucide-icon [img]="BellIcon" [size]="12" [strokeWidth]="1.75" class="w-3.5 h-3.5 shrink-0 text-current"></lucide-icon>
                         <span class="truncate" [class.line-through]="rem.completed">{{ rem.title }}</span>
                       </div>
                       <span class="text-[11px] font-mono text-[#635B5E] tabular-nums">
@@ -639,8 +639,9 @@
                 <button
                   type="button"
                   (click)="closeQuickAdd()"
-                  class="px-2 py-1.5 text-xs text-[#635B5E] hover:text-[#231F20] cursor-pointer">
-                  ✕
+                  class="px-2 py-1.5 text-xs text-[#635B5E] hover:text-[#231F20] cursor-pointer flex items-center justify-center"
+                  title="Cancelar">
+                  <lucide-icon [img]="XIcon" [size]="12" [strokeWidth]="2" class="w-3 h-3 text-current"></lucide-icon>
                 </button>
               </div>
             </div>

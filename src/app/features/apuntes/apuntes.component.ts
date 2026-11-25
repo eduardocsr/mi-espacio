@@ -805,10 +805,7 @@ export class ApuntesComponent implements OnInit, OnDestroy {
 
       // 2. Insertar referencia con estilo en el editor
       const sizeKb = (file.size / 1024).toFixed(1);
-      const isZipOrRar = file.name.endsWith('.zip') || file.name.endsWith('.rar') || file.name.endsWith('.7z');
-      const icon = isZipOrRar ? '📦' : (file.name.toLowerCase().endsWith('.pdf') ? '📕' : '📎');
-
-      const linkHtml = `<p>${icon} <strong>${file.name}</strong> (${sizeKb} KB)</p>`;
+      const linkHtml = `<p><strong>[Archivo: ${file.name}]</strong> (${sizeKb} KB)</p>`;
       this.editor?.chain().focus().insertContent(linkHtml).run();
 
       const json = this.editor?.getJSON();
@@ -831,7 +828,7 @@ export class ApuntesComponent implements OnInit, OnDestroy {
       console.error('Error al adjuntar archivo:', err);
       if (err?.message === 'FILE_TOO_LARGE_FOR_LOCAL') {
         this.feedback.warning(
-          'El archivo supera los 10 MB. Para archivos de gran tamaño, usa la opción "📁 Vincular Google Drive".',
+          'El archivo supera los 10 MB. Para archivos de gran tamaño, usa la opción "Vincular Google Drive".',
           'Archivo pesado'
         );
       } else {
@@ -931,7 +928,7 @@ export class ApuntesComponent implements OnInit, OnDestroy {
     });
     if (url && url.trim()) {
       const driveUrl = url.trim();
-      const driveHtml = `<p>📄 <a href="${driveUrl}" target="_blank" rel="noopener noreferrer"><strong>Archivo en Google Drive</strong></a></p>`;
+      const driveHtml = `<p><a href="${driveUrl}" target="_blank" rel="noopener noreferrer"><strong>Archivo en Google Drive</strong></a></p>`;
       this.editor?.chain().focus().insertContent(driveHtml).run();
       this.feedback.success('Enlace de Google Drive añadido a la nota.');
     }
@@ -1218,7 +1215,7 @@ export class ApuntesComponent implements OnInit, OnDestroy {
       content: [
         {
           type: 'text',
-          text: `💡 ${text}`,
+          text: `${text}`,
           marks: [{ type: 'highlight', attrs: { color: '#FEF9E7' } }]
         }
       ]

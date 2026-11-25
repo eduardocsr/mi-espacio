@@ -9,7 +9,7 @@
         <span class="truncate">Tu espacio de organización diario</span>
       </div>
       <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-[#231F20] dark:text-[#F3EFEA] break-words">
-        Hola, {{ authSession.currentUser()?.name || 'bienvenido' }} <span class="inline-block animate-wave">👋</span>
+        Hola, {{ authSession.currentUser()?.name || 'bienvenido' }}
       </h1>
       <p class="text-xs sm:text-sm md:text-base text-[#635B5E] dark:text-neutral-400 font-normal leading-relaxed">
         @if (workspace.activeNotesCount() === 0 && workspace.pendingTasksCount() === 0) {
