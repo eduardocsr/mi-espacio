@@ -62,7 +62,8 @@ import {
   Minimize2,
   Calendar,
   Sparkles,
-  WandSparkles
+  WandSparkles,
+  Printer
 } from 'lucide-angular';
 
 import { Editor } from '@tiptap/core';
@@ -269,6 +270,7 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   readonly PencilIcon = Pencil;
   readonly SparklesIcon = Sparkles;
   readonly WandSparklesIcon = WandSparkles;
+  readonly PrinterIcon = Printer;
 
   // Toolbar dropdown menus
   showHeadingMenu = signal<boolean>(false);
@@ -276,6 +278,7 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   showTextColorMenu = signal<boolean>(false);
   showAttachMenu = signal<boolean>(false);
   showAiMenu = signal<boolean>(false);
+  showExportMenu = signal<boolean>(false);
   isAiGenerating = signal<boolean>(false);
   aiActionLoading = signal<'summarize' | 'improve' | 'structure' | 'actionPlan' | 'ideas' | null>(null);
 
@@ -1572,6 +1575,7 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
     this.showBgColorMenu.set(false);
     this.showTextColorMenu.set(false);
     this.showAiMenu.set(false);
+    this.showExportMenu.set(false);
   }
 
   toggleBulletList(): void {
@@ -1836,5 +1840,183 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
 
   redo(): void {
     this.editor?.chain().focus().redo().run();
+  }
+
+  toggleExportMenu(): void {
+    this.showExportMenu.update(v => !v);
+    this.showAiMenu.set(false);
+  }
+
+  exportNoteToMarkdown(): void {
+    const note = this.currentNote();
+    if (!note) return;
+    this.showExportMenu.set(false);
+
+    const markdown = this.buildNoteMarkdown(note);
+    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${this.slugify(note.title || 'apunte')}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    this.feedback.success('Apunte exportado en formato Markdown (.md)');
+  }
+
+  async copyNoteAsMarkdown(): Promise<void> {
+    const note = this.currentNote();
+    if (!note) return;
+    this.showExportMenu.set(false);
+
+    try {
+      const markdown = this.buildNoteMarkdown(note);
+      await navigator.clipboard.writeText(markdown);
+      this.feedback.success('Copiado al portapapeles en formato Markdown');
+    } catch {
+      this.feedback.warning('No se pudo acceder al portapapeles automáticamente');
+    }
+  }
+
+  printNote(): void {
+    const note = this.currentNote();
+    if (!note) return;
+    this.showExportMenu.set(false);
+    this.showAiMenu.set(false);
+
+    // Pequeño timeout para permitir que Angular cierre los desplegables antes del diálogo del navegador
+    setTimeout(() => {
+      window.print();
+    }, 50);
+  }
+
+  private buildNoteMarkdown(note: any): string {
+    const folder = this.workspace.folders().find((f: any) => f.id === note.folderId)?.name || 'General';
+    const tags = note.tags?.length ? `[${note.tags.map((t: string) => `"${t}"`).join(', ')}]` : '[]';
+    const dateStr = note.createdAt ? new Date(note.createdAt).toISOString() : new Date().toISOString();
+    const updatedStr = note.updatedAt ? new Date(note.updatedAt).toISOString() : dateStr;
+
+    const frontmatter = [
+      '---',
+      `title: "${(note.title || 'Sin título').replace(/"/g, '\\"')}"`,
+      `created: ${dateStr}`,
+      `updated: ${updatedStr}`,
+      `folder: "${folder.replace(/"/g, '\\"')}"`,
+      `tags: ${tags}`,
+      '---',
+      ''
+    ].join('\n');
+
+    const bodyHtml = this.editor?.getHTML() || note.content || '';
+    const bodyMd = this.convertHtmlToMarkdown(bodyHtml);
+
+    return `${frontmatter}\n# ${note.title || 'Sin título'}\n\n${bodyMd}`.trim();
+  }
+
+  private convertHtmlToMarkdown(html: string): string {
+    if (!html || typeof window === 'undefined') return '';
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const raw = this.domNodeToMarkdown(doc.body);
+    return raw.replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  private domNodeToMarkdown(node: Node): string {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.textContent || '';
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return '';
+    }
+
+    const el = node as HTMLElement;
+    const tag = el.tagName.toLowerCase();
+
+    const getChildrenMd = () => {
+      return Array.from(el.childNodes).map(child => this.domNodeToMarkdown(child)).join('');
+    };
+
+    switch (tag) {
+      case 'h1': return `\n\n# ${getChildrenMd().trim()}\n\n`;
+      case 'h2': return `\n\n## ${getChildrenMd().trim()}\n\n`;
+      case 'h3': return `\n\n### ${getChildrenMd().trim()}\n\n`;
+      case 'h4': return `\n\n#### ${getChildrenMd().trim()}\n\n`;
+      case 'h5': return `\n\n##### ${getChildrenMd().trim()}\n\n`;
+      case 'h6': return `\n\n###### ${getChildrenMd().trim()}\n\n`;
+      case 'p': return `\n\n${getChildrenMd().trim()}\n\n`;
+      case 'strong':
+      case 'b': return `**${getChildrenMd()}**`;
+      case 'em':
+      case 'i': return `*${getChildrenMd()}*`;
+      case 's':
+      case 'del':
+      case 'strike': return `~~${getChildrenMd()}~~`;
+      case 'u': return `<u>${getChildrenMd()}</u>`;
+      case 'mark': return `==${getChildrenMd()}==`;
+      case 'code':
+        if (el.parentElement?.tagName.toLowerCase() === 'pre') {
+          return getChildrenMd();
+        }
+        return `\`${getChildrenMd()}\``;
+      case 'pre': {
+        const codeEl = el.querySelector('code');
+        const lang = codeEl?.className?.replace(/^language-/, '') || '';
+        const codeContent = codeEl ? codeEl.textContent : el.textContent;
+        return `\n\n\`\`\`${lang}\n${codeContent?.trim() || ''}\n\`\`\`\n\n`;
+      }
+      case 'blockquote': {
+        const inner = getChildrenMd().trim();
+        const lines = inner.split('\n').map(l => `> ${l}`).join('\n');
+        return `\n\n${lines}\n\n`;
+      }
+      case 'hr': return `\n\n---\n\n`;
+      case 'br': return `\n`;
+      case 'a': {
+        const href = el.getAttribute('href') || '';
+        return `[${getChildrenMd()}](${href})`;
+      }
+      case 'img': {
+        const src = el.getAttribute('src') || '';
+        const alt = el.getAttribute('alt') || 'imagen';
+        return `![${alt}](${src})`;
+      }
+      case 'ul': {
+        return `\n\n${getChildrenMd().trim()}\n\n`;
+      }
+      case 'ol': {
+        let index = 1;
+        const items = Array.from(el.children).map(li => {
+          const text = this.domNodeToMarkdown(li).trim().replace(/^[-*]\s*/, '');
+          return `${index++}. ${text}`;
+        }).join('\n');
+        return `\n\n${items}\n\n`;
+      }
+      case 'li': {
+        const isTaskItem = el.getAttribute('data-type') === 'taskItem' || el.hasAttribute('data-checked');
+        if (isTaskItem) {
+          const isChecked = el.getAttribute('data-checked') === 'true';
+          const contentNodes = Array.from(el.childNodes).filter(
+            c => c.nodeType === Node.TEXT_NODE || (c.nodeType === Node.ELEMENT_NODE && (c as HTMLElement).tagName.toLowerCase() !== 'label')
+          );
+          const text = contentNodes.map(c => this.domNodeToMarkdown(c)).join('').trim();
+          return `- [${isChecked ? 'x' : ' '}] ${text}\n`;
+        }
+        return `- ${getChildrenMd().trim()}\n`;
+      }
+      default:
+        return getChildrenMd();
+    }
+  }
+
+  private slugify(text: string): string {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '') || 'apunte';
   }
 }

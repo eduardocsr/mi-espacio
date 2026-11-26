@@ -1,7 +1,7 @@
 <div class="h-[calc(100vh-4rem)] flex flex-col lg:flex-row overflow-hidden bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA]">
 
   <!-- Mobile / Tablet Segmented View Switcher (< lg) -->
-  <div class="lg:hidden flex items-center justify-between p-2 bg-white dark:bg-[#19181E] border-b border-[#EAE2DE] dark:border-[#2A2832] shrink-0">
+  <div class="lg:hidden flex items-center justify-between p-2 bg-white dark:bg-[#19181E] border-b border-[#EAE2DE] dark:border-[#2A2832] shrink-0 print:hidden">
     <div class="flex items-center gap-1.5 p-1 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] w-full">
       <button
         type="button"
@@ -36,7 +36,7 @@
   <!-- COLUMNA 1: Carpetas, Notas y Buscador (~260px) -->
   <!-- ========================================== -->
   <aside 
-    class="w-full lg:w-64 border-r border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#16151B] flex-col justify-between shrink-0 select-none overflow-y-auto p-3.5 space-y-4"
+    class="w-full lg:w-64 border-r border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#16151B] flex-col justify-between shrink-0 select-none overflow-y-auto p-3.5 space-y-4 print:hidden"
     [class.lg:hidden]="isFocusMode()"
     [ngClass]="activeMobileTab() === 'pages' ? 'flex flex-1 lg:flex-initial' : 'hidden lg:flex'">
     <div class="space-y-4">
@@ -432,7 +432,7 @@
   <main class="flex-1 flex-col h-full overflow-hidden bg-white dark:bg-[#19181E] min-w-0" [ngClass]="activeMobileTab() === 'editor' ? 'flex' : 'hidden lg:flex'">
     @if (currentNote()) {
       <!-- Top Action Bar / Breadcrumbs -->
-      <div class="px-3 sm:px-5 py-2 border-b border-[#EAE2DE] dark:border-[#2A2832] flex items-center justify-between gap-2 shrink-0 bg-[#FAF7F5]/50 dark:bg-[#16151B]/50 min-w-0">
+      <div class="px-3 sm:px-5 py-2 border-b border-[#EAE2DE] dark:border-[#2A2832] flex items-center justify-between gap-2 shrink-0 bg-[#FAF7F5]/50 dark:bg-[#16151B]/50 min-w-0 print:hidden">
         <!-- Breadcrumbs, Word Count & Reading Time -->
         <div class="flex items-center gap-1.5 sm:gap-2 text-xs text-[#635B5E] dark:text-neutral-400 min-w-0 flex-1 overflow-hidden">
           <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] shadow-2xs hover:border-[#74566E]/50 transition-colors shrink-0 max-w-[130px] sm:max-w-[170px]" title="Carpeta del apunte actual">
@@ -666,6 +666,66 @@
             </lucide-icon>
           </button>
 
+          <!-- Exportar e Imprimir Dropdown -->
+          <div class="relative shrink-0">
+            <button
+              type="button"
+              (click)="toggleExportMenu()"
+              class="p-1.5 rounded-lg border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] text-[#635B5E] dark:text-neutral-400 hover:text-[#74566E] hover:border-[#74566E]/40 transition-colors shadow-2xs cursor-pointer shrink-0"
+              [ngClass]="{ 'bg-[#EFEAF6] text-[#74566E] border-[#74566E]/40 dark:bg-[#74566E]/20 dark:text-[#9D7B96]': showExportMenu() }"
+              title="Exportar apunte a Markdown o Imprimir en PDF">
+              <lucide-icon [img]="DownloadIcon" [size]="15" [strokeWidth]="1.75"></lucide-icon>
+            </button>
+
+            @if (showExportMenu()) {
+              <div
+                class="absolute right-0 top-9 z-40 w-60 bg-white dark:bg-[#19181E] rounded-2xl shadow-xl border border-[#EAE2DE] dark:border-[#2A2832] p-1.5 animate-in fade-in zoom-in-95 select-none"
+                (click)="$event.stopPropagation()">
+                <div class="px-3 py-1.5 border-b border-[#EAE2DE] dark:border-[#2A2832]">
+                  <span class="text-[10px] font-bold text-[#635B5E] dark:text-neutral-400 uppercase tracking-wider">Exportar & Imprimir</span>
+                </div>
+
+                <div class="py-1 space-y-0.5">
+                  <!-- Descargar Markdown -->
+                  <button
+                    type="button"
+                    (click)="exportNoteToMarkdown()"
+                    class="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-[#FAF7F5] dark:hover:bg-[#201E27] text-[#231F20] dark:text-[#F3EFEA] flex items-center gap-2.5 transition-colors cursor-pointer group">
+                    <lucide-icon [img]="FileTextIcon" [size]="15" class="text-[#265B8A] dark:text-[#5B9BD5] shrink-0"></lucide-icon>
+                    <div>
+                      <div class="font-semibold group-hover:text-[#265B8A] dark:group-hover:text-[#5B9BD5]">Descargar Markdown (.md)</div>
+                      <div class="text-[10px] text-[#635B5E] dark:text-neutral-400">Compatible con Obsidian y Notion</div>
+                    </div>
+                  </button>
+
+                  <!-- Copiar Markdown -->
+                  <button
+                    type="button"
+                    (click)="copyNoteAsMarkdown()"
+                    class="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-[#FAF7F5] dark:hover:bg-[#201E27] text-[#231F20] dark:text-[#F3EFEA] flex items-center gap-2.5 transition-colors cursor-pointer group">
+                    <lucide-icon [img]="CopyIcon" [size]="15" class="text-[#246A49] dark:text-[#52B788] shrink-0"></lucide-icon>
+                    <div>
+                      <div class="font-semibold group-hover:text-[#246A49] dark:group-hover:text-[#52B788]">Copiar como Markdown</div>
+                      <div class="text-[10px] text-[#635B5E] dark:text-neutral-400">Copia al portapapeles</div>
+                    </div>
+                  </button>
+
+                  <!-- Imprimir / PDF -->
+                  <button
+                    type="button"
+                    (click)="printNote()"
+                    class="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-[#FAF7F5] dark:hover:bg-[#201E27] text-[#231F20] dark:text-[#F3EFEA] flex items-center gap-2.5 transition-colors cursor-pointer group border-t border-[#EAE2DE]/60 dark:border-[#2A2832]/60 mt-0.5 pt-1.5">
+                    <lucide-icon [img]="PrinterIcon" [size]="15" class="text-[#74566E] dark:text-[#9D7B96] shrink-0"></lucide-icon>
+                    <div>
+                      <div class="font-semibold group-hover:text-[#74566E] dark:group-hover:text-[#9D7B96]">Imprimir / Guardar PDF</div>
+                      <div class="text-[10px] text-[#635B5E] dark:text-neutral-400">Vista limpia sin interfaz</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+
           <!-- Info / Details Panel Toggle Button (Desktop) -->
           <button
             type="button"
@@ -691,7 +751,7 @@
       </div>
 
       <!-- Tiptap Editorial Toolbar -->
-      <div class="px-3 sm:px-6 py-2 border-b border-[#EAE2DE] dark:border-[#2A2832] flex items-center gap-1 sm:gap-1.5 flex-wrap shrink-0 bg-[#FAF7F5]/30 dark:bg-[#121115]/30" (click)="$event.stopPropagation()">
+      <div class="px-3 sm:px-6 py-2 border-b border-[#EAE2DE] dark:border-[#2A2832] flex items-center gap-1 sm:gap-1.5 flex-wrap shrink-0 bg-[#FAF7F5]/30 dark:bg-[#121115]/30 print:hidden" (click)="$event.stopPropagation()">
         <!-- Undo / Redo -->
         <button type="button" (click)="undo()" class="p-1.5 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer" title="Deshacer (Ctrl+Z)">
           <lucide-icon [img]="Undo2Icon" [size]="15" [strokeWidth]="1.75"></lucide-icon>
@@ -943,7 +1003,23 @@
       </div>
 
       <!-- Main Editor Scrollable Area -->
-      <div class="flex-1 overflow-y-auto px-8 py-6 space-y-4 flex flex-col min-h-0 cursor-text" (click)="closeToolbarMenus(); focusEditor()">
+      <div class="flex-1 overflow-y-auto px-8 py-6 space-y-4 flex flex-col min-h-0 cursor-text print-document-container" (click)="closeToolbarMenus(); focusEditor()">
+        <!-- Cabecera exclusiva para Impresión y PDF -->
+        <div class="hidden print:block mb-6 pb-4 border-b border-neutral-300 select-none">
+          <h1 class="text-3xl font-bold text-neutral-900 mb-2 leading-tight">{{ currentNote()?.title || 'Nota sin título' }}</h1>
+          <div class="flex items-center gap-3 text-xs text-neutral-500">
+            @if (currentFolder()) {
+              <span>Carpeta: {{ currentFolder()!.name }}</span>
+              <span>•</span>
+            }
+            <span>Última edición: {{ currentNote()?.updatedAt | date:'d MMMM y, HH:mm' }}</span>
+            @if (currentNote()?.tags?.length) {
+              <span>•</span>
+              <span>Etiquetas: {{ currentNote()?.tags?.join(', ') }}</span>
+            }
+          </div>
+        </div>
+
         <!-- Editable Note Title -->
         <input
           type="text"
@@ -951,12 +1027,12 @@
           (ngModelChange)="updateNoteTitle($event)"
           (click)="$event.stopPropagation()"
           placeholder="Título del apunte..."
-          class="w-full text-3xl font-extrabold tracking-tight bg-transparent text-[#231F20] dark:text-[#F3EFEA] placeholder-[#635B5E]/40 focus:outline-none shrink-0"
+          class="w-full text-3xl font-extrabold tracking-tight bg-transparent text-[#231F20] dark:text-[#F3EFEA] placeholder-[#635B5E]/40 focus:outline-none shrink-0 print:hidden"
         />
 
         <!-- Attached Files & Documents Bar (PDFs, ZIPs, Docs) -->
         @if (currentNote()?.attachments && currentNote()!.attachments!.length > 0) {
-          <div class="p-3 rounded-2xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#16151B] space-y-2 select-none" (click)="$event.stopPropagation()">
+          <div class="p-3 rounded-2xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#16151B] space-y-2 select-none print:hidden" (click)="$event.stopPropagation()">
             <div class="flex items-center justify-between">
               <span class="text-[11px] font-bold uppercase tracking-wider text-[#635B5E] dark:text-neutral-400 flex items-center gap-1.5">
                 <lucide-icon [img]="PaperclipIcon" [size]="13" [strokeWidth]="2" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
@@ -1065,7 +1141,7 @@
   <!-- COLUMNA 3: Panel Lateral Derecho (~280px)  -->
   <!-- ========================================== -->
   <aside
-    class="w-full lg:w-72 border-l border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#16151B] flex-col shrink-0 overflow-y-auto select-none transition-all duration-200"
+    class="w-full lg:w-72 border-l border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#16151B] flex-col shrink-0 overflow-y-auto select-none transition-all duration-200 print:hidden"
     [ngClass]="{
       'flex flex-1': activeMobileTab() === 'details',
       'hidden lg:flex fixed lg:absolute right-0 top-0 bottom-0 z-30 w-72 lg:w-80 shadow-2xl lg:shadow-xl bg-white dark:bg-[#19181E] border-l border-[#EAE2DE] dark:border-[#2A2832] 2xl:relative 2xl:shadow-none 2xl:w-72': showDetailsPanel(),

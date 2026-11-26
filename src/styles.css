@@ -424,3 +424,143 @@ html.dark .hljs-function {
   color: #C084FC;
 }
 
+/* ==========================================================================
+   Estilos de Impresión Limpia y Exportación a PDF (Media Print)
+   ========================================================================== */
+@media print {
+  /* 1. Ocultar todos los elementos de navegación y UI de la aplicación */
+  app-sidebar,
+  app-topbar,
+  app-feedback-host,
+  .print\:hidden,
+  [data-print-hidden],
+  .editor-toolbar,
+  aside,
+  nav,
+  header,
+  button,
+  input,
+  select,
+  .bgColors-menu,
+  .tiptap-menu,
+  .comments-section,
+  .details-panel {
+    display: none !important;
+  }
+
+  /* 2. Ajustes globales de página y lienzo */
+  @page {
+    margin: 2cm 1.5cm;
+    size: auto;
+  }
+
+  html, body {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    font-size: 11pt !important;
+    line-height: 1.6 !important;
+    overflow: visible !important;
+    height: auto !important;
+    width: auto !important;
+  }
+
+  /* 3. Desbloquear contenedores scrolleables de Angular para permitir paginación */
+  main,
+  .h-screen,
+  .h-\[calc\(100vh-4rem\)\],
+  .overflow-hidden,
+  .overflow-y-auto {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    display: block !important;
+  }
+
+  /* 4. Contenedor de impresión del apunte */
+  .print-document-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: transparent !important;
+  }
+
+  /* 5. Tipografía y maquetación editorial del contenido ProseMirror */
+  .ProseMirror {
+    color: #111827 !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 11pt !important;
+    line-height: 1.65 !important;
+  }
+
+  .ProseMirror h1 {
+    font-size: 20pt !important;
+    font-weight: 800 !important;
+    color: #000000 !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 0.6rem !important;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  .ProseMirror h2 {
+    font-size: 15pt !important;
+    font-weight: 700 !important;
+    color: #1F2937 !important;
+    margin-top: 1.3rem !important;
+    margin-bottom: 0.5rem !important;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  .ProseMirror h3 {
+    font-size: 12.5pt !important;
+    font-weight: 600 !important;
+    color: #374151 !important;
+    margin-top: 1rem !important;
+    margin-bottom: 0.4rem !important;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  .ProseMirror p {
+    margin-bottom: 0.75rem !important;
+  }
+
+  .ProseMirror blockquote {
+    border-left: 3px solid #74566E !important;
+    background: #F9F8F7 !important;
+    padding: 0.6rem 1rem !important;
+    margin: 1rem 0 !important;
+    color: #4B5563 !important;
+    font-style: italic !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .ProseMirror pre {
+    background: #F3F4F6 !important;
+    color: #1F2937 !important;
+    border: 1px solid #E5E7EB !important;
+    border-radius: 6px !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 9.5pt !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .ProseMirror ul[data-type="taskList"] > li > label input[type="checkbox"] {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    accent-color: #74566E !important;
+  }
+
+  /* Evitar quiebres de página en bloques importantes */
+  h1, h2, h3, h4, pre, blockquote, img, table {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
+
