@@ -60,7 +60,8 @@ import {
   SquareCheck,
   Maximize2,
   Minimize2,
-  Calendar
+  Calendar,
+  Sparkles
 } from 'lucide-angular';
 
 import { Editor } from '@tiptap/core';
@@ -78,6 +79,7 @@ import { common, createLowlight } from 'lowlight';
 
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
+import { AiConfigService } from '../../core/services/ai-config.service';
 import { Note, NoteFolder, NoteStatus, NoteAttachment } from '../../core/models/workspace.models';
 import { compressImageToDataUrl } from '../../core/utils/image-compressor';
 
@@ -202,6 +204,7 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
 export class ApuntesComponent implements OnInit, OnDestroy {
   readonly workspace = inject(WorkspaceService);
   readonly feedback = inject(UiFeedbackService);
+  readonly aiConfig = inject(AiConfigService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly sanitizer = inject(DomSanitizer);
@@ -263,12 +266,16 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   readonly ClockIcon = Clock;
   readonly CheckIcon = Check;
   readonly PencilIcon = Pencil;
+  readonly SparklesIcon = Sparkles;
 
   // Toolbar dropdown menus
   showHeadingMenu = signal<boolean>(false);
   showBgColorMenu = signal<boolean>(false);
   showTextColorMenu = signal<boolean>(false);
   showAttachMenu = signal<boolean>(false);
+  showAiMenu = signal<boolean>(false);
+  isAiGenerating = signal<boolean>(false);
+  aiActionLoading = signal<'summarize' | 'improve' | 'actionPlan' | 'ideas' | null>(null);
 
   // Background / Highlight Colors (Editorial Soft Pastels)
   readonly bgColors = [
@@ -1562,6 +1569,7 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
     this.showHeadingMenu.set(false);
     this.showBgColorMenu.set(false);
     this.showTextColorMenu.set(false);
+    this.showAiMenu.set(false);
   }
 
   toggleBulletList(): void {
@@ -1599,6 +1607,183 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
       this.editor?.chain().focus().unsetLink().run();
     } else {
       this.editor?.chain().focus().setLink({ href: url.trim() }).run();
+    }
+  }
+
+  // --- Asistente Inteligente Gemini AI ---
+  toggleAiMenu(): void {
+    if (!this.aiConfig.hasApiKey()) {
+      this.promptForApiKey();
+      return;
+    }
+    this.showAiMenu.update(v => !v);
+  }
+
+  async promptForApiKey(): Promise<void> {
+    const key = await this.feedback.prompt({
+      title: 'Configurar Gemini AI',
+      message: 'Ingresa tu Google Gemini API Key para habilitar el asistente inteligente (resumen, mejora de redacción y extracción de tareas):',
+      placeholder: 'AIzaSy...',
+      defaultValue: this.aiConfig.apiKey(),
+      confirmLabel: 'Guardar clave',
+      inputType: 'text'
+    });
+    if (key !== null) {
+      this.aiConfig.setApiKey(key.trim());
+      if (key.trim()) {
+        this.feedback.success('Clave de Gemini guardada. ¡Asistente IA habilitado!');
+      } else {
+        this.feedback.info('Clave de Gemini eliminada.');
+      }
+    }
+  }
+
+  async runAiSummarize(): Promise<void> {
+    const note = this.currentNote();
+    if (!note) return;
+    const text = note.plainText || '';
+    if (text.trim().length < 20) {
+      this.feedback.warning('El apunte debe tener al menos unas líneas de contenido para poder resumirlo.');
+      return;
+    }
+
+    this.showAiMenu.set(false);
+    this.isAiGenerating.set(true);
+    this.aiActionLoading.set('summarize');
+
+    try {
+      const summaryHtml = await this.aiConfig.summarizeNote(note.title, text);
+      const calloutHtml = `
+        <div class="my-4 p-4 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-xs">
+          <p class="font-bold text-amber-900 dark:text-amber-300 mb-1.5 flex items-center gap-1.5">
+            <strong>Resumen Ejecutivo (Gemini AI)</strong>
+          </p>
+          ${summaryHtml}
+        </div>
+      `;
+      this.editor?.chain().focus().insertContent(calloutHtml).run();
+      this.feedback.success('Resumen generado e insertado en la nota');
+    } catch (err: any) {
+      this.handleAiError(err);
+    } finally {
+      this.isAiGenerating.set(false);
+      this.aiActionLoading.set(null);
+    }
+  }
+
+  async runAiImproveWriting(): Promise<void> {
+    const note = this.currentNote();
+    if (!note) return;
+    const text = note.plainText || '';
+    if (text.trim().length < 20) {
+      this.feedback.warning('El apunte debe tener más contenido para mejorar la redacción.');
+      return;
+    }
+
+    this.showAiMenu.set(false);
+    this.isAiGenerating.set(true);
+    this.aiActionLoading.set('improve');
+
+    try {
+      const improvedHtml = await this.aiConfig.improveWriting(note.title, text);
+      const previousHtml = this.editor?.getHTML() || '';
+
+      this.editor?.chain().focus().setContent(improvedHtml).run();
+
+      this.feedback.toast({
+        type: 'success',
+        title: 'Redacción mejorada con Gemini',
+        message: 'Se ha pulido y reestructurado el texto con estilo editorial.',
+        durationMs: 7000,
+        actionLabel: 'Deshacer cambios',
+        onAction: () => {
+          this.editor?.chain().focus().setContent(previousHtml).run();
+          this.feedback.info('Se restauró el texto original');
+        }
+      });
+    } catch (err: any) {
+      this.handleAiError(err);
+    } finally {
+      this.isAiGenerating.set(false);
+      this.aiActionLoading.set(null);
+    }
+  }
+
+  async runAiExtractActionPlan(): Promise<void> {
+    const note = this.currentNote();
+    if (!note) return;
+    const text = note.plainText || '';
+    if (text.trim().length < 15) {
+      this.feedback.warning('El apunte debe tener más contenido para extraer tareas.');
+      return;
+    }
+
+    this.showAiMenu.set(false);
+    this.isAiGenerating.set(true);
+    this.aiActionLoading.set('actionPlan');
+
+    try {
+      const tasks = await this.aiConfig.extractActionPlan(note.title, text);
+      if (tasks.length === 0) {
+        this.feedback.info('No se detectaron tareas pendientes en el texto.');
+        return;
+      }
+
+      const taskItemsHtml = tasks
+        .map(t => `<li data-type="taskItem" data-checked="false"><p>${t}</p></li>`)
+        .join('');
+      const checklistBlock = `<h3>Plan de acción extraído (Gemini AI)</h3><ul data-type="taskList">${taskItemsHtml}</ul>`;
+
+      this.editor?.chain().focus().insertContent(checklistBlock).run();
+      this.feedback.success(`Se insertaron ${tasks.length} tareas pendientes en la nota`);
+    } catch (err: any) {
+      this.handleAiError(err);
+    } finally {
+      this.isAiGenerating.set(false);
+      this.aiActionLoading.set(null);
+    }
+  }
+
+  async runAiGenerateIdeas(): Promise<void> {
+    const note = this.currentNote();
+    if (!note) return;
+    const text = note.plainText || '';
+    if (text.trim().length < 15) {
+      this.feedback.warning('El apunte debe tener más contenido para sugerir ideas.');
+      return;
+    }
+
+    this.showAiMenu.set(false);
+    this.isAiGenerating.set(true);
+    this.aiActionLoading.set('ideas');
+
+    try {
+      const ideasHtml = await this.aiConfig.generateIdeas(note.title, text);
+      const blockHtml = `
+        <div class="my-3 p-3.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/30 text-xs text-[#231F20] dark:text-[#F3EFEA]">
+          <p class="font-bold text-[#74566E] dark:text-[#9D7B96] mb-1">Ideas y preguntas de profundización:</p>
+          ${ideasHtml}
+        </div>
+      `;
+      this.editor?.chain().focus().insertContent(blockHtml).run();
+      this.feedback.success('Ideas sugeridas añadidas a la nota');
+    } catch (err: any) {
+      this.handleAiError(err);
+    } finally {
+      this.isAiGenerating.set(false);
+      this.aiActionLoading.set(null);
+    }
+  }
+
+  private handleAiError(err: any): void {
+    console.error('Error al ejecutar Gemini AI:', err);
+    const msg = err?.message || '';
+    if (msg.includes('NO_API_KEY')) {
+      this.promptForApiKey();
+    } else if (msg.includes('INVALID_API_KEY')) {
+      this.feedback.error('La clave de API de Gemini parece no ser válida o no tiene permisos. Por favor revísala en Ajustes.');
+    } else {
+      this.feedback.error('No se pudo conectar con el servicio de Gemini. Revisa tu conexión a internet.');
     }
   }
 
