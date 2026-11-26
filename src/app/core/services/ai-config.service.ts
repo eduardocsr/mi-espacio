@@ -183,13 +183,25 @@ export class AiConfigService {
   }
 
   /**
+   * Limpia delimitadores de bloques markdown (```html ... ```) devueltos por el modelo.
+   */
+  private cleanHtmlOutput(raw: string): string {
+    return raw
+      .replace(/^```html\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/```\s*$/i, '')
+      .trim();
+  }
+
+  /**
    * Genera un resumen ejecutivo breve de la nota en HTML limpio.
    */
   async summarizeNote(title: string, content: string): Promise<string> {
     const systemPrompt =
       'Eres el asistente editorial de la aplicación "Mi Espacio". Analiza el texto proporcionado y genera un resumen ejecutivo conciso en 2 a 4 viñetas clave. Devuelve exclusivamente fragmentos HTML limpios con <ul> y <li> (puedes usar <strong> para resaltar conceptos), sin etiquetas <html> ni <body> ni comillas de bloque de código markdown.';
     const userPrompt = `Título: "${title}"\n\nContenido:\n${content}`;
-    return this.generateText(userPrompt, systemPrompt);
+    const raw = await this.generateText(userPrompt, systemPrompt);
+    return this.cleanHtmlOutput(raw);
   }
 
   /**
@@ -199,7 +211,35 @@ export class AiConfigService {
     const systemPrompt =
       'Eres un editor editorial profesional para "Mi Espacio". Reescribe y pule el texto para maximizar la claridad, coherencia, gramática y elegancia, respetando el tono original del autor. Devuelve directamente el texto formateado en HTML estándar (<p>, <h2>, <h3>, <ul><li>, etc.) sin explicaciones, sin saludos ni delimitadores de código markdown.';
     const userPrompt = `Título: "${title}"\n\nTexto original a mejorar:\n${content}`;
-    return this.generateText(userPrompt, systemPrompt);
+    const raw = await this.generateText(userPrompt, systemPrompt);
+    return this.cleanHtmlOutput(raw);
+  }
+
+  /**
+   * Analiza un apunte desordenado, lluvia de ideas o borrador caótico y lo estructura impecablemente:
+   * crea títulos de sección (h2, h3), párrafos limpios, viñetas de puntos clave y checklist de tareas.
+   */
+  async structureMessyNote(title: string, content: string): Promise<string> {
+    const systemPrompt = `Eres un arquitecto de información y editor editorial de élite para la aplicación "Mi Espacio".
+Tu misión es transformar notas desordenadas, transcripciones caóticas, notas rápidas de reunión o lluvias de ideas en un documento perfectamente estructurado, visualmente atractivo y fácil de leer.
+
+Reglas de estructuración:
+1. Extrae y agrupa las ideas afines en secciones temáticas con jerarquía clara.
+2. Utiliza <h2> para los títulos de cada sección (por ejemplo: "Contexto y Objetivos", "Puntos Principales", "Decisiones Tomadas", "Tareas y Pendientes", "Próximos Pasos").
+3. Utiliza <h3> para subsecciones si el contenido lo requiere.
+4. Redacta explicaciones en párrafos <p> fluidos, claros y bien puntuados.
+5. Emplea listas con viñetas (<ul><li>...</li></ul>) para listar ideas, detalles o acuerdos.
+6. Si detectas compromisos, acciones o tareas por realizar en el texto desordenado, agrúpalos bajo una sección <h2>Tareas y Pendientes</h2> utilizando el formato de lista de verificación de Tiptap:
+   <ul data-type="taskList">
+     <li data-type="taskItem" data-checked="false"><label><input type="checkbox"></label><div><p>Descripción concreta de la acción</p></div></li>
+   </ul>
+7. Conserva todos los datos, nombres, fechas, cifras e información relevante presente en el texto original; no inventes datos inexistentes.
+8. Devuelve exclusivamente fragmentos HTML válidos y limpios (<p>, <h2>, <h3>, <ul>, <li>, <strong>, <em>, <ul data-type="taskList">).
+9. NO incluyas <html>, <head>, <body>, ni bloques de código markdown como \`\`\`html.`;
+
+    const userPrompt = `Título actual: "${title}"\n\nContenido desordenado a transformar y estructurar:\n${content}`;
+    const raw = await this.generateText(userPrompt, systemPrompt);
+    return this.cleanHtmlOutput(raw);
   }
 
   /**

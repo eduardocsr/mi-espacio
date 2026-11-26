@@ -61,7 +61,8 @@ import {
   Maximize2,
   Minimize2,
   Calendar,
-  Sparkles
+  Sparkles,
+  WandSparkles
 } from 'lucide-angular';
 
 import { Editor } from '@tiptap/core';
@@ -267,6 +268,7 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   readonly CheckIcon = Check;
   readonly PencilIcon = Pencil;
   readonly SparklesIcon = Sparkles;
+  readonly WandSparklesIcon = WandSparkles;
 
   // Toolbar dropdown menus
   showHeadingMenu = signal<boolean>(false);
@@ -275,7 +277,7 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   showAttachMenu = signal<boolean>(false);
   showAiMenu = signal<boolean>(false);
   isAiGenerating = signal<boolean>(false);
-  aiActionLoading = signal<'summarize' | 'improve' | 'actionPlan' | 'ideas' | null>(null);
+  aiActionLoading = signal<'summarize' | 'improve' | 'structure' | 'actionPlan' | 'ideas' | null>(null);
 
   // Background / Highlight Colors (Editorial Soft Pastels)
   readonly bgColors = [
@@ -1695,6 +1697,44 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
         title: 'Redacción mejorada con Gemini',
         message: 'Se ha pulido y reestructurado el texto con estilo editorial.',
         durationMs: 7000,
+        actionLabel: 'Deshacer cambios',
+        onAction: () => {
+          this.editor?.chain().focus().setContent(previousHtml).run();
+          this.feedback.info('Se restauró el texto original');
+        }
+      });
+    } catch (err: any) {
+      this.handleAiError(err);
+    } finally {
+      this.isAiGenerating.set(false);
+      this.aiActionLoading.set(null);
+    }
+  }
+
+  async runAiStructureNote(): Promise<void> {
+    const note = this.currentNote();
+    if (!note) return;
+    const text = note.plainText || '';
+    if (text.trim().length < 20) {
+      this.feedback.warning('El apunte debe tener más contenido para poder analizarlo y estructurarlo.');
+      return;
+    }
+
+    this.showAiMenu.set(false);
+    this.isAiGenerating.set(true);
+    this.aiActionLoading.set('structure');
+
+    try {
+      const structuredHtml = await this.aiConfig.structureMessyNote(note.title, text);
+      const previousHtml = this.editor?.getHTML() || '';
+
+      this.editor?.chain().focus().setContent(structuredHtml).run();
+
+      this.feedback.toast({
+        type: 'success',
+        title: 'Apunte estructurado con Gemini',
+        message: 'Se organizaron y ordenaron todas las ideas en secciones limpias.',
+        durationMs: 8000,
         actionLabel: 'Deshacer cambios',
         onAction: () => {
           this.editor?.chain().focus().setContent(previousHtml).run();
