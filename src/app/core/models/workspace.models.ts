@@ -30,6 +30,7 @@ export interface Note {
   comments: string[];
   attachments?: NoteAttachment[];
   linkedTaskId?: string;
+  linkedEventId?: string;
   createdAt: string;
   updatedAt: string;
   updatedByDevice?: string;
@@ -89,6 +90,7 @@ export interface CalendarEvent {
   allDay?: boolean;
   recurrence?: 'none' | 'daily' | 'weekly' | 'monthly';
   notes?: string;
+  linkedNoteId?: string;
 }
 
 export type ReminderRecurrence = 'none' | 'daily' | 'weekly' | 'monthly';

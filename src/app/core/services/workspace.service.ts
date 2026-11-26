@@ -748,6 +748,17 @@ export class WorkspaceService {
   }
 
   deleteNote(id: string): void {
+    const note = this.notes().find(n => n.id === id);
+    if (note?.linkedTaskId) {
+      this.tasks.update(current =>
+        current.map(t => (t.id === note.linkedTaskId ? { ...t, linkedNoteId: undefined } : t))
+      );
+    }
+    if (note?.linkedEventId) {
+      this.calendarEvents.update(current =>
+        current.map(e => (e.id === note.linkedEventId ? { ...e, linkedNoteId: undefined } : e))
+      );
+    }
     this.notes.update(current => current.filter(n => n.id !== id));
     this.saveImmediately();
   }
@@ -1118,6 +1129,12 @@ export class WorkspaceService {
   }
 
   deleteCalendarEvent(id: string): void {
+    const event = this.calendarEvents().find(e => e.id === id);
+    if (event?.linkedNoteId) {
+      this.notes.update(current =>
+        current.map(n => (n.id === event.linkedNoteId ? { ...n, linkedEventId: undefined } : n))
+      );
+    }
     this.calendarEvents.update(current => current.filter(e => e.id !== id));
     this.saveImmediately();
   }

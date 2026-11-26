@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   LucideAngularModule,
   Calendar,
@@ -23,13 +23,16 @@ import {
   Repeat,
   Sparkles,
   Filter,
-  X
+  X,
+  FileText,
+  ArrowRight
 } from 'lucide-angular';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import {
   CalendarCategory,
   CalendarEvent,
+  Note,
   TaskItem,
   Reminder
 } from '../../core/models/workspace.models';
@@ -80,6 +83,7 @@ export interface AgendaDayGroup {
 export class CalendarioComponent implements OnInit {
   readonly workspace = inject(WorkspaceService);
   readonly feedback = inject(UiFeedbackService);
+  private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
   // Icons
@@ -103,6 +107,8 @@ export class CalendarioComponent implements OnInit {
   readonly SparklesIcon = Sparkles;
   readonly FilterIcon = Filter;
   readonly XIcon = X;
+  readonly FileTextIcon = FileText;
+  readonly ArrowRightIcon = ArrowRight;
 
   // State
   currentDate = signal<Date>(new Date());
@@ -119,6 +125,12 @@ export class CalendarioComponent implements OnInit {
   // Modal create/edit event
   showEventModal = signal<boolean>(false);
   editingEventId = signal<string | null>(null);
+
+  readonly currentEditingEvent = computed<CalendarEvent | null>(() => {
+    const id = this.editingEventId();
+    if (!id) return null;
+    return this.workspace.calendarEvents().find(e => e.id === id) || null;
+  });
   eventForm = signal<{
     title: string;
     category: CalendarCategory;
@@ -153,6 +165,18 @@ export class CalendarioComponent implements OnInit {
         this.selectedDateStr.set(params['date']);
         const [y, m, d] = params['date'].split('-').map(Number);
         this.currentDate.set(new Date(y, m - 1, d));
+      }
+      const eventId = params['eventId'] || params['id'];
+      if (eventId) {
+        queueMicrotask(() => {
+          const found = this.workspace.calendarEvents().find(e => e.id === eventId);
+          if (found) {
+            this.selectedDateStr.set(found.date);
+            const [y, m, d] = found.date.split('-').map(Number);
+            this.currentDate.set(new Date(y, m - 1, d));
+            this.openEditEventModal(found);
+          }
+        });
       }
     });
   }
@@ -585,5 +609,80 @@ export class CalendarioComponent implements OnInit {
 
   toggleReminder(id: string): void {
     this.workspace.toggleReminderCompleted(id);
+  }
+
+  getLinkedNote(noteId?: string): Note | undefined {
+    if (!noteId) return undefined;
+    return this.workspace.notes().find(n => n.id === noteId);
+  }
+
+  openLinkedNote(noteId: string, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.closeEventModal();
+    this.router.navigate(['/apuntes'], { queryParams: { id: noteId } });
+  }
+
+  generateMeetingMinutes(event: CalendarEvent, clickEv?: Event): void {
+    if (clickEv) {
+      clickEv.stopPropagation();
+    }
+    if (event.linkedNoteId) {
+      this.openLinkedNote(event.linkedNoteId);
+      return;
+    }
+
+    const minutesHtml = `<h2>Acta de Reunión: ${event.title}</h2>
+<p><strong>Fecha:</strong> ${event.date} | <strong>Horario:</strong> ${event.startTime}${event.endTime ? ' – ' + event.endTime : ''}</p>
+<p><strong>Categoría:</strong> ${event.category}${event.notes ? ' | <strong>Notas previas:</strong> ' + event.notes : ''}</p>
+<hr/>
+<h3>1. Participantes y Asistentes</h3>
+<ul>
+  <li>Organizador / Responsable:</li>
+  <li>Asistentes:</li>
+</ul>
+<h3>2. Objetivos de la Sesión</h3>
+<p>${event.notes || 'Revisión y coordinación de objetivos estratégicos, estado de entregables y resolución de dudas.'}</p>
+<h3>3. Puntos Tratados</h3>
+<ol>
+  <li>Revisión de acuerdos previos y estado general del proyecto.</li>
+  <li>Discusión de requerimientos y obstáculos encontrados.</li>
+  <li>Decisiones adoptadas durante la sesión.</li>
+</ol>
+<h3>4. Acuerdos y Próximos Pasos</h3>
+<ul>
+  <li>[ ] Acción 1 (Responsable / Fecha límite)</li>
+  <li>[ ] Acción 2 (Responsable / Fecha límite)</li>
+</ul>
+<p><em>Acta generada y vinculada al evento de calendario "${event.title}".</em></p>`;
+
+    const plainText = `Acta de Reunión: ${event.title}\nFecha: ${event.date} ${event.startTime}\nCategoría: ${event.category}\n\n1. Participantes\n2. Objetivos\n3. Puntos Tratados\n4. Acuerdos y Próximos Pasos`;
+
+    // Crear la nota en Apuntes
+    const noteTitle = `Acta: ${event.title}`;
+    const newNote = this.workspace.addNote(noteTitle);
+
+    const tags = Array.from(new Set(['Reunión', event.category].filter(Boolean)));
+
+    this.workspace.updateNote(newNote.id, {
+      html: minutesHtml,
+      contentJson: undefined,
+      plainText,
+      tags,
+      linkedEventId: event.id
+    });
+
+    // Vincular el evento de calendario con la nota
+    this.workspace.updateCalendarEvent(event.id, { linkedNoteId: newNote.id });
+
+    this.closeEventModal();
+    this.feedback.toast({
+      type: 'success',
+      title: 'Acta de reunión generada',
+      message: `Plantilla editorial vinculada a "${event.title}"`,
+      durationMs: 6000
+    });
+    this.router.navigate(['/apuntes'], { queryParams: { id: newNote.id } });
   }
 }

@@ -83,7 +83,7 @@ import { common, createLowlight } from 'lowlight';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { AiConfigService } from '../../core/services/ai-config.service';
-import { Note, NoteFolder, NoteStatus, NoteAttachment, TaskItem as WorkspaceTaskItem } from '../../core/models/workspace.models';
+import { Note, NoteFolder, NoteStatus, NoteAttachment, TaskItem as WorkspaceTaskItem, CalendarEvent } from '../../core/models/workspace.models';
 import { compressImageToDataUrl } from '../../core/utils/image-compressor';
 
 const lowlight = createLowlight(common);
@@ -406,6 +406,19 @@ export class ApuntesComponent implements OnInit, OnDestroy {
     return this.workspace.tasks().find(t => t.linkedNoteId === note.id || t.id === note.linkedTaskId) || null;
   });
 
+  // Evento vinculado en Calendario (enlace bidireccional)
+  readonly currentLinkedEvent = computed<CalendarEvent | null>(() => {
+    const note = this.currentNote();
+    if (!note) return null;
+    return this.workspace.calendarEvents().find(e => e.linkedNoteId === note.id || e.id === note.linkedEventId) || null;
+  });
+
+  // Unique deduplicated tags for current note
+  readonly currentNoteTags = computed<string[]>(() => {
+    const tags = this.currentNote()?.tags || [];
+    return Array.from(new Set(tags));
+  });
+
   // Filtered Notes
   readonly filteredNotes = computed(() => {
     const q = this.searchQuery().trim().toLowerCase();
@@ -470,7 +483,10 @@ export class ApuntesComponent implements OnInit, OnDestroy {
       // Comprobar si el contenido entrante difiere del contenido actual del editor
       const incomingHtml = note.html || '';
       const currentHtml = this.editor.getHTML();
-      const contentToApply = note.contentJson ?? (note.html ? note.html : note.plainText);
+      const hasMeaningfulJson = this.isContentJsonMeaningful(note.contentJson);
+      const contentToApply = (hasMeaningfulJson ? note.contentJson : null) ||
+        (note.html && note.html !== '<p></p>' ? note.html : null) ||
+        (note.plainText ? note.plainText : '');
 
       const isDifferent = incomingHtml
         ? incomingHtml !== currentHtml
@@ -572,12 +588,25 @@ export class ApuntesComponent implements OnInit, OnDestroy {
     this.focusEditor();
   }
 
+  private isContentJsonMeaningful(json: any): boolean {
+    if (!json || !json.content) return false;
+    if (json.content.length > 1) return true;
+    if (json.content.length === 1) {
+      const first = json.content[0];
+      return !!(first.content && first.content.length > 0);
+    }
+    return false;
+  }
+
   private initEditor(element: HTMLElement): void {
     const initialNote = this.currentNote();
-    const initialContent = initialNote?.contentJson || (initialNote?.plainText ? initialNote.plainText : {
-      type: 'doc',
-      content: [{ type: 'paragraph' }]
-    });
+    const hasMeaningfulJson = this.isContentJsonMeaningful(initialNote?.contentJson);
+    const initialContent = (hasMeaningfulJson ? initialNote?.contentJson : null) ||
+      (initialNote?.html && initialNote.html !== '<p></p>' ? initialNote.html : null) ||
+      (initialNote?.plainText ? initialNote.plainText : {
+        type: 'doc',
+        content: [{ type: 'paragraph' }]
+      });
 
     this.editor = new Editor({
       element,
@@ -711,10 +740,13 @@ export class ApuntesComponent implements OnInit, OnDestroy {
     }
     this.pendingRemoteContent = null;
     this.loadedNoteId = note.id;
-    const content = note.contentJson || (note.html ? note.html : (note.plainText ? note.plainText : {
-      type: 'doc',
-      content: [{ type: 'paragraph' }]
-    }));
+    const hasMeaningfulJson = this.isContentJsonMeaningful(note.contentJson);
+    const content = (hasMeaningfulJson ? note.contentJson : null) ||
+      (note.html && note.html !== '<p></p>' ? note.html : null) ||
+      (note.plainText ? note.plainText : {
+        type: 'doc',
+        content: [{ type: 'paragraph' }]
+      });
     this.isInternalUpdate = true;
     try {
       this.editor.commands.setContent(content, { emitUpdate: false });
@@ -1517,6 +1549,10 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
 
   navigateToLinkedTask(taskId: string): void {
     this.router.navigate(['/tareas'], { queryParams: { taskId } });
+  }
+
+  navigateToLinkedEvent(eventId: string): void {
+    this.router.navigate(['/calendario'], { queryParams: { eventId } });
   }
 
   getColumnLabel(status: string): string {

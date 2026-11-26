@@ -470,8 +470,27 @@
                 }
               </div>
 
-              <!-- Actions: Edit and Delete -->
+              <!-- Actions: Meeting minutes, Edit and Delete -->
               <div class="flex items-center gap-1 shrink-0">
+                @if (event.linkedNoteId) {
+                  <button
+                    type="button"
+                    (click)="openLinkedNote(event.linkedNoteId, $event)"
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#EFEAF6] text-[#74566E] dark:bg-[#74566E]/20 dark:text-[#9D7B96] text-[11px] font-semibold hover:bg-[#74566E]/30 transition-colors cursor-pointer"
+                    title="Ver acta de reunión vinculada">
+                    <lucide-icon [img]="FileTextIcon" [size]="12" [strokeWidth]="2"></lucide-icon>
+                    <span>Acta</span>
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    (click)="generateMeetingMinutes(event, $event)"
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-[#74566E]/30 text-[#74566E] dark:text-[#9D7B96] hover:bg-[#EFEAF6] dark:hover:bg-[#74566E]/20 text-[11px] font-semibold transition-colors cursor-pointer"
+                    title="Generar acta de reunión en Apuntes">
+                    <lucide-icon [img]="FileTextIcon" [size]="12" [strokeWidth]="2"></lucide-icon>
+                    <span>Acta</span>
+                  </button>
+                }
                 <button
                   type="button"
                   (click)="openEditEventModal(event)"
@@ -670,7 +689,7 @@
   <!-- ========================================== -->
   @if (showEventModal()) {
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-      <div class="bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl">
+      <div role="dialog" aria-modal="true" class="bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl">
         <h3 class="text-base font-bold text-[#231F20] dark:text-[#F3EFEA]">
           {{ editingEventId() ? 'Editar evento' : 'Nuevo evento de calendario' }}
         </h3>
@@ -778,6 +797,38 @@
               class="w-full px-3 py-2 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none resize-none"
             ></textarea>
           </div>
+
+          @if (currentEditingEvent(); as currentEvent) {
+            <div class="pt-3 border-t border-[#EAE2DE] dark:border-[#2A2832]">
+              @if (currentEvent.linkedNoteId) {
+                <div class="p-3 rounded-xl bg-[#EFEAF6] dark:bg-[#74566E]/20 border border-[#74566E]/30 flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <lucide-icon [img]="FileTextIcon" [size]="15" class="text-[#74566E] dark:text-[#9D7B96] shrink-0"></lucide-icon>
+                    <div class="min-w-0">
+                      <div class="text-[10px] font-semibold text-[#635B5E] dark:text-neutral-400">Acta de reunión vinculada</div>
+                      <div class="text-xs font-bold text-[#231F20] dark:text-[#F3EFEA] truncate">
+                        {{ getLinkedNote(currentEvent.linkedNoteId)?.title || 'Acta de reunión' }}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    (click)="openLinkedNote(currentEvent.linkedNoteId)"
+                    class="px-2.5 py-1.5 rounded-lg bg-[#74566E] text-white text-xs font-semibold hover:bg-[#5E4359] transition-colors cursor-pointer shrink-0">
+                    Abrir acta
+                  </button>
+                </div>
+              } @else {
+                <button
+                  type="button"
+                  (click)="generateMeetingMinutes(currentEvent)"
+                  class="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-[#74566E]/40 text-[#74566E] dark:text-[#9D7B96] hover:bg-[#EFEAF6] dark:hover:bg-[#74566E]/20 text-xs font-semibold transition-colors cursor-pointer">
+                  <lucide-icon [img]="FileTextIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+                  <span>Generar acta de reunión en Apuntes</span>
+                </button>
+              }
+            </div>
+          }
 
           <div class="flex items-center justify-end gap-2 pt-3 border-t border-[#EAE2DE] dark:border-[#2A2832]">
             <button
