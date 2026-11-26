@@ -8,13 +8,16 @@ import { WorkspaceService } from '../../core/services/workspace.service';
   selector: 'app-reset-workspace-modal',
   standalone: true,
   imports: [CommonModule, FormsModule, LucideAngularModule],
+  host: {
+    'class': 'contents'
+  },
   template: `
     @if (isOpen) {
       <div 
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-black/50 backdrop-blur-xs animate-in fade-in duration-150"
         (click)="handleBackdropClick($event)">
         <div 
-          class="w-full max-w-md bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] rounded-3xl p-6 shadow-2xl space-y-5"
+          class="relative w-full max-w-md my-auto bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] rounded-3xl p-6 shadow-2xl space-y-5"
           (click)="$event.stopPropagation()">
           
           <!-- Header: Icon, Title & Close -->
