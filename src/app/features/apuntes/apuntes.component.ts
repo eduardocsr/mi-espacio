@@ -344,6 +344,12 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   newFolderName = signal<string>('');
   newFolderColor = signal<string>('#74566E');
 
+  // Edit Folder modal/state
+  showEditFolderModal = signal<boolean>(false);
+  editingFolder = signal<NoteFolder | null>(null);
+  editingFolderName = signal<string>('');
+  editingFolderColor = signal<string>('#74566E');
+
   // New Tag input
   newTagInput = signal<string>('');
 
@@ -1189,6 +1195,60 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
     this.newFolderName.set('');
     this.showNewFolderModal.set(false);
     this.createNote(folder.id);
+  }
+
+  openEditFolderModal(folder: NoteFolder, event?: Event): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    this.editingFolder.set(folder);
+    this.editingFolderName.set(folder.name);
+    this.editingFolderColor.set(folder.color || '#74566E');
+    this.showEditFolderModal.set(true);
+  }
+
+  saveFolderEdit(): void {
+    const folder = this.editingFolder();
+    const name = this.editingFolderName().trim();
+    if (!folder || !name) return;
+
+    this.workspace.updateFolder(folder.id, {
+      name,
+      color: this.editingFolderColor()
+    });
+    this.showEditFolderModal.set(false);
+    this.editingFolder.set(null);
+    this.feedback.success(`Carpeta "${name}" actualizada`);
+  }
+
+  async deleteFolderWithConfirm(folder: NoteFolder, event?: Event): Promise<void> {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    const notesInFolder = this.getNotesByFolder(folder.id);
+    const count = notesInFolder.length;
+
+    const message = count > 0
+      ? `¿Estás seguro de que deseas eliminar la carpeta "${folder.name}"? Sus ${count} ${count === 1 ? 'apunte se reasignará' : 'apuntes se reasignarán'} a otra carpeta para no perderlos.`
+      : `¿Estás seguro de que deseas eliminar la carpeta "${folder.name}"?`;
+
+    const confirmed = await this.feedback.confirm({
+      title: 'Eliminar carpeta',
+      message,
+      confirmLabel: 'Eliminar carpeta',
+      tone: 'danger'
+    });
+
+    if (confirmed) {
+      if (this.showEditFolderModal() && this.editingFolder()?.id === folder.id) {
+        this.showEditFolderModal.set(false);
+        this.editingFolder.set(null);
+      }
+      this.workspace.deleteFolder(folder.id);
+      this.feedback.info(`Carpeta "${folder.name}" eliminada`);
+    }
   }
 
   // --- Tags Management ---

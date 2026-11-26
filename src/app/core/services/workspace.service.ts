@@ -679,8 +679,17 @@ export class WorkspaceService {
   }
 
   deleteFolder(id: string): void {
-    const remainingFolders = this.folders().filter(f => f.id !== id);
-    const fallbackFolderId = remainingFolders[0]?.id || 'f-general';
+    let remainingFolders = this.folders().filter(f => f.id !== id);
+    if (remainingFolders.length === 0) {
+      const defaultFolder: NoteFolder = {
+        id: 'f-' + Date.now(),
+        name: 'General',
+        color: '#74566E',
+        icon: 'folder'
+      };
+      remainingFolders = [defaultFolder];
+    }
+    const fallbackFolderId = remainingFolders[0].id;
     this.folders.set(remainingFolders);
 
     // Reasignar notas de la carpeta eliminada

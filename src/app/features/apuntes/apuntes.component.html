@@ -182,15 +182,36 @@
                 </button>
               </div>
               
-              <div class="flex items-center gap-1.5 shrink-0">
+              <div class="flex items-center gap-1 shrink-0">
+                <!-- Crear nota en carpeta -->
                 <button
                   type="button"
                   (click)="$event.stopPropagation(); createNote(folder.id)"
-                  class="opacity-0 group-hover/folder:opacity-100 p-0.5 rounded hover:bg-[#74566E]/20 text-[#74566E] dark:text-[#9D7B96] transition-opacity cursor-pointer"
+                  class="opacity-0 group-hover/folder:opacity-100 p-1 rounded hover:bg-[#74566E]/20 text-[#74566E] dark:text-[#9D7B96] transition-opacity cursor-pointer"
                   title="Crear apunte en {{ folder.name }}">
-                  <lucide-icon [img]="PlusIcon" [size]="13" [strokeWidth]="2.5"></lucide-icon>
+                  <lucide-icon [img]="PlusIcon" [size]="12" [strokeWidth]="2.5"></lucide-icon>
                 </button>
-                <span class="text-[11px] text-[#635B5E] dark:text-neutral-400 tabular-nums font-semibold">
+
+                <!-- Editar carpeta (nombre y color) -->
+                <button
+                  type="button"
+                  (click)="openEditFolderModal(folder, $event)"
+                  class="opacity-0 group-hover/folder:opacity-100 p-1 rounded hover:bg-[#74566E]/20 text-[#635B5E] hover:text-[#74566E] dark:text-neutral-400 dark:hover:text-[#9D7B96] transition-opacity cursor-pointer"
+                  title="Editar carpeta {{ folder.name }}">
+                  <lucide-icon [img]="PencilIcon" [size]="12" [strokeWidth]="2"></lucide-icon>
+                </button>
+
+                <!-- Eliminar carpeta con confirmación -->
+                <button
+                  type="button"
+                  (click)="deleteFolderWithConfirm(folder, $event)"
+                  class="opacity-0 group-hover/folder:opacity-100 p-1 rounded hover:bg-rose-500/10 text-[#635B5E] hover:text-rose-600 dark:text-neutral-400 dark:hover:text-rose-400 transition-opacity cursor-pointer"
+                  title="Eliminar carpeta {{ folder.name }}">
+                  <lucide-icon [img]="Trash2Icon" [size]="12" [strokeWidth]="2"></lucide-icon>
+                </button>
+
+                <!-- Contador de notas -->
+                <span class="text-[11px] text-[#635B5E] dark:text-neutral-400 tabular-nums font-semibold ml-0.5">
                   {{ notesInFolder.length }}
                 </span>
               </div>
@@ -414,16 +435,26 @@
       <div class="px-3 sm:px-5 py-2 border-b border-[#EAE2DE] dark:border-[#2A2832] flex items-center justify-between gap-2 shrink-0 bg-[#FAF7F5]/50 dark:bg-[#16151B]/50 min-w-0">
         <!-- Breadcrumbs, Word Count & Reading Time -->
         <div class="flex items-center gap-1.5 sm:gap-2 text-xs text-[#635B5E] dark:text-neutral-400 min-w-0 flex-1 overflow-hidden">
-          <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] shadow-2xs hover:border-[#74566E]/50 transition-colors shrink-0 max-w-[110px] sm:max-w-[150px]" title="Cambiar carpeta de este apunte">
+          <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] shadow-2xs hover:border-[#74566E]/50 transition-colors shrink-0 max-w-[130px] sm:max-w-[170px]" title="Carpeta del apunte actual">
             <div class="w-2.5 h-2.5 rounded-sm shrink-0" [style.background-color]="currentFolder()?.color || '#74566E'"></div>
             <select
               [ngModel]="currentNote()?.folderId"
               (ngModelChange)="setNoteFolder($event)"
-              class="bg-transparent text-xs font-semibold text-[#231F20] dark:text-[#F3EFEA] focus:outline-none cursor-pointer pr-1 truncate w-full">
+              class="bg-transparent text-xs font-semibold text-[#231F20] dark:text-[#F3EFEA] focus:outline-none cursor-pointer pr-1 truncate w-full"
+              title="Cambiar carpeta">
               @for (f of workspace.folders(); track f.id) {
                 <option [value]="f.id">{{ f.name }}</option>
               }
             </select>
+            @if (currentFolder(); as activeFold) {
+              <button
+                type="button"
+                (click)="openEditFolderModal(activeFold, $event)"
+                class="text-[#635B5E] hover:text-[#74566E] dark:text-neutral-400 dark:hover:text-[#9D7B96] transition-colors cursor-pointer shrink-0 p-0.5 rounded"
+                title="Editar carpeta {{ activeFold.name }}">
+                <lucide-icon [img]="PencilIcon" [size]="11" [strokeWidth]="2"></lucide-icon>
+              </button>
+            }
           </div>
           <span class="shrink-0 text-[#635B5E]/40 font-mono">/</span>
           <span class="truncate font-semibold text-xs text-[#231F20] dark:text-[#F3EFEA] min-w-0 max-w-[100px] sm:max-w-[160px] md:max-w-[220px]">
@@ -1234,6 +1265,88 @@
             class="px-3 py-1.5 bg-[#74566E] text-white rounded-xl text-xs font-semibold hover:bg-[#5E4359] disabled:opacity-50">
             Crear carpeta
           </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================== -->
+  <!-- MODAL: Editar Carpeta                       -->
+  <!-- ========================================== -->
+  @if (showEditFolderModal() && editingFolder(); as folder) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+      <div class="bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] rounded-2xl p-5 w-full max-w-sm space-y-4 shadow-xl animate-in fade-in duration-150">
+        <div class="flex items-center justify-between">
+          <h3 class="text-base font-bold text-[#231F20] dark:text-[#F3EFEA] flex items-center gap-2">
+            <lucide-icon [img]="FolderIcon" [size]="16" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
+            Editar carpeta
+          </h3>
+          <button
+            type="button"
+            (click)="showEditFolderModal.set(false)"
+            class="p-1 rounded-lg hover:bg-[#FAF7F5] dark:hover:bg-[#201E27] text-[#635B5E] dark:text-neutral-400 transition-colors cursor-pointer">
+            <lucide-icon [img]="XIcon" [size]="16"></lucide-icon>
+          </button>
+        </div>
+
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs font-semibold text-[#635B5E] dark:text-neutral-300 block mb-1">Nombre de la carpeta</label>
+            <input
+              type="text"
+              [ngModel]="editingFolderName()"
+              (ngModelChange)="editingFolderName.set($event)"
+              (keydown.enter)="saveFolderEdit()"
+              placeholder="Ej: Proyectos 2026"
+              class="w-full px-3 py-2 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none focus:border-[#74566E]"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-[#635B5E] dark:text-neutral-300 block mb-1">Color representativo</label>
+            <div class="flex items-center gap-2">
+              @for (c of ['#74566E', '#265B8A', '#8C4A19', '#246A49', '#9B2C2C', '#C97D60']; track c) {
+                <button
+                  type="button"
+                  (click)="editingFolderColor.set(c)"
+                  class="w-6 h-6 rounded-full border-2 transition-transform cursor-pointer"
+                  [style.background-color]="c"
+                  [class.scale-125]="editingFolderColor() === c"
+                  [class.border-white]="editingFolderColor() === c"
+                  [class.border-transparent]="editingFolderColor() !== c"
+                  [class.ring-2]="editingFolderColor() === c"
+                  [class.ring-[#74566E]]="editingFolderColor() === c">
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-3 border-t border-[#EAE2DE] dark:border-[#2A2832]">
+          <button
+            type="button"
+            (click)="deleteFolderWithConfirm(folder)"
+            class="px-2.5 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Eliminar esta carpeta">
+            <lucide-icon [img]="Trash2Icon" [size]="13"></lucide-icon>
+            <span>Eliminar</span>
+          </button>
+
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              (click)="showEditFolderModal.set(false)"
+              class="px-3 py-1.5 text-xs text-[#635B5E] dark:text-neutral-400 hover:text-[#231F20] dark:hover:text-white transition-colors cursor-pointer">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              (click)="saveFolderEdit()"
+              [disabled]="!editingFolderName().trim()"
+              class="px-3.5 py-1.5 bg-[#74566E] text-white rounded-xl text-xs font-semibold hover:bg-[#5E4359] disabled:opacity-50 transition-colors shadow-2xs cursor-pointer">
+              Guardar cambios
+            </button>
+          </div>
         </div>
       </div>
     </div>
