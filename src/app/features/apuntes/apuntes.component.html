@@ -37,22 +37,83 @@
   <!-- ========================================== -->
   <aside 
     class="w-full lg:w-64 border-r border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#16151B] flex-col justify-between shrink-0 select-none overflow-y-auto p-3.5 space-y-4"
+    [class.lg:hidden]="isFocusMode()"
     [ngClass]="activeMobileTab() === 'pages' ? 'flex flex-1 lg:flex-initial' : 'hidden lg:flex'">
     <div class="space-y-4">
-      <!-- Header: Apuntes & + Nuevo apunte -->
+      <!-- Header: Apuntes & + Nuevo apunte (con Split button de plantillas) -->
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <lucide-icon [img]="FileTextIcon" [size]="18" [strokeWidth]="1.75" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
           <span class="font-bold text-sm text-[#231F20] dark:text-[#F3EFEA]">Apuntes</span>
         </div>
-        <button
-          type="button"
-          (click)="createNote()"
-          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#74566E] hover:bg-[#5E4359] dark:bg-[#9D7B96] dark:hover:bg-[#85637E] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-          title="Crear nuevo apunte">
-          <lucide-icon [img]="PlusIcon" [size]="13" [strokeWidth]="2.5"></lucide-icon>
-          <span>Nuevo</span>
-        </button>
+
+        <div class="relative inline-flex items-center">
+          <button
+            type="button"
+            (click)="createNote()"
+            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-l-lg bg-[#74566E] hover:bg-[#5E4359] dark:bg-[#9D7B96] dark:hover:bg-[#85637E] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+            title="Crear apunte en blanco (1 clic)">
+            <lucide-icon [img]="PlusIcon" [size]="13" [strokeWidth]="2.5"></lucide-icon>
+            <span>Nuevo</span>
+          </button>
+          <button
+            type="button"
+            (click)="showTemplateMenu.set(!showTemplateMenu())"
+            class="px-1.5 py-1 rounded-r-lg bg-[#74566E] hover:bg-[#5E4359] dark:bg-[#9D7B96] dark:hover:bg-[#85637E] text-white text-xs border-l border-white/20 transition-colors cursor-pointer"
+            title="Elegir plantilla">
+            <lucide-icon [img]="ChevronDownIcon" [size]="12" [strokeWidth]="2.5"></lucide-icon>
+          </button>
+
+          <!-- Template Menu Popover -->
+          @if (showTemplateMenu()) {
+            <div class="fixed inset-0 z-40" (click)="showTemplateMenu.set(false)"></div>
+            <div class="absolute right-0 top-full mt-1.5 w-60 bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] rounded-xl shadow-xl p-1.5 z-50 space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
+              <div class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#635B5E] dark:text-neutral-400">
+                Plantillas rápidas
+              </div>
+              <button
+                type="button"
+                (click)="createNoteFromTemplate('blank')"
+                class="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-xs font-medium text-[#231F20] dark:text-[#F3EFEA] hover:bg-[#FAF7F5] dark:hover:bg-[#201E27] transition-colors text-left cursor-pointer">
+                <lucide-icon [img]="FileTextIcon" [size]="14" [strokeWidth]="1.75" class="text-[#74566E] dark:text-[#9D7B96] shrink-0"></lucide-icon>
+                <div class="min-w-0">
+                  <div class="font-semibold text-xs truncate">Nota en blanco</div>
+                  <div class="text-[10px] text-[#635B5E] dark:text-neutral-400 truncate">Lienzo vacío</div>
+                </div>
+              </button>
+              <button
+                type="button"
+                (click)="createNoteFromTemplate('meeting')"
+                class="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-xs font-medium text-[#231F20] dark:text-[#F3EFEA] hover:bg-[#FAF7F5] dark:hover:bg-[#201E27] transition-colors text-left cursor-pointer">
+                <lucide-icon [img]="CalendarIcon" [size]="14" [strokeWidth]="1.75" class="text-blue-600 dark:text-blue-400 shrink-0"></lucide-icon>
+                <div class="min-w-0">
+                  <div class="font-semibold text-xs truncate">Reunión</div>
+                  <div class="text-[10px] text-[#635B5E] dark:text-neutral-400 truncate">Objetivo, participantes y acuerdos</div>
+                </div>
+              </button>
+              <button
+                type="button"
+                (click)="createNoteFromTemplate('tech')"
+                class="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-xs font-medium text-[#231F20] dark:text-[#F3EFEA] hover:bg-[#FAF7F5] dark:hover:bg-[#201E27] transition-colors text-left cursor-pointer">
+                <lucide-icon [img]="Code2Icon" [size]="14" [strokeWidth]="1.75" class="text-purple-600 dark:text-purple-400 shrink-0"></lucide-icon>
+                <div class="min-w-0">
+                  <div class="font-semibold text-xs truncate">Nota técnica / SQL</div>
+                  <div class="text-[10px] text-[#635B5E] dark:text-neutral-400 truncate">Contexto y bloques SQL</div>
+                </div>
+              </button>
+              <button
+                type="button"
+                (click)="createNoteFromTemplate('checklist')"
+                class="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-xs font-medium text-[#231F20] dark:text-[#F3EFEA] hover:bg-[#FAF7F5] dark:hover:bg-[#201E27] transition-colors text-left cursor-pointer">
+                <lucide-icon [img]="SquareCheckIcon" [size]="14" [strokeWidth]="1.75" class="text-emerald-600 dark:text-emerald-400 shrink-0"></lucide-icon>
+                <div class="min-w-0">
+                  <div class="font-semibold text-xs truncate">Lista de verificación</div>
+                  <div class="text-[10px] text-[#635B5E] dark:text-neutral-400 truncate">Tareas con casillas interactivas</div>
+                </div>
+              </button>
+            </div>
+          }
+        </div>
       </div>
 
       <!-- Buscador en apuntes -->
@@ -70,7 +131,16 @@
       <!-- Carpetas Section -->
       <div class="space-y-1">
         <div class="flex items-center justify-between px-1 py-1 text-[11px] font-bold uppercase tracking-wider text-[#635B5E] dark:text-neutral-400">
-          <span>Carpetas</span>
+          <div class="flex items-center gap-2">
+            <span>Carpetas</span>
+            <button
+              type="button"
+              (click)="toggleBatchSelectMode()"
+              class="text-[10px] px-1.5 py-0.5 rounded border border-[#EAE2DE] dark:border-[#2A2832] font-semibold transition-colors cursor-pointer select-none"
+              [ngClass]="isBatchSelectMode() ? 'bg-[#74566E] text-white border-transparent' : 'bg-white dark:bg-[#19181E] text-[#635B5E] hover:text-[#231F20] dark:hover:text-white'">
+              {{ isBatchSelectMode() ? 'Listo' : 'Seleccionar' }}
+            </button>
+          </div>
           <button
             type="button"
             (click)="showNewFolderModal.set(true)"
@@ -87,21 +157,32 @@
           <div class="space-y-0.5">
             <!-- Folder row (Sticky Header) -->
             <div class="group/folder sticky top-0 z-10 flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-medium text-[#231F20] dark:text-[#F3EFEA] bg-[#F4EFEA] dark:bg-[#19171E] hover:bg-[#EAE2DE] dark:hover:bg-[#201E27] transition-colors shadow-2xs">
-              <button
-                type="button"
-                (click)="toggleFolderCollapse(folder.id)"
-                class="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer">
-                <lucide-icon 
-                  [img]="isCollapsed ? ChevronRightIcon : ChevronDownIcon" 
-                  [size]="13" 
-                  [strokeWidth]="2" 
-                  class="text-[#635B5E]">
-                </lucide-icon>
-                <div class="w-2.5 h-2.5 rounded-sm shrink-0" [style.background-color]="folder.color"></div>
-                <span class="truncate font-semibold">{{ folder.name }}</span>
-              </button>
+              <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                @if (isBatchSelectMode() && notesInFolder.length > 0) {
+                  <input
+                    type="checkbox"
+                    [checked]="isFolderFullySelected(folder.id)"
+                    (click)="toggleFolderSelectAll(folder.id, $event)"
+                    class="w-3.5 h-3.5 rounded border-[#EAE2DE] text-[#74566E] focus:ring-[#74566E] cursor-pointer shrink-0"
+                    title="Seleccionar todas las notas de {{ folder.name }}"
+                  />
+                }
+                <button
+                  type="button"
+                  (click)="toggleFolderCollapse(folder.id)"
+                  class="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer">
+                  <lucide-icon 
+                    [img]="isCollapsed ? ChevronRightIcon : ChevronDownIcon" 
+                    [size]="13" 
+                    [strokeWidth]="2" 
+                    class="text-[#635B5E]">
+                  </lucide-icon>
+                  <div class="w-2.5 h-2.5 rounded-sm shrink-0" [style.background-color]="folder.color"></div>
+                  <span class="truncate font-semibold">{{ folder.name }}</span>
+                </button>
+              </div>
               
-              <div class="flex items-center gap-1.5">
+              <div class="flex items-center gap-1.5 shrink-0">
                 <button
                   type="button"
                   (click)="$event.stopPropagation(); createNote(folder.id)"
@@ -118,22 +199,63 @@
             <!-- Notes inside folder (Capped to max-h-64 when > 8 notes) -->
             @if (!isCollapsed) {
               <div
-                class="pl-4 pr-1 space-y-0.5"
+                class="pl-3 pr-1 space-y-0.5"
                 [ngClass]="{ 'max-h-64 overflow-y-auto overscroll-contain pr-1': notesInFolder.length > 8 }">
                 @for (note of notesInFolder; track note.id) {
-                  <button
-                    type="button"
-                    (click)="selectNote(note)"
-                    class="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition-colors text-left truncate cursor-pointer"
+                  @let isSelectedInBatch = isNoteSelected(note.id);
+                  @let excerpt = getNoteExcerpt(note);
+
+                  <div
+                    (click)="isBatchSelectMode() ? toggleNoteSelect(note.id, $event) : selectNote(note)"
+                    class="group/note w-full flex items-start justify-between px-2 py-1.5 rounded-lg text-xs transition-colors text-left cursor-pointer select-none"
                     [ngClass]="{
-                      'bg-[#EAE2DE] dark:bg-[#25232D] font-semibold text-[#74566E] dark:text-[#9D7B96]': currentNote()?.id === note.id,
-                      'text-[#635B5E] dark:text-neutral-400 hover:bg-[#EAE2DE]/40 dark:hover:bg-[#201E27]': currentNote()?.id !== note.id
+                      'bg-[#EAE2DE] dark:bg-[#25232D] text-[#74566E] dark:text-[#9D7B96]': currentNote()?.id === note.id && !isBatchSelectMode(),
+                      'bg-[#74566E]/10 dark:bg-[#9D7B96]/20 border border-[#74566E]/30': isBatchSelectMode() && isSelectedInBatch,
+                      'text-[#635B5E] dark:text-neutral-400 hover:bg-[#EAE2DE]/40 dark:hover:bg-[#201E27]': currentNote()?.id !== note.id && !isSelectedInBatch
                     }">
-                    <div class="flex items-center gap-2 min-w-0 truncate">
-                      <lucide-icon [img]="FileTextIcon" [size]="13" [strokeWidth]="1.75" class="shrink-0"></lucide-icon>
-                      <span class="truncate">{{ note.title || 'Sin título' }}</span>
+                    <div class="flex items-start gap-2 min-w-0 flex-1">
+                      @if (isBatchSelectMode()) {
+                        <input
+                          type="checkbox"
+                          [checked]="isSelectedInBatch"
+                          (click)="toggleNoteSelect(note.id, $event)"
+                          class="w-3.5 h-3.5 rounded border-[#EAE2DE] text-[#74566E] focus:ring-[#74566E] cursor-pointer mt-0.5 shrink-0"
+                        />
+                      } @else {
+                        <lucide-icon [img]="FileTextIcon" [size]="13" [strokeWidth]="1.75" class="shrink-0 mt-0.5"></lucide-icon>
+                      }
+                      <div class="min-w-0 flex-1">
+                        <div class="font-semibold truncate text-xs text-[#231F20] dark:text-[#F3EFEA]">
+                          {{ note.title || 'Sin título' }}
+                        </div>
+                        @if (excerpt) {
+                          <p class="text-[10px] text-[#635B5E]/70 dark:text-neutral-400 truncate font-normal mt-0.5">
+                            {{ excerpt }}
+                          </p>
+                        }
+                      </div>
                     </div>
-                  </button>
+
+                    <!-- Quick Hover Actions (Duplicate & Delete) when not in batch mode -->
+                    @if (!isBatchSelectMode()) {
+                      <div class="opacity-0 group-hover/note:opacity-100 flex items-center gap-1 shrink-0 ml-1 transition-opacity">
+                        <button
+                          type="button"
+                          (click)="$event.stopPropagation(); duplicateNote(note)"
+                          class="p-1 rounded hover:bg-[#74566E]/20 text-[#635B5E] hover:text-[#74566E] dark:text-neutral-400 dark:hover:text-[#9D7B96] transition-colors cursor-pointer"
+                          title="Duplicar apunte">
+                          <lucide-icon [img]="CopyIcon" [size]="12" [strokeWidth]="2"></lucide-icon>
+                        </button>
+                        <button
+                          type="button"
+                          (click)="$event.stopPropagation(); deleteNoteWithConfirm(note)"
+                          class="p-1 rounded hover:bg-rose-100 text-[#635B5E] hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 transition-colors cursor-pointer"
+                          title="Eliminar apunte">
+                          <lucide-icon [img]="Trash2Icon" [size]="12" [strokeWidth]="2"></lucide-icon>
+                        </button>
+                      </div>
+                    }
+                  </div>
                 }
                 @if (notesInFolder.length === 0) {
                   <button
@@ -155,17 +277,59 @@
           Páginas recientes
         </div>
         @for (note of filteredNotes().slice(0, 5); track note.id) {
-          <button
-            type="button"
-            (click)="selectNote(note)"
-            class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors text-left truncate"
+          @let isSelectedInBatch = isNoteSelected(note.id);
+          @let excerpt = getNoteExcerpt(note);
+
+          <div
+            (click)="isBatchSelectMode() ? toggleNoteSelect(note.id, $event) : selectNote(note)"
+            class="group/note w-full flex items-start justify-between px-2 py-1.5 rounded-lg text-xs transition-colors text-left cursor-pointer select-none"
             [ngClass]="{
-              'bg-[#EAE2DE] dark:bg-[#25232D] font-semibold text-[#74566E] dark:text-[#9D7B96]': currentNote()?.id === note.id,
-              'text-[#635B5E] dark:text-neutral-400 hover:bg-[#EAE2DE]/40 dark:hover:bg-[#201E27]': currentNote()?.id !== note.id
+              'bg-[#EAE2DE] dark:bg-[#25232D] text-[#74566E] dark:text-[#9D7B96]': currentNote()?.id === note.id && !isBatchSelectMode(),
+              'bg-[#74566E]/10 dark:bg-[#9D7B96]/20 border border-[#74566E]/30': isBatchSelectMode() && isSelectedInBatch,
+              'text-[#635B5E] dark:text-neutral-400 hover:bg-[#EAE2DE]/40 dark:hover:bg-[#201E27]': currentNote()?.id !== note.id && !isSelectedInBatch
             }">
-            <lucide-icon [img]="FileTextIcon" [size]="13" [strokeWidth]="1.75" class="shrink-0"></lucide-icon>
-            <span class="truncate">{{ note.title }}</span>
-          </button>
+            <div class="flex items-start gap-2 min-w-0 flex-1">
+              @if (isBatchSelectMode()) {
+                <input
+                  type="checkbox"
+                  [checked]="isSelectedInBatch"
+                  (click)="toggleNoteSelect(note.id, $event)"
+                  class="w-3.5 h-3.5 rounded border-[#EAE2DE] text-[#74566E] focus:ring-[#74566E] cursor-pointer mt-0.5 shrink-0"
+                />
+              } @else {
+                <lucide-icon [img]="FileTextIcon" [size]="13" [strokeWidth]="1.75" class="shrink-0 mt-0.5"></lucide-icon>
+              }
+              <div class="min-w-0 flex-1">
+                <div class="font-semibold truncate text-xs text-[#231F20] dark:text-[#F3EFEA]">
+                  {{ note.title || 'Sin título' }}
+                </div>
+                @if (excerpt) {
+                  <p class="text-[10px] text-[#635B5E]/70 dark:text-neutral-400 truncate font-normal mt-0.5">
+                    {{ excerpt }}
+                  </p>
+                }
+              </div>
+            </div>
+
+            @if (!isBatchSelectMode()) {
+              <div class="opacity-0 group-hover/note:opacity-100 flex items-center gap-1 shrink-0 ml-1 transition-opacity">
+                <button
+                  type="button"
+                  (click)="$event.stopPropagation(); duplicateNote(note)"
+                  class="p-1 rounded hover:bg-[#74566E]/20 text-[#635B5E] hover:text-[#74566E] dark:text-neutral-400 dark:hover:text-[#9D7B96] transition-colors cursor-pointer"
+                  title="Duplicar apunte">
+                  <lucide-icon [img]="CopyIcon" [size]="12" [strokeWidth]="2"></lucide-icon>
+                </button>
+                <button
+                  type="button"
+                  (click)="$event.stopPropagation(); deleteNoteWithConfirm(note)"
+                  class="p-1 rounded hover:bg-rose-100 text-[#635B5E] hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 transition-colors cursor-pointer"
+                  title="Eliminar apunte">
+                  <lucide-icon [img]="Trash2Icon" [size]="12" [strokeWidth]="2"></lucide-icon>
+                </button>
+              </div>
+            }
+          </div>
         }
       </div>
 
@@ -180,7 +344,7 @@
             <button
               type="button"
               (click)="selectNote(note)"
-              class="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition-colors text-left truncate"
+              class="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition-colors text-left truncate cursor-pointer"
               [ngClass]="{
                 'bg-[#EAE2DE] dark:bg-[#25232D] font-semibold text-[#74566E] dark:text-[#9D7B96]': currentNote()?.id === note.id,
                 'text-[#635B5E] dark:text-neutral-400 hover:bg-[#EAE2DE]/40 dark:hover:bg-[#201E27]': currentNote()?.id !== note.id
@@ -193,6 +357,40 @@
           }
         </div>
       }
+
+      <!-- Batch Action Floating / Docked Panel -->
+      @if (isBatchSelectMode() && selectedNoteIds().size > 0) {
+        <div class="sticky bottom-0 z-20 p-2.5 rounded-xl bg-white dark:bg-[#19181E] border border-[#74566E]/40 dark:border-[#9D7B96]/40 shadow-lg space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-150">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-bold text-[#74566E] dark:text-[#9D7B96] tabular-nums">
+              {{ selectedNoteIds().size }} seleccionadas
+            </span>
+            <button
+              type="button"
+              (click)="clearBatchSelection()"
+              class="text-[10px] text-[#635B5E] dark:text-neutral-400 hover:underline cursor-pointer">
+              Deseleccionar
+            </button>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button
+              type="button"
+              (click)="showBatchMoveModal.set(true)"
+              class="flex-1 py-1.5 px-2 rounded-lg bg-[#FAF7F5] dark:bg-[#201E27] border border-[#EAE2DE] dark:border-[#2A2832] text-xs font-semibold text-[#231F20] dark:text-[#F3EFEA] hover:border-[#74566E]/50 flex items-center justify-center gap-1 transition-colors cursor-pointer">
+              <lucide-icon [img]="FolderIcon" [size]="12" [strokeWidth]="2"></lucide-icon>
+              <span>Mover a...</span>
+            </button>
+            <button
+              type="button"
+              (click)="batchDeleteSelectedNotes()"
+              class="py-1.5 px-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 text-xs font-semibold text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/60 flex items-center justify-center gap-1 transition-colors cursor-pointer"
+              title="Eliminar notas seleccionadas">
+              <lucide-icon [img]="Trash2Icon" [size]="12" [strokeWidth]="2"></lucide-icon>
+              <span>Eliminar</span>
+            </button>
+          </div>
+        </div>
+      }
     </div>
 
     <!-- Botón inferior Crear nueva carpeta -->
@@ -200,7 +398,7 @@
       <button
         type="button"
         (click)="showNewFolderModal.set(true)"
-        class="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-[#EAE2DE] dark:border-[#2A2832] text-xs font-semibold text-[#635B5E] hover:text-[#74566E] hover:bg-white dark:hover:bg-[#19181E] transition-colors">
+        class="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-[#EAE2DE] dark:border-[#2A2832] text-xs font-semibold text-[#635B5E] hover:text-[#74566E] hover:bg-white dark:hover:bg-[#19181E] transition-colors cursor-pointer">
         <lucide-icon [img]="PlusIcon" [size]="13" [strokeWidth]="2"></lucide-icon>
         <span>Nueva carpeta</span>
       </button>
@@ -214,9 +412,9 @@
     @if (currentNote()) {
       <!-- Top Action Bar / Breadcrumbs -->
       <div class="px-3 sm:px-5 py-2 border-b border-[#EAE2DE] dark:border-[#2A2832] flex items-center justify-between gap-2 shrink-0 bg-[#FAF7F5]/50 dark:bg-[#16151B]/50 min-w-0">
-        <!-- Breadcrumbs & Saved status -->
+        <!-- Breadcrumbs, Word Count & Reading Time -->
         <div class="flex items-center gap-1.5 sm:gap-2 text-xs text-[#635B5E] dark:text-neutral-400 min-w-0 flex-1 overflow-hidden">
-          <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] shadow-2xs hover:border-[#74566E]/50 transition-colors shrink-0 max-w-[120px] sm:max-w-[150px]" title="Cambiar carpeta de este apunte">
+          <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] shadow-2xs hover:border-[#74566E]/50 transition-colors shrink-0 max-w-[110px] sm:max-w-[150px]" title="Cambiar carpeta de este apunte">
             <div class="w-2.5 h-2.5 rounded-sm shrink-0" [style.background-color]="currentFolder()?.color || '#74566E'"></div>
             <select
               [ngModel]="currentNote()?.folderId"
@@ -228,7 +426,7 @@
             </select>
           </div>
           <span class="shrink-0 text-[#635B5E]/40 font-mono">/</span>
-          <span class="truncate font-semibold text-xs text-[#231F20] dark:text-[#F3EFEA] min-w-0 max-w-[120px] sm:max-w-[180px] md:max-w-[240px]">
+          <span class="truncate font-semibold text-xs text-[#231F20] dark:text-[#F3EFEA] min-w-0 max-w-[100px] sm:max-w-[160px] md:max-w-[220px]">
             {{ currentNote()?.title || 'Sin título' }}
           </span>
 
@@ -243,12 +441,32 @@
               <span class="hidden sm:inline">Error</span>
             </span>
           }
+
+          <!-- Word count and reading time pill -->
+          @if (currentNoteWords() > 0) {
+            <span class="hidden xl:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#F4EFEA] dark:bg-[#201E27] text-[#635B5E] dark:text-neutral-400 border border-[#EAE2DE] dark:border-[#2A2832] tabular-nums shrink-0 select-none" title="Conteo de palabras y tiempo de lectura">
+              <lucide-icon [img]="ClockIcon" [size]="11" [strokeWidth]="1.75"></lucide-icon>
+              <span>{{ currentNoteWords() }} pal</span>
+              <span class="opacity-40">·</span>
+              <span>{{ currentNoteReadingTime() }} min</span>
+            </span>
+          }
         </div>
 
-        <!-- Top Right Utilities: TTS, HTML Preview, Kanban Task, Star, Info, Delete -->
-        <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+        <!-- Top Right Utilities: Focus Mode, TTS, HTML Preview, Kanban Task, Star, Info, Delete -->
+        <div class="flex items-center gap-1 sm:gap-1.5 shrink-0 flex-nowrap">
+          <!-- Focus Mode Toggle (Desktop) -->
+          <button
+            type="button"
+            (click)="toggleFocusMode()"
+            class="hidden lg:flex p-1.5 rounded-lg border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] text-[#635B5E] dark:text-neutral-400 hover:text-[#74566E] hover:border-[#74566E]/40 transition-colors shadow-2xs cursor-pointer"
+            [ngClass]="{ 'bg-[#EFEAF6] text-[#74566E] border-[#74566E]/40 dark:bg-[#74566E]/20 dark:text-[#9D7B96]': isFocusMode() }"
+            [title]="isFocusMode() ? 'Salir de modo enfoque' : 'Modo enfoque (ampliar editor)'">
+            <lucide-icon [img]="isFocusMode() ? Minimize2Icon : Maximize2Icon" [size]="15" [strokeWidth]="1.75"></lucide-icon>
+          </button>
+
           <!-- Text to Speech Button -->
-          <div class="flex items-center bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] rounded-lg p-0.5 shadow-2xs">
+          <div class="flex items-center bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] rounded-lg p-0.5 shadow-2xs shrink-0">
             <button
               type="button"
               (click)="toggleSpeech()"
@@ -280,7 +498,7 @@
           <button
             type="button"
             (click)="toggleHtmlPreview()"
-            class="px-2 sm:px-2.5 py-1.5 rounded-lg border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] text-xs font-medium text-[#635B5E] dark:text-neutral-300 hover:text-[#74566E] hover:border-[#74566E]/40 transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
+            class="px-2 sm:px-2.5 py-1.5 rounded-lg border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] text-xs font-medium text-[#635B5E] dark:text-neutral-300 hover:text-[#74566E] hover:border-[#74566E]/40 transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0"
             [ngClass]="{ 'bg-[#EFEAF6] text-[#74566E] border-[#74566E]/40 dark:bg-[#74566E]/20 dark:text-[#9D7B96]': showHtmlPreview() }"
             title="Previsualizar bloque HTML en iframe aislado">
             @if (showHtmlPreview()) {
@@ -296,7 +514,7 @@
           <button
             type="button"
             (click)="createTaskFromNote()"
-            class="px-2 sm:px-2.5 py-1.5 rounded-lg border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] text-xs font-semibold text-[#246A49] dark:text-[#52B788] hover:bg-[#E6F3EC] dark:hover:bg-[#192A21] hover:border-[#246A49]/30 transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
+            class="px-2 sm:px-2.5 py-1.5 rounded-lg border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] text-xs font-semibold text-[#246A49] dark:text-[#52B788] hover:bg-[#E6F3EC] dark:hover:bg-[#192A21] hover:border-[#246A49]/30 transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0"
             title="Convertir esta nota en tarea del tablero Kanban">
             <lucide-icon [img]="CheckCircle2Icon" [size]="14" [strokeWidth]="2"></lucide-icon>
             <span class="hidden 2xl:inline">Tarea</span>
@@ -306,7 +524,7 @@
           <button
             type="button"
             (click)="toggleFavorite()"
-            class="p-1.5 rounded-lg border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] hover:bg-[#FAF7F5] dark:hover:bg-[#121115] transition-colors shadow-2xs cursor-pointer"
+            class="p-1.5 rounded-lg border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] hover:bg-[#FAF7F5] dark:hover:bg-[#121115] transition-colors shadow-2xs cursor-pointer shrink-0"
             [title]="currentNote()?.favorite ? 'Quitar de favoritos' : 'Añadir a favoritos'">
             <lucide-icon 
               [img]="StarIcon" 
@@ -320,7 +538,7 @@
           <button
             type="button"
             (click)="toggleDetailsPanel()"
-            class="hidden lg:flex p-1.5 rounded-lg border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] hover:bg-[#FAF7F5] dark:hover:bg-[#121115] transition-colors shadow-2xs cursor-pointer"
+            class="hidden lg:flex p-1.5 rounded-lg border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] hover:bg-[#FAF7F5] dark:hover:bg-[#121115] transition-colors shadow-2xs cursor-pointer shrink-0"
             [ngClass]="{
               'bg-[#EFEAF6] text-[#74566E] border-[#74566E]/40 dark:bg-[#74566E]/20 dark:text-[#9D7B96]': showDetailsPanel(),
               'text-[#635B5E] dark:text-neutral-400': !showDetailsPanel()
@@ -333,7 +551,7 @@
           <button
             type="button"
             (click)="deleteCurrentNote()"
-            class="p-1.5 rounded-lg border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] text-[#635B5E] dark:text-neutral-400 hover:text-[#9B2C2C] hover:border-[#9B2C2C]/30 transition-colors shadow-2xs cursor-pointer"
+            class="p-1.5 rounded-lg border border-[#EAE2DE] dark:border-[#2A2832] bg-white dark:bg-[#19181E] text-[#635B5E] dark:text-neutral-400 hover:text-[#9B2C2C] hover:border-[#9B2C2C]/30 transition-colors shadow-2xs cursor-pointer shrink-0"
             title="Eliminar apunte">
             <lucide-icon [img]="Trash2Icon" [size]="15" [strokeWidth]="1.75"></lucide-icon>
           </button>
@@ -929,6 +1147,41 @@
       }
     }
   </aside>
+
+  <!-- ========================================== -->
+  <!-- MODAL: Mover Notas en Lote                 -->
+  <!-- ========================================== -->
+  @if (showBatchMoveModal()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+      <div class="bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] rounded-2xl p-5 w-full max-w-sm space-y-4 shadow-xl">
+        <h3 class="text-base font-bold text-[#231F20] dark:text-[#F3EFEA]">
+          Mover {{ selectedNoteIds().size }} notas
+        </h3>
+        <p class="text-xs text-[#635B5E] dark:text-neutral-400">
+          Selecciona la carpeta de destino para las notas seleccionadas:
+        </p>
+        <div class="space-y-1.5 max-h-60 overflow-y-auto">
+          @for (f of workspace.folders(); track f.id) {
+            <button
+              type="button"
+              (click)="batchMoveToFolder(f.id)"
+              class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#231F20] dark:text-[#F3EFEA] hover:bg-[#FAF7F5] dark:hover:bg-[#201E27] border border-[#EAE2DE] dark:border-[#2A2832] transition-colors text-left cursor-pointer">
+              <div class="w-3 h-3 rounded-sm shrink-0" [style.background-color]="f.color"></div>
+              <span class="truncate flex-1">{{ f.name }}</span>
+            </button>
+          }
+        </div>
+        <div class="flex justify-end pt-2">
+          <button
+            type="button"
+            (click)="showBatchMoveModal.set(false)"
+            class="px-3 py-1.5 text-xs text-[#635B5E] hover:text-[#231F20] dark:text-neutral-400 dark:hover:text-white cursor-pointer">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 
   <!-- ========================================== -->
   <!-- MODAL: Crear Nueva Carpeta                 -->

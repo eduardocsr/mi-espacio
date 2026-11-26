@@ -55,7 +55,12 @@ import {
   Image as ImageIcon,
   Paperclip,
   Download,
-  X
+  X,
+  Copy,
+  SquareCheck,
+  Maximize2,
+  Minimize2,
+  Calendar
 } from 'lucide-angular';
 
 import { Editor } from '@tiptap/core';
@@ -246,6 +251,11 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   readonly PaperclipIcon = Paperclip;
   readonly DownloadIcon = Download;
   readonly XIcon = X;
+  readonly CopyIcon = Copy;
+  readonly SquareCheckIcon = SquareCheck;
+  readonly Maximize2Icon = Maximize2;
+  readonly Minimize2Icon = Minimize2;
+  readonly CalendarIcon = Calendar;
 
   readonly isUploadingMedia = signal<boolean>(false);
   readonly activePdfPreview = signal<{ name: string; safeUrl: SafeResourceUrl; rawUrl: string } | null>(null);
@@ -299,6 +309,32 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   toggleDetailsPanel(): void {
     this.showDetailsPanel.update(v => !v);
   }
+
+  // Focus mode (expands editor by hiding folders sidebar)
+  isFocusMode = signal<boolean>(false);
+
+  // Batch selection mode in folders/notes tree
+  isBatchSelectMode = signal<boolean>(false);
+  selectedNoteIds = signal<Set<string>>(new Set());
+  showBatchMoveModal = signal<boolean>(false);
+
+  // Quick template popover
+  showTemplateMenu = signal<boolean>(false);
+
+  // Word count and reading time computeds
+  readonly currentNoteWords = computed<number>(() => {
+    const note = this.currentNote();
+    if (!note) return 0;
+    const text = note.plainText || '';
+    if (!text.trim()) return 0;
+    return text.trim().split(/\s+/).filter(w => w.length > 0).length;
+  });
+
+  readonly currentNoteReadingTime = computed<number>(() => {
+    const words = this.currentNoteWords();
+    if (words === 0) return 0;
+    return Math.max(1, Math.ceil(words / 200));
+  });
 
   // Folders collapse state
   collapsedFolders = signal<Record<string, boolean>>({});
@@ -666,13 +702,200 @@ export class ApuntesComponent implements OnInit, OnDestroy {
     });
   }
 
+  getNoteExcerpt(note: Note): string {
+    if (note.plainText && note.plainText.trim()) {
+      return note.plainText.replace(/\s+/g, ' ').trim();
+    }
+    if (note.html) {
+      return note.html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+    return '';
+  }
+
+  duplicateNote(note: Note): void {
+    const copyTitle = `${note.title || 'Sin título'} (copia)`;
+    const newNote = this.workspace.addNote(copyTitle, note.folderId);
+    this.workspace.updateNote(newNote.id, {
+      contentJson: note.contentJson,
+      html: note.html,
+      plainText: note.plainText,
+      tags: note.tags ? [...note.tags] : ['General'],
+      status: note.status
+    });
+    this.selectNote(newNote);
+    this.feedback.info(`Apunte duplicado: "${copyTitle}"`);
+  }
+
+  async deleteNoteWithConfirm(note: Note): Promise<void> {
+    const confirmed = await this.feedback.confirm({
+      title: 'Eliminar apunte',
+      message: `¿Estás seguro de que deseas eliminar permanentemente "${note.title || 'Sin título'}"?`,
+      confirmLabel: 'Eliminar apunte',
+      tone: 'danger'
+    });
+    if (confirmed) {
+      const wasSelected = this.currentNote()?.id === note.id;
+      this.workspace.deleteNote(note.id);
+      this.feedback.info('Apunte eliminado');
+      if (wasSelected) {
+        const remaining = this.workspace.notes();
+        if (remaining.length > 0) {
+          this.selectNote(remaining[0]);
+        } else {
+          this.selectedNoteId.set(null);
+          this.loadedNoteId = null;
+          this.editor?.commands.clearContent(false);
+        }
+      }
+    }
+  }
+
+  toggleFocusMode(): void {
+    this.isFocusMode.update(v => !v);
+    if (this.isFocusMode()) {
+      this.feedback.info('Modo enfoque activado');
+    }
+  }
+
   createNote(folderId?: string): void {
+    this.createNoteFromTemplate('blank', folderId);
+  }
+
+  createNoteFromTemplate(template: 'blank' | 'meeting' | 'tech' | 'checklist', folderId?: string): void {
+    this.showTemplateMenu.set(false);
     const fId = folderId || this.currentFolder()?.id || this.workspace.folders()[0]?.id;
-    const newNote = this.workspace.addNote('Nota sin título', fId);
+
+    let title = 'Nota sin título';
+    let html = '<p></p>';
+
+    if (template === 'meeting') {
+      const todayFormatted = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+      title = `Reunión: ${todayFormatted}`;
+      html = `<h2>Objetivo de la reunión</h2><p>Definir el propósito principal y acuerdos esperados de la sesión.</p><h3>Participantes</h3><ul><li><p>Participante 1</p></li><li><p>Participante 2</p></li></ul><h3>Puntos tratados</h3><ol><li><p>Revisión de avances y métricas clave.</p></li><li><p>Bloqueos identificados y soluciones.</p></li></ol><h3>Acuerdos y próximos pasos</h3><ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>Acción 1: Responsable y fecha límite</p></li><li data-type="taskItem" data-checked="false"><p>Acción 2: Responsable y fecha límite</p></li></ul>`;
+    } else if (template === 'tech') {
+      title = 'Nota técnica / Script SQL';
+      html = `<h2>Contexto y objetivo técnico</h2><p>Descripción técnica de la consulta, estructura de tablas o procedimiento.</p><pre><code class="language-sql">-- Consulta de extracción optimizada
+SELECT 
+    id, 
+    nombre, 
+    fecha_creacion, 
+    estado
+FROM registros
+WHERE activo = 1
+ORDER BY fecha_creacion DESC
+LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índices sobre columnas de filtrado y volumen esperado.</p>`;
+    } else if (template === 'checklist') {
+      title = 'Lista de verificación';
+      html = `<h2>Tareas prioritarias</h2><ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>Revisar requerimientos y arquitectura</p></li><li data-type="taskItem" data-checked="false"><p>Implementar cambios de frontend y backend</p></li><li data-type="taskItem" data-checked="false"><p>Ejecutar pruebas en múltiples resoluciones</p></li><li data-type="taskItem" data-checked="false"><p>Validar accesibilidad y temas claro/oscuro</p></li></ul><h3>Notas de seguimiento</h3><p>Registrar cualquier detalle o bloqueo durante la ejecución.</p>`;
+    }
+
+    const newNote = this.workspace.addNote(title, fId);
+    this.workspace.updateNote(newNote.id, { html });
     this.selectNote(newNote);
     const targetFolder = this.workspace.folders().find(f => f.id === fId);
     if (targetFolder) {
-      this.showToast(`Nueva nota en "${targetFolder.name}"`);
+      this.feedback.info(`Nota creada en "${targetFolder.name}"`);
+    }
+  }
+
+  // Batch Selection Methods
+  toggleBatchSelectMode(): void {
+    this.isBatchSelectMode.update(v => !v);
+    if (!this.isBatchSelectMode()) {
+      this.clearBatchSelection();
+    }
+  }
+
+  toggleNoteSelect(noteId: string, event?: Event): void {
+    if (event) event.stopPropagation();
+    this.selectedNoteIds.update(set => {
+      const next = new Set(set);
+      if (next.has(noteId)) {
+        next.delete(noteId);
+      } else {
+        next.add(noteId);
+      }
+      return next;
+    });
+  }
+
+  isNoteSelected(noteId: string): boolean {
+    return this.selectedNoteIds().has(noteId);
+  }
+
+  isFolderFullySelected(folderId: string): boolean {
+    const notes = this.getNotesByFolder(folderId);
+    if (notes.length === 0) return false;
+    return notes.every(n => this.selectedNoteIds().has(n.id));
+  }
+
+  isFolderPartiallySelected(folderId: string): boolean {
+    const notes = this.getNotesByFolder(folderId);
+    if (notes.length === 0) return false;
+    const selectedCount = notes.filter(n => this.selectedNoteIds().has(n.id)).length;
+    return selectedCount > 0 && selectedCount < notes.length;
+  }
+
+  toggleFolderSelectAll(folderId: string, event?: Event): void {
+    if (event) event.stopPropagation();
+    const notes = this.getNotesByFolder(folderId);
+    if (notes.length === 0) return;
+    const allSelected = notes.every(n => this.selectedNoteIds().has(n.id));
+    this.selectedNoteIds.update(set => {
+      const next = new Set(set);
+      notes.forEach(n => {
+        if (allSelected) {
+          next.delete(n.id);
+        } else {
+          next.add(n.id);
+        }
+      });
+      return next;
+    });
+  }
+
+  clearBatchSelection(): void {
+    this.selectedNoteIds.set(new Set());
+    this.showBatchMoveModal.set(false);
+  }
+
+  batchMoveToFolder(targetFolderId: string): void {
+    const ids = Array.from(this.selectedNoteIds());
+    if (ids.length === 0) return;
+    const targetFolder = this.workspace.folders().find(f => f.id === targetFolderId);
+    ids.forEach(id => {
+      this.workspace.updateNote(id, { folderId: targetFolderId });
+    });
+    this.showBatchMoveModal.set(false);
+    this.clearBatchSelection();
+    this.feedback.success(`${ids.length} notas movidas a "${targetFolder?.name || 'carpeta'}"`);
+  }
+
+  async batchDeleteSelectedNotes(): Promise<void> {
+    const count = this.selectedNoteIds().size;
+    if (count === 0) return;
+    const confirmed = await this.feedback.confirm({
+      title: `Eliminar ${count} notas`,
+      message: `¿Estás seguro de que deseas eliminar permanentemente las ${count} notas seleccionadas? Esta acción no se puede deshacer.`,
+      confirmLabel: `Eliminar ${count} notas`,
+      tone: 'danger'
+    });
+    if (confirmed) {
+      const ids = Array.from(this.selectedNoteIds());
+      ids.forEach(id => this.workspace.deleteNote(id));
+      this.clearBatchSelection();
+      this.feedback.info(`${count} notas eliminadas`);
+
+      const remaining = this.workspace.notes();
+      if (!remaining.find(n => n.id === this.selectedNoteId())) {
+        if (remaining.length > 0) {
+          this.selectNote(remaining[0]);
+        } else {
+          this.selectedNoteId.set(null);
+          this.loadedNoteId = null;
+          this.editor?.commands.clearContent(false);
+        }
+      }
     }
   }
 
