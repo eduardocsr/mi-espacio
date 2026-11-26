@@ -47,12 +47,15 @@ export class AiConfigService {
     }
   }
 
+  private detectedEndpoint: string | null = null;
+
   hasApiKey(): boolean {
     return !!this.apiKey();
   }
 
   /**
-   * Ejecuta una solicitud a la API de Google Gemini (gemini-1.5-flash).
+   * Ejecuta una solicitud a la API de Google Gemini con detección y fallback automático
+   * entre modelos compatibles (gemini-1.5-flash-latest, v1 gemini-1.5-flash, gemini-2.0-flash, gemini-pro).
    */
   async generateText(prompt: string, systemInstruction?: string): Promise<string> {
     const key = this.apiKey().trim();
@@ -60,13 +63,15 @@ export class AiConfigService {
       throw new Error('NO_API_KEY');
     }
 
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+    const promptText = systemInstruction
+      ? `${systemInstruction}\n\n[Contenido a procesar]:\n${prompt}`
+      : prompt;
 
-    const body: any = {
+    const requestBody = {
       contents: [
         {
           role: 'user',
-          parts: [{ text: prompt }]
+          parts: [{ text: promptText }]
         }
       ],
       generationConfig: {
@@ -75,37 +80,60 @@ export class AiConfigService {
       }
     };
 
-    if (systemInstruction) {
-      body.systemInstruction = {
-        parts: [{ text: systemInstruction }]
-      };
-    }
+    // Endpoints candidatos en orden de preferencia y compatibilidad
+    const candidateUrls = this.detectedEndpoint
+      ? [this.detectedEndpoint]
+      : [
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`,
+          `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${key}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+          `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${key}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${key}`
+        ];
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
+    let lastError: Error | null = null;
 
-    if (!response.ok) {
-      const errJson = await response.json().catch(() => null);
-      const errMsg = errJson?.error?.message || `HTTP ${response.status}: ${response.statusText}`;
-      if (response.status === 400 || response.status === 403 || response.status === 401) {
-        throw new Error(`INVALID_API_KEY: ${errMsg}`);
+    for (const url of candidateUrls) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const textPart = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (textPart) {
+            // Guardamos el endpoint funcional para optimizar llamadas siguientes
+            this.detectedEndpoint = url;
+            return textPart.trim();
+          }
+        }
+
+        const errJson = await response.json().catch(() => null);
+        const errMsg = errJson?.error?.message || `HTTP ${response.status}: ${response.statusText}`;
+
+        // Si es un error de clave inválida (API key expired / invalid / unauthorized), detener fallback
+        if (
+          (response.status === 400 || response.status === 403 || response.status === 401) &&
+          (errMsg.toLowerCase().includes('api key') || errMsg.toLowerCase().includes('api_key'))
+        ) {
+          throw new Error(`INVALID_API_KEY: ${errMsg}`);
+        }
+
+        lastError = new Error(errMsg);
+      } catch (e: any) {
+        if (e.message?.startsWith('INVALID_API_KEY')) {
+          throw e;
+        }
+        lastError = e;
       }
-      throw new Error(errMsg);
     }
 
-    const data = await response.json();
-    const candidate = data.candidates?.[0];
-    const textPart = candidate?.content?.parts?.[0]?.text;
-    if (!textPart) {
-      throw new Error('EMPTY_RESPONSE');
-    }
-
-    return textPart.trim();
+    throw lastError || new Error('No se pudo obtener respuesta de los modelos de Gemini.');
   }
 
   /**

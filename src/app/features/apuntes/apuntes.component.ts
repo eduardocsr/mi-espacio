@@ -1783,7 +1783,8 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
     } else if (msg.includes('INVALID_API_KEY')) {
       this.feedback.error('La clave de API de Gemini parece no ser válida o no tiene permisos. Por favor revísala en Ajustes.');
     } else {
-      this.feedback.error('No se pudo conectar con el servicio de Gemini. Revisa tu conexión a internet.');
+      const cleanMsg = msg.replace(/^Error:\s*/, '').slice(0, 140);
+      this.feedback.error(cleanMsg || 'No se pudo conectar con el servicio de Gemini. Revisa tu conexión a internet.');
     }
   }
 
