@@ -727,8 +727,12 @@ export class WorkspaceService {
   updateNote(id: string, updates: Partial<Note>): void {
     const now = new Date().toISOString();
     const updatedByDevice = updates.updatedByDevice || this.deviceId;
+    const finalUpdates: Partial<Note> = { ...updates };
+    if (finalUpdates.tags) {
+      finalUpdates.tags = Array.from(new Set(finalUpdates.tags));
+    }
     this.notes.update(current =>
-      current.map(n => (n.id === id ? { ...n, ...updates, updatedAt: updates.updatedAt || now, updatedByDevice } : n))
+      current.map(n => (n.id === id ? { ...n, ...finalUpdates, updatedAt: finalUpdates.updatedAt || now, updatedByDevice } : n))
     );
 
     // Si solo es tipeo de contenido en Tiptap (contentJson, html, plainText), usar debounce corto de 800ms
