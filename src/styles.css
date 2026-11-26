@@ -175,32 +175,61 @@ html.dark .cdk-drag-preview {
 
 /* Task List Checkboxes */
 .ProseMirror ul[data-type="taskList"] {
-  list-style: none;
-  padding: 0;
+  list-style: none !important;
+  padding: 0 !important;
   margin-bottom: 1rem;
 }
 
-.ProseMirror ul[data-type="taskList"] li[data-type="taskItem"] {
-  display: flex;
-  align-items: flex-start;
+.ProseMirror ul[data-type="taskList"] > li,
+.ProseMirror li[data-checked],
+.ProseMirror li[data-type="taskItem"] {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
   gap: 0.65rem;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.45rem;
+  list-style: none !important;
 }
 
-.ProseMirror ul[data-type="taskList"] li[data-type="taskItem"] > label {
+.ProseMirror ul[data-type="taskList"] > li > label,
+.ProseMirror li[data-checked] > label,
+.ProseMirror li[data-type="taskItem"] > label {
+  flex-shrink: 0 !important;
   user-select: none;
-  margin-top: 0.25rem;
+  margin-top: 0.2rem;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
-.ProseMirror ul[data-type="taskList"] li[data-type="taskItem"] > label input[type="checkbox"] {
+.ProseMirror ul[data-type="taskList"] > li > label input[type="checkbox"],
+.ProseMirror li[data-checked] > label input[type="checkbox"],
+.ProseMirror li[data-type="taskItem"] > label input[type="checkbox"] {
   accent-color: #74566E;
   cursor: pointer;
-  width: 1rem;
-  height: 1rem;
+  width: 1.05rem;
+  height: 1.05rem;
   border-radius: 0.25rem;
+  margin: 0 !important;
 }
 
-.ProseMirror ul[data-type="taskList"] li[data-type="taskItem"][data-checked="true"] > div {
+.ProseMirror ul[data-type="taskList"] > li > div,
+.ProseMirror li[data-checked] > div,
+.ProseMirror li[data-type="taskItem"] > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ProseMirror ul[data-type="taskList"] > li > div > p,
+.ProseMirror li[data-checked] > div > p,
+.ProseMirror li[data-type="taskItem"] > div > p {
+  margin: 0 !important;
+  line-height: 1.5;
+}
+
+.ProseMirror ul[data-type="taskList"] > li[data-checked="true"] > div,
+.ProseMirror li[data-checked="true"] > div {
   text-decoration: line-through;
   opacity: 0.6;
 }

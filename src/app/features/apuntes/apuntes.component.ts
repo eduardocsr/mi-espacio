@@ -560,7 +560,10 @@ export class ApuntesComponent implements OnInit, OnDestroy {
         }),
         TaskList,
         TaskItem.configure({
-          nested: true
+          nested: true,
+          HTMLAttributes: {
+            'data-type': 'taskItem'
+          }
         }),
         CustomCodeBlock.configure({
           lowlight
