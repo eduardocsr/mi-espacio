@@ -55,7 +55,7 @@ export class AiConfigService {
   }
 
   /**
-   * Ejecuta una solicitud a la API de Google Gemini con detección inteligente
+   * Ejecuta una solicitud a la API de Google Gemini (gemini-3.5-flash-lite) con detección inteligente
    * de modelos habilitados para la clave ingresada y fallback ordenado.
    */
   async generateText(prompt: string, systemInstruction?: string): Promise<string> {
@@ -72,14 +72,17 @@ export class AiConfigService {
           const listData = await listResp.json();
           const models: Array<{ name: string; supportedGenerationMethods?: string[] }> = listData.models || [];
           const contentModels = models.filter(m => m.supportedGenerationMethods?.includes('generateContent'));
+          // Excluir estrictamente modelos obsoletos 1.0, 1.5 y gemini-pro retirados por Google
+          const validModels = contentModels.filter(
+            m => !m.name.includes('1.0') && !m.name.includes('1.5') && !m.name.includes('gemini-pro')
+          );
 
-          if (contentModels.length > 0) {
+          if (validModels.length > 0) {
             const preferred =
-              contentModels.find(m => m.name.includes('gemini-1.5-flash')) ||
-              contentModels.find(m => m.name.includes('gemini-2.0-flash')) ||
-              contentModels.find(m => m.name.includes('gemini-2.5-flash')) ||
-              contentModels.find(m => m.name.includes('gemini-1.5-pro')) ||
-              contentModels[0];
+              validModels.find(m => m.name.includes('gemini-3.5-flash-lite')) ||
+              validModels.find(m => m.name.includes('3.5-flash')) ||
+              validModels.find(m => m.name.includes('flash-lite')) ||
+              validModels[0];
 
             if (preferred) {
               const modelPath = preferred.name.replace(/^models\//, '');
@@ -123,15 +126,12 @@ export class AiConfigService {
       }
     };
 
-    // Endpoints candidatos en orden de preferencia y compatibilidad
+    // Endpoints candidatos configurados estrictamente con gemini-3.5-flash-lite
     const candidateUrls = this.detectedEndpoint
       ? [this.detectedEndpoint]
       : [
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`,
-          `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`,
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${key}`
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`,
+          `https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent?key=${key}`
         ];
 
     let lastError: Error | null = null;
@@ -171,6 +171,9 @@ export class AiConfigService {
         lastError = e;
       }
     }
+
+    // Si fallaron todos los endpoints candidatos, resetear detectedEndpoint para refrescar en el siguiente intento
+    this.detectedEndpoint = null;
 
     if (lastError && lastError.message.includes('is not found for API version')) {
       throw new Error('API_NOT_ENABLED: Tu clave de API no tiene habilitada la Generative Language API en Google Cloud. Para usar Gemini gratis, obtén una clave directa en https://aistudio.google.com/app/apikey');
