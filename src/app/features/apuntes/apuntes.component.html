@@ -230,7 +230,7 @@
                     (click)="isBatchSelectMode() ? toggleNoteSelect(note.id, $event) : selectNote(note)"
                     class="group/note w-full flex items-start justify-between px-2 py-1.5 rounded-lg text-xs transition-colors text-left cursor-pointer select-none"
                     [ngClass]="{
-                      'bg-[#EAE2DE] dark:bg-[#25232D] text-[#74566E] dark:text-[#9D7B96]': currentNote()?.id === note.id && !isBatchSelectMode(),
+                      'bg-[#EFEAF6] dark:bg-[#74566E]/20 text-[#74566E] dark:text-[#9D7B96] font-semibold shadow-2xs': currentNote()?.id === note.id && !isBatchSelectMode(),
                       'bg-[#74566E]/10 dark:bg-[#9D7B96]/20 border border-[#74566E]/30': isBatchSelectMode() && isSelectedInBatch,
                       'text-[#635B5E] dark:text-neutral-400 hover:bg-[#EAE2DE]/40 dark:hover:bg-[#201E27]': currentNote()?.id !== note.id && !isSelectedInBatch
                     }">
@@ -305,7 +305,7 @@
             (click)="isBatchSelectMode() ? toggleNoteSelect(note.id, $event) : selectNote(note)"
             class="group/note w-full flex items-start justify-between px-2 py-1.5 rounded-lg text-xs transition-colors text-left cursor-pointer select-none"
             [ngClass]="{
-              'bg-[#EAE2DE] dark:bg-[#25232D] text-[#74566E] dark:text-[#9D7B96]': currentNote()?.id === note.id && !isBatchSelectMode(),
+              'bg-[#EFEAF6] dark:bg-[#74566E]/20 text-[#74566E] dark:text-[#9D7B96] font-semibold shadow-2xs': currentNote()?.id === note.id && !isBatchSelectMode(),
               'bg-[#74566E]/10 dark:bg-[#9D7B96]/20 border border-[#74566E]/30': isBatchSelectMode() && isSelectedInBatch,
               'text-[#635B5E] dark:text-neutral-400 hover:bg-[#EAE2DE]/40 dark:hover:bg-[#201E27]': currentNote()?.id !== note.id && !isSelectedInBatch
             }">
@@ -367,7 +367,7 @@
               (click)="selectNote(note)"
               class="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition-colors text-left truncate cursor-pointer"
               [ngClass]="{
-                'bg-[#EAE2DE] dark:bg-[#25232D] font-semibold text-[#74566E] dark:text-[#9D7B96]': currentNote()?.id === note.id,
+                'bg-[#EFEAF6] dark:bg-[#74566E]/20 font-semibold text-[#74566E] dark:text-[#9D7B96] shadow-2xs': currentNote()?.id === note.id,
                 'text-[#635B5E] dark:text-neutral-400 hover:bg-[#EAE2DE]/40 dark:hover:bg-[#201E27]': currentNote()?.id !== note.id
               }">
               <div class="flex items-center gap-2 min-w-0 truncate">
@@ -827,8 +827,9 @@
         <button 
           type="button" 
           (click)="toggleBold()" 
-          class="p-1.5 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer" 
-          [class.bg-[#EAE2DE]]="isFormatActive('bold')"
+          class="p-1.5 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer transition-colors" 
+          [class.bg-[#EFEAF6]]="isFormatActive('bold')"
+          [class.text-[#74566E]]="isFormatActive('bold')"
           title="Negrita (Ctrl+B)">
           <lucide-icon [img]="BoldIcon" [size]="15" [strokeWidth]="2.5"></lucide-icon>
         </button>
@@ -836,8 +837,9 @@
         <button 
           type="button" 
           (click)="toggleItalic()" 
-          class="p-1.5 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer" 
-          [class.bg-[#EAE2DE]]="isFormatActive('italic')"
+          class="p-1.5 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer transition-colors" 
+          [class.bg-[#EFEAF6]]="isFormatActive('italic')"
+          [class.text-[#74566E]]="isFormatActive('italic')"
           title="Cursiva (Ctrl+I)">
           <lucide-icon [img]="ItalicIcon" [size]="15" [strokeWidth]="2"></lucide-icon>
         </button>
@@ -845,8 +847,9 @@
         <button 
           type="button" 
           (click)="toggleUnderline()" 
-          class="p-1.5 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer" 
-          [class.bg-[#EAE2DE]]="isFormatActive('underline')"
+          class="p-1.5 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer transition-colors" 
+          [class.bg-[#EFEAF6]]="isFormatActive('underline')"
+          [class.text-[#74566E]]="isFormatActive('underline')"
           title="Subrayado (Ctrl+U)">
           <lucide-icon [img]="UnderlineIcon" [size]="15" [strokeWidth]="2.2"></lucide-icon>
         </button>
@@ -854,8 +857,9 @@
         <button 
           type="button" 
           (click)="toggleStrike()" 
-          class="p-1.5 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer" 
-          [class.bg-[#EAE2DE]]="isFormatActive('strike')"
+          class="p-1.5 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer transition-colors" 
+          [class.bg-[#EFEAF6]]="isFormatActive('strike')"
+          [class.text-[#74566E]]="isFormatActive('strike')"
           title="Tachado">
           <lucide-icon [img]="StrikethroughIcon" [size]="15" [strokeWidth]="2"></lucide-icon>
         </button>
@@ -863,8 +867,9 @@
         <button 
           type="button" 
           (click)="setLink()" 
-          class="p-1.5 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer" 
-          [class.bg-[#EAE2DE]]="isFormatActive('link')"
+          class="p-1.5 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer transition-colors" 
+          [class.bg-[#EFEAF6]]="isFormatActive('link')"
+          [class.text-[#74566E]]="isFormatActive('link')"
           title="Insertar hipervínculo">
           <lucide-icon [img]="Link2Icon" [size]="15" [strokeWidth]="2"></lucide-icon>
         </button>
@@ -957,8 +962,9 @@
           <button
             type="button"
             (click)="showBgColorMenu.set(!showBgColorMenu()); showTextColorMenu.set(false); showHeadingMenu.set(false)"
-            class="flex items-center gap-1 px-2 py-1 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer"
-            [class.bg-[#EAE2DE]]="isFormatActive('highlight')"
+            class="flex items-center gap-1 px-2 py-1 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer transition-colors"
+            [class.bg-[#EFEAF6]]="isFormatActive('highlight')"
+            [class.text-[#74566E]]="isFormatActive('highlight')"
             title="Color de fondo para títulos o texto">
             <lucide-icon [img]="HighlighterIcon" [size]="15" [strokeWidth]="2" class="text-[#74566E]"></lucide-icon>
             <lucide-icon [img]="ChevronDownIcon" [size]="10"></lucide-icon>
@@ -989,16 +995,16 @@
         <div class="h-4 w-px bg-[#EAE2DE] dark:bg-[#2A2832] mx-1"></div>
 
         <!-- Lists -->
-        <button type="button" (click)="toggleBulletList()" class="p-1.5 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer" [class.bg-[#EAE2DE]]="isFormatActive('bulletList')" title="Lista con viñetas">
+        <button type="button" (click)="toggleBulletList()" class="p-1.5 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer transition-colors" [class.bg-[#EFEAF6]]="isFormatActive('bulletList')" [class.text-[#74566E]]="isFormatActive('bulletList')" title="Lista con viñetas">
           <lucide-icon [img]="ListIcon" [size]="15" [strokeWidth]="2"></lucide-icon>
         </button>
-        <button type="button" (click)="toggleOrderedList()" class="p-1.5 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer" [class.bg-[#EAE2DE]]="isFormatActive('orderedList')" title="Lista numerada">
+        <button type="button" (click)="toggleOrderedList()" class="p-1.5 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer transition-colors" [class.bg-[#EFEAF6]]="isFormatActive('orderedList')" [class.text-[#74566E]]="isFormatActive('orderedList')" title="Lista numerada">
           <lucide-icon [img]="ListOrderedIcon" [size]="15" [strokeWidth]="2"></lucide-icon>
         </button>
-        <button type="button" (click)="toggleTaskList()" class="p-1.5 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer" [class.bg-[#EAE2DE]]="isFormatActive('taskList')" title="Lista de verificación (Checkboxes)">
+        <button type="button" (click)="toggleTaskList()" class="p-1.5 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer transition-colors" [class.bg-[#EFEAF6]]="isFormatActive('taskList')" [class.text-[#74566E]]="isFormatActive('taskList')" title="Lista de verificación (Checkboxes)">
           <lucide-icon [img]="ListTodoIcon" [size]="15" [strokeWidth]="2"></lucide-icon>
         </button>
-        <button type="button" (click)="toggleBlockquote()" class="p-1.5 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer" [class.bg-[#EAE2DE]]="isFormatActive('blockquote')" title="Cita editorial">
+        <button type="button" (click)="toggleBlockquote()" class="p-1.5 rounded hover:bg-[#EAE2DE] dark:hover:bg-[#25232D] text-[#635B5E] cursor-pointer transition-colors" [class.bg-[#EFEAF6]]="isFormatActive('blockquote')" [class.text-[#74566E]]="isFormatActive('blockquote')" title="Cita editorial">
           <lucide-icon [img]="QuoteIcon" [size]="15" [strokeWidth]="2"></lucide-icon>
         </button>
 
