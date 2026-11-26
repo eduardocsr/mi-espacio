@@ -41,7 +41,8 @@ import {
   Layers,
   Pencil,
   RotateCcw,
-  FileText
+  FileText,
+  Bell
 } from 'lucide-angular';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
@@ -50,6 +51,7 @@ import {
   KanbanColumn,
   KanbanColumnIcon,
   Note,
+  Reminder,
   SubTask,
   TaskItem,
   TaskPriority,
@@ -77,6 +79,7 @@ export class TareasComponent implements OnInit {
   readonly FilterIcon = Filter;
   readonly MoreVerticalIcon = MoreVertical;
   readonly FileTextIcon = FileText;
+  readonly BellIcon = Bell;
   readonly CalendarIcon = Calendar;
   readonly CheckIcon = Check;
   readonly ChevronDownIcon = ChevronDown;
@@ -132,6 +135,7 @@ export class TareasComponent implements OnInit {
     status: TaskStatus;
     dueDate: string;
     dueTime: string;
+    reminderEnabled: boolean;
     subtasks: SubTask[];
     newSubtaskInput: string;
   }>({
@@ -143,6 +147,7 @@ export class TareasComponent implements OnInit {
     status: 'todo',
     dueDate: new Date().toISOString().split('T')[0],
     dueTime: '18:00',
+    reminderEnabled: false,
     subtasks: [],
     newSubtaskInput: ''
   });
@@ -473,6 +478,7 @@ export class TareasComponent implements OnInit {
     });
     if (confirmed) {
       const deletedTask = task ? { ...task } : null;
+      const deletedReminder = task?.reminderId ? this.workspace.reminders().find(r => r.id === task.reminderId) : null;
       this.workspace.deleteTask(taskId);
       this.closeDetail();
       this.feedback.toast({
@@ -482,11 +488,74 @@ export class TareasComponent implements OnInit {
         actionLabel: 'Deshacer',
         onAction: () => {
           if (deletedTask) {
+            if (deletedReminder) {
+              this.workspace.reminders.update(cur => [...cur, deletedReminder]);
+            }
             this.workspace.restoreTask(deletedTask);
             this.feedback.success(`Tarea "${deletedTask.title}" restaurada`);
           }
         }
       });
+    }
+  }
+
+  getTaskReminder(task: TaskItem): Reminder | undefined {
+    if (!task.reminderId) return undefined;
+    return this.workspace.reminders().find(r => r.id === task.reminderId);
+  }
+
+  toggleTaskReminder(task: TaskItem, event: Event): void {
+    const checkbox = event.target as HTMLInputElement;
+    const enable = checkbox.checked;
+
+    if (enable) {
+      const date = task.dueDate || new Date().toISOString().split('T')[0];
+      const time = task.dueTime || '09:00';
+      
+      const taskUpdates: Partial<TaskItem> = {
+        reminderEnabled: true,
+        dueDate: task.dueDate || date,
+        dueTime: task.dueTime || time
+      };
+
+      let reminderId = task.reminderId;
+      const existingReminder = reminderId ? this.workspace.reminders().find(r => r.id === reminderId) : null;
+
+      if (existingReminder) {
+        this.workspace.updateReminder(existingReminder.id, {
+          title: `Tarea: ${task.title}`,
+          date,
+          time,
+          active: true,
+          completed: this.workspace.isTaskStatusDone(task.status)
+        });
+      } else {
+        const newRem = this.workspace.addReminder({
+          title: `Tarea: ${task.title}`,
+          description: task.description || `Recordatorio para la tarea ${task.issueKey || task.title}`,
+          category: task.projectTag || 'Trabajo',
+          recurrence: 'none',
+          date,
+          time,
+          active: true,
+          completed: this.workspace.isTaskStatusDone(task.status),
+          linkedTaskId: task.id
+        });
+        reminderId = newRem.id;
+      }
+
+      taskUpdates.reminderId = reminderId;
+      this.workspace.updateTask(task.id, taskUpdates);
+      this.feedback.success(`Recordatorio programado para el ${date} a las ${time}`);
+    } else {
+      if (task.reminderId) {
+        this.workspace.deleteReminder(task.reminderId);
+      }
+      this.workspace.updateTask(task.id, {
+        reminderEnabled: false,
+        reminderId: undefined
+      });
+      this.feedback.info('Recordatorio desactivado');
     }
   }
 
@@ -502,6 +571,7 @@ export class TareasComponent implements OnInit {
       status: fallbackStatus,
       dueDate: new Date().toISOString().split('T')[0],
       dueTime: '17:00',
+      reminderEnabled: false,
       subtasks: [],
       newSubtaskInput: ''
     });
@@ -538,7 +608,7 @@ export class TareasComponent implements OnInit {
     const form = this.createForm();
     if (!form.title.trim()) return;
 
-    this.workspace.addTask({
+    const newTask = this.workspace.addTask({
       title: form.title.trim(),
       description: form.description.trim() || undefined,
       issueType: form.issueType,
@@ -547,10 +617,27 @@ export class TareasComponent implements OnInit {
       status: form.status,
       dueDate: form.dueDate || undefined,
       dueTime: form.dueTime || undefined,
-      subtasks: form.subtasks
+      subtasks: form.subtasks,
+      reminderEnabled: form.reminderEnabled
     });
 
+    if (form.reminderEnabled && newTask.dueDate) {
+      const newRem = this.workspace.addReminder({
+        title: `Tarea: ${newTask.title}`,
+        description: newTask.description || `Recordatorio para la tarea ${newTask.issueKey || newTask.title}`,
+        category: newTask.projectTag || 'Trabajo',
+        recurrence: 'none',
+        date: newTask.dueDate,
+        time: newTask.dueTime || '09:00',
+        active: true,
+        completed: this.workspace.isTaskStatusDone(newTask.status),
+        linkedTaskId: newTask.id
+      });
+      this.workspace.updateTask(newTask.id, { reminderId: newRem.id });
+    }
+
     this.closeCreateModal();
+    this.feedback.success('Incidencia creada exitosamente');
   }
 
   // Column Customizer Actions

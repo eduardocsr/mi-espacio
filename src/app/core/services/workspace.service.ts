@@ -808,6 +808,8 @@ export class WorkspaceService {
       dueTime: task.dueTime,
       subtasks: task.subtasks || [],
       linkedNoteId: task.linkedNoteId,
+      reminderEnabled: task.reminderEnabled,
+      reminderId: task.reminderId,
       createdAt: now,
       updatedAt: now
     };
@@ -818,6 +820,21 @@ export class WorkspaceService {
 
   updateTask(id: string, updates: Partial<TaskItem>): void {
     const now = new Date().toISOString();
+    const existing = this.tasks().find(t => t.id === id);
+    if (existing?.reminderId) {
+      const remUpdates: Partial<Reminder> = {};
+      if (updates.title !== undefined) remUpdates.title = `Tarea: ${updates.title}`;
+      if (updates.dueDate !== undefined) remUpdates.date = updates.dueDate;
+      if (updates.dueTime !== undefined) remUpdates.time = updates.dueTime;
+      if (updates.status !== undefined) {
+        remUpdates.completed = this.isTaskStatusDone(updates.status);
+      }
+      if (Object.keys(remUpdates).length > 0) {
+        this.reminders.update(current =>
+          current.map(r => (r.id === existing.reminderId ? { ...r, ...remUpdates } : r))
+        );
+      }
+    }
     this.tasks.update(current =>
       current.map(t => (t.id === id ? { ...t, ...updates, updatedAt: now } : t))
     );
@@ -909,6 +926,10 @@ export class WorkspaceService {
   }
 
   deleteTask(id: string): void {
+    const task = this.tasks().find(t => t.id === id);
+    if (task?.reminderId) {
+      this.reminders.update(current => current.filter(r => r.id !== task.reminderId));
+    }
     this.tasks.update(current => current.filter(t => t.id !== id));
     this.saveImmediately();
   }
@@ -1065,6 +1086,12 @@ export class WorkspaceService {
   }
 
   deleteReminder(id: string): void {
+    const rem = this.reminders().find(r => r.id === id);
+    if (rem?.linkedTaskId) {
+      this.tasks.update(current =>
+        current.map(t => (t.id === rem.linkedTaskId ? { ...t, reminderEnabled: false, reminderId: undefined } : t))
+      );
+    }
     this.reminders.update(current => current.filter(r => r.id !== id));
     this.saveImmediately();
   }

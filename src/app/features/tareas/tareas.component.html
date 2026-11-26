@@ -503,6 +503,14 @@
                         <span>{{ task.dueDate }}</span>
                       </span>
                     }
+                    @if (task.reminderEnabled) {
+                      <span 
+                        class="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/60 px-1.5 py-0.5 rounded cursor-help"
+                        [title]="'Recordatorio activo: ' + (task.dueDate || '') + ' ' + (task.dueTime || '')">
+                        <lucide-icon [img]="BellIcon" [size]="10" [strokeWidth]="2.2"></lucide-icon>
+                        <span class="hidden sm:inline">Aviso</span>
+                      </span>
+                    }
                     @if (task.linkedNoteId) {
                       <button
                         type="button"
@@ -698,6 +706,13 @@
                       <lucide-icon [img]="CalendarIcon" [size]="11" [strokeWidth]="1.75"></lucide-icon>
                       <span>{{ task.dueDate }}</span>
                     </span>
+                    @if (task.reminderEnabled) {
+                      <span 
+                        class="inline-flex items-center gap-0.5 ml-1 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-1 py-0.5 rounded border border-amber-200 dark:border-amber-800/50"
+                        [title]="'Recordatorio activo: ' + (task.dueDate || '') + ' ' + (task.dueTime || '')">
+                        <lucide-icon [img]="BellIcon" [size]="10" [strokeWidth]="2"></lucide-icon>
+                      </span>
+                    }
                   } @else {
                     <span class="text-[#635B5E]/40">Sin fecha</span>
                   }
@@ -971,6 +986,41 @@
               />
             </div>
 
+            <!-- Recordatorio automático -->
+            <div class="pt-3 border-t border-[#EAE2DE] dark:border-[#2A2832] space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5 text-xs font-bold text-[#231F20] dark:text-[#F3EFEA]">
+                  <lucide-icon [img]="BellIcon" [size]="14" class="text-amber-600 dark:text-amber-400"></lucide-icon>
+                  <span>Recordatorio automático</span>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    [checked]="task.reminderEnabled"
+                    (change)="toggleTaskReminder(task, $event)"
+                    class="sr-only peer"
+                  />
+                  <div class="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-[#74566E]"></div>
+                </label>
+              </div>
+
+              @if (task.reminderEnabled) {
+                <div class="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/50 text-[11px] text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                  <lucide-icon [img]="BellIcon" [size]="13" class="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0"></lucide-icon>
+                  <div class="space-y-0.5 min-w-0">
+                    <div class="font-bold leading-tight">Alerta programada</div>
+                    <div class="text-[10px] text-amber-800/80 dark:text-amber-300/80">
+                      Sonará timbre y se mostrará notificación el <strong>{{ task.dueDate || 'hoy' }}</strong> a las <strong>{{ task.dueTime || '09:00' }}</strong>.
+                    </div>
+                  </div>
+                </div>
+              } @else {
+                <p class="text-[10px] text-[#635B5E] dark:text-neutral-400 leading-tight">
+                  Activa un aviso automático con timbre sonoro cuando la tarea llegue a su fecha y hora límite.
+                </p>
+              }
+            </div>
+
             <!-- Timestamps metadata -->
             <div class="pt-3 border-t border-[#EAE2DE] dark:border-[#2A2832] space-y-1 text-[11px] text-[#635B5E] dark:text-neutral-400 font-mono tabular-nums">
               <div>Creada: {{ task.createdAt | date:'short' }}</div>
@@ -1110,6 +1160,21 @@
                 class="w-full px-3 py-1.5 text-xs rounded-xl border border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] focus:outline-none"
               />
             </div>
+          </div>
+
+          <!-- Recordatorio toggle in create form -->
+          <div class="flex items-center gap-2 p-2.5 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832]">
+            <input
+              type="checkbox"
+              id="createReminderEnabled"
+              [(ngModel)]="createForm().reminderEnabled"
+              name="reminderEnabled"
+              class="rounded text-[#74566E] focus:ring-[#74566E] w-4 h-4 cursor-pointer shrink-0"
+            />
+            <label for="createReminderEnabled" class="text-xs text-[#231F20] dark:text-[#F3EFEA] cursor-pointer select-none flex items-center gap-1.5 flex-1">
+              <lucide-icon [img]="BellIcon" [size]="13" class="text-amber-600 dark:text-amber-400"></lucide-icon>
+              <span>Activar recordatorio y timbre sonoro al vencer</span>
+            </label>
           </div>
 
           <!-- Subtasks -->

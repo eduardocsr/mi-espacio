@@ -70,6 +70,8 @@ export interface TaskItem {
   dueTime?: string; // HH:mm
   subtasks: SubTask[];
   linkedNoteId?: string;
+  reminderEnabled?: boolean;
+  reminderId?: string;
   createdAt: string;
   updatedAt: string;
   updatedByDevice?: string;
@@ -102,6 +104,7 @@ export interface Reminder {
   active: boolean;
   completed: boolean;
   snoozedUntil?: string;
+  linkedTaskId?: string;
 }
 
 export interface WorkspaceExportData {
