@@ -403,11 +403,16 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   });
 
   constructor() {
-    // 1. Montaje seguro del DOM: instanciar Editor únicamente cuando editorHost esté en el DOM
+    // 1. Montaje seguro del DOM: instanciar Editor únicamente cuando editorHost esté en el DOM (desacoplado de ciclo CD)
     effect(() => {
       const host = this.editorHost();
       if (host && !this.editor) {
-        this.initEditor(host.nativeElement);
+        queueMicrotask(() => {
+          const currentHost = this.editorHost();
+          if (currentHost && !this.editor) {
+            this.initEditor(currentHost.nativeElement);
+          }
+        });
       } else if (!host && this.editor) {
         this.editor.destroy();
         this.editor = null;
@@ -507,13 +512,15 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Read route param ?id=...
+    // Read route param ?id=... (desacoplado de ciclo CD inicial)
     this.route.queryParams.subscribe(params => {
-      if (params['id']) {
-        this.selectedNoteId.set(params['id']);
-      } else if (!this.selectedNoteId() && this.workspace.notes().length > 0) {
-        this.selectedNoteId.set(this.workspace.notes()[0].id);
-      }
+      queueMicrotask(() => {
+        if (params['id']) {
+          this.selectedNoteId.set(params['id']);
+        } else if (!this.selectedNoteId() && this.workspace.notes().length > 0) {
+          this.selectedNoteId.set(this.workspace.notes()[0].id);
+        }
+      });
     });
   }
 
@@ -743,9 +750,20 @@ export class ApuntesComponent implements OnInit, OnDestroy {
       tone: 'danger'
     });
     if (confirmed) {
+      const deletedNote = { ...note };
       const wasSelected = this.currentNote()?.id === note.id;
       this.workspace.deleteNote(note.id);
-      this.feedback.info('Apunte eliminado');
+      this.feedback.toast({
+        type: 'info',
+        message: `"${note.title || 'Apunte'}" eliminado.`,
+        durationMs: 6000,
+        actionLabel: 'Deshacer',
+        onAction: () => {
+          this.workspace.restoreNote(deletedNote);
+          this.selectNote(deletedNote);
+          this.feedback.success(`Apunte "${deletedNote.title || 'Sin título'}" restaurado`);
+        }
+      });
       if (wasSelected) {
         const remaining = this.workspace.notes();
         if (remaining.length > 0) {
@@ -891,9 +909,23 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
     });
     if (confirmed) {
       const ids = Array.from(this.selectedNoteIds());
+      const deletedNotes = this.workspace.notes().filter(n => ids.includes(n.id));
       ids.forEach(id => this.workspace.deleteNote(id));
       this.clearBatchSelection();
-      this.feedback.info(`${count} notas eliminadas`);
+
+      this.feedback.toast({
+        type: 'info',
+        message: `${count} notas eliminadas.`,
+        durationMs: 6000,
+        actionLabel: 'Deshacer',
+        onAction: () => {
+          deletedNotes.forEach(n => this.workspace.restoreNote(n));
+          if (deletedNotes.length > 0) {
+            this.selectNote(deletedNotes[0]);
+          }
+          this.feedback.success(`${count} notas restauradas`);
+        }
+      });
 
       const remaining = this.workspace.notes();
       if (!remaining.find(n => n.id === this.selectedNoteId())) {
@@ -934,8 +966,19 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
       tone: 'danger'
     });
     if (confirmed) {
+      const deletedNote = { ...note };
       this.workspace.deleteNote(note.id);
-      this.feedback.info('Apunte eliminado');
+      this.feedback.toast({
+        type: 'info',
+        message: `"${note.title}" eliminado.`,
+        durationMs: 6000,
+        actionLabel: 'Deshacer',
+        onAction: () => {
+          this.workspace.restoreNote(deletedNote);
+          this.selectNote(deletedNote);
+          this.feedback.success(`Apunte "${deletedNote.title}" restaurado`);
+        }
+      });
       const remaining = this.workspace.notes();
       if (remaining.length > 0) {
         this.selectNote(remaining[0]);
@@ -1353,7 +1396,9 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
     };
     traverse(json);
 
-    this.htmlPreviewCode.set(foundHtml);
+    queueMicrotask(() => {
+      this.htmlPreviewCode.set(foundHtml);
+    });
   }
 
   toggleHtmlPreview(): void {

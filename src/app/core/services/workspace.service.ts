@@ -752,6 +752,11 @@ export class WorkspaceService {
     this.saveImmediately();
   }
 
+  restoreNote(note: Note): void {
+    this.notes.update(current => [note, ...current.filter(n => n.id !== note.id)]);
+    this.saveImmediately();
+  }
+
   toggleNoteFavorite(id: string): void {
     this.notes.update(current =>
       current.map(n => (n.id === id ? { ...n, favorite: !n.favorite } : n))
@@ -905,6 +910,11 @@ export class WorkspaceService {
 
   deleteTask(id: string): void {
     this.tasks.update(current => current.filter(t => t.id !== id));
+    this.saveImmediately();
+  }
+
+  restoreTask(task: TaskItem): void {
+    this.tasks.update(current => [task, ...current.filter(t => t.id !== task.id)]);
     this.saveImmediately();
   }
 

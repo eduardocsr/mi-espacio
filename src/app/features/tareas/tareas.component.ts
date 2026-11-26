@@ -439,16 +439,29 @@ export class TareasComponent {
   }
 
   async deleteTask(taskId: string): Promise<void> {
+    const task = this.workspace.tasks().find(t => t.id === taskId);
     const confirmed = await this.feedback.confirm({
       title: 'Eliminar tarea',
-      message: '¿Estás seguro de que deseas eliminar esta tarea permanentemente?',
+      message: task ? `¿Estás seguro de que deseas eliminar permanentemente "${task.title}"?` : '¿Estás seguro de que deseas eliminar esta tarea permanentemente?',
       confirmLabel: 'Eliminar tarea',
       tone: 'danger'
     });
     if (confirmed) {
+      const deletedTask = task ? { ...task } : null;
       this.workspace.deleteTask(taskId);
       this.closeDetail();
-      this.feedback.info('Tarea eliminada del tablero');
+      this.feedback.toast({
+        type: 'info',
+        message: task ? `Tarea "${task.title}" eliminada.` : 'Tarea eliminada del tablero.',
+        durationMs: 6000,
+        actionLabel: 'Deshacer',
+        onAction: () => {
+          if (deletedTask) {
+            this.workspace.restoreTask(deletedTask);
+            this.feedback.success(`Tarea "${deletedTask.title}" restaurada`);
+          }
+        }
+      });
     }
   }
 
