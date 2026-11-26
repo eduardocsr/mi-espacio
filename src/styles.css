@@ -172,22 +172,6 @@ html.dark {
   background-color: color-mix(in srgb, var(--app-accent) 10%, transparent) !important;
 }
 
-.bg-\[\#74566E\]\/20 {
-  background-color: color-mix(in srgb, var(--app-accent) 20%, transparent) !important;
-}
-
-.bg-\[\#74566E\]\/25 {
-  background-color: color-mix(in srgb, var(--app-accent) 25%, transparent) !important;
-}
-
-.bg-\[\#74566E\]\/30 {
-  background-color: color-mix(in srgb, var(--app-accent) 30%, transparent) !important;
-}
-
-.text-\[\#5B447A\] {
-  color: var(--app-accent) !important;
-}
-
 .hover\:bg-\[\#74566E\]\/20:hover {
   background-color: color-mix(in srgb, var(--app-accent) 20%, transparent) !important;
 }
@@ -205,14 +189,6 @@ html.dark {
 }
 
 /* Modo oscuro: sobrescrituras dinámicas */
-html.dark .bg-\[\#EFEAF6\] {
-  background-color: color-mix(in srgb, var(--app-accent) 20%, transparent) !important;
-}
-
-html.dark .text-\[\#74566E\] {
-  color: var(--app-accent-dark) !important;
-}
-
 html.dark .dark\:text-\[\#9D7B96\] {
   color: var(--app-accent-dark) !important;
 }
@@ -260,45 +236,6 @@ html.dark .dark\:bg-\[\#9D7B96\]\/20 {
 html.dark .dark\:ring-\[\#9D7B96\],
 html.dark .dark\:ring-\[\#9D7B96\]\/30 {
   --tw-ring-color: var(--app-accent-dark) !important;
-}
-
-html.dark .text-\[\#5B447A\] {
-  color: var(--app-accent-dark) !important;
-}
-
-/* Menú lateral: Píldora activa y estados hover dinámicos según color de acento */
-nav a.router-link-active,
-nav a[class*="router-link-active"] {
-  background-color: var(--app-accent-light) !important;
-  color: var(--app-accent) !important;
-}
-
-nav a.router-link-active lucide-icon,
-nav a[class*="router-link-active"] lucide-icon,
-nav a.router-link-active svg,
-nav a[class*="router-link-active"] svg {
-  color: var(--app-accent) !important;
-}
-
-html.dark nav a.router-link-active,
-html.dark nav a[class*="router-link-active"] {
-  background-color: color-mix(in srgb, var(--app-accent) 20%, transparent) !important;
-  color: var(--app-accent-dark) !important;
-}
-
-html.dark nav a.router-link-active lucide-icon,
-html.dark nav a[class*="router-link-active"] lucide-icon,
-html.dark nav a.router-link-active svg,
-html.dark nav a[class*="router-link-active"] svg {
-  color: var(--app-accent-dark) !important;
-}
-
-nav a:hover:not(.router-link-active) {
-  background-color: color-mix(in srgb, var(--app-accent-light) 45%, transparent) !important;
-}
-
-html.dark nav a:hover:not(.router-link-active) {
-  background-color: color-mix(in srgb, var(--app-accent) 12%, transparent) !important;
 }
 
 html, body {
