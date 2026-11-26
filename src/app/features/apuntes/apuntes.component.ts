@@ -1622,7 +1622,7 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
   async promptForApiKey(): Promise<void> {
     const key = await this.feedback.prompt({
       title: 'Configurar Gemini AI',
-      message: 'Ingresa tu Google Gemini API Key para habilitar el asistente inteligente (resumen, mejora de redacción y extracción de tareas):',
+      message: 'Ingresa tu Google Gemini API Key (obténla gratis en aistudio.google.com/app/apikey) para habilitar el asistente:',
       placeholder: 'AIzaSy...',
       defaultValue: this.aiConfig.apiKey(),
       confirmLabel: 'Guardar clave',
@@ -1780,11 +1780,13 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
     const msg = err?.message || '';
     if (msg.includes('NO_API_KEY')) {
       this.promptForApiKey();
+    } else if (msg.includes('API_NOT_ENABLED')) {
+      this.feedback.error('La API de Gemini no está activa en tu proyecto. Crea tu clave gratuita en aistudio.google.com/app/apikey');
     } else if (msg.includes('INVALID_API_KEY')) {
-      this.feedback.error('La clave de API de Gemini parece no ser válida o no tiene permisos. Por favor revísala en Ajustes.');
+      this.feedback.error('La clave de API de Gemini parece no ser válida o no tiene permisos. Por favor revísala.');
     } else {
       const cleanMsg = msg.replace(/^Error:\s*/, '').slice(0, 140);
-      this.feedback.error(cleanMsg || 'No se pudo conectar con el servicio de Gemini. Revisa tu conexión a internet.');
+      this.feedback.error(cleanMsg || 'No se pudo conectar con el servicio de Gemini. Revisa tu clave y conexión.');
     }
   }
 

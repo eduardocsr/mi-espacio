@@ -284,9 +284,14 @@
             }
           </button>
         </div>
-        <div class="flex items-center gap-1.5 text-[11px] text-[#246A49] dark:text-[#52B788] pt-1">
-          <lucide-icon [img]="ShieldCheckIcon" [size]="13" [strokeWidth]="2"></lucide-icon>
-          <span>Tu clave se guarda únicamente en tu localStorage y jamás se envía al repositorio.</span>
+        <div class="space-y-1 pt-1">
+          <div class="flex items-center gap-1.5 text-[11px] text-[#246A49] dark:text-[#52B788]">
+            <lucide-icon [img]="ShieldCheckIcon" [size]="13" [strokeWidth]="2"></lucide-icon>
+            <span>Tu clave se guarda únicamente en tu localStorage y jamás se envía al repositorio.</span>
+          </div>
+          <p class="text-[11px] text-[#635B5E] dark:text-neutral-400">
+            Obtén tu clave gratuita directa en <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="text-[#74566E] dark:text-[#9D7B96] font-semibold underline hover:opacity-80">Google AI Studio</a> (no uses la clave genérica de Firebase).
+          </p>
         </div>
       </div>
 

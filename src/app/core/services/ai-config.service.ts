@@ -7,6 +7,7 @@ const GEMINI_API_KEY_STORAGE = 'mi_espacio_gemini_api_key';
 })
 export class AiConfigService {
   readonly apiKey = signal<string>('');
+  private detectedEndpoint: string | null = null;
 
   constructor() {
     this.loadApiKey();
@@ -27,6 +28,7 @@ export class AiConfigService {
   setApiKey(key: string): void {
     const trimmed = key.trim();
     this.apiKey.set(trimmed);
+    this.detectedEndpoint = null;
     if (typeof window !== 'undefined') {
       try {
         if (trimmed) {
@@ -42,25 +44,66 @@ export class AiConfigService {
 
   removeApiKey(): void {
     this.apiKey.set('');
+    this.detectedEndpoint = null;
     if (typeof window !== 'undefined') {
       localStorage.removeItem(GEMINI_API_KEY_STORAGE);
     }
   }
-
-  private detectedEndpoint: string | null = null;
 
   hasApiKey(): boolean {
     return !!this.apiKey();
   }
 
   /**
-   * Ejecuta una solicitud a la API de Google Gemini con detección y fallback automático
-   * entre modelos compatibles (gemini-1.5-flash-latest, v1 gemini-1.5-flash, gemini-2.0-flash, gemini-pro).
+   * Ejecuta una solicitud a la API de Google Gemini con detección inteligente
+   * de modelos habilitados para la clave ingresada y fallback ordenado.
    */
   async generateText(prompt: string, systemInstruction?: string): Promise<string> {
     const key = this.apiKey().trim();
     if (!key) {
       throw new Error('NO_API_KEY');
+    }
+
+    // 1. Descubrimiento dinámico de modelos habilitados para esta API Key
+    if (!this.detectedEndpoint) {
+      try {
+        const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+        if (listResp.ok) {
+          const listData = await listResp.json();
+          const models: Array<{ name: string; supportedGenerationMethods?: string[] }> = listData.models || [];
+          const contentModels = models.filter(m => m.supportedGenerationMethods?.includes('generateContent'));
+
+          if (contentModels.length > 0) {
+            const preferred =
+              contentModels.find(m => m.name.includes('gemini-1.5-flash')) ||
+              contentModels.find(m => m.name.includes('gemini-2.0-flash')) ||
+              contentModels.find(m => m.name.includes('gemini-2.5-flash')) ||
+              contentModels.find(m => m.name.includes('gemini-1.5-pro')) ||
+              contentModels[0];
+
+            if (preferred) {
+              const modelPath = preferred.name.replace(/^models\//, '');
+              this.detectedEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelPath}:generateContent?key=${key}`;
+            }
+          }
+        } else {
+          const errData = await listResp.json().catch(() => null);
+          const errMsg = errData?.error?.message || '';
+          if (errMsg.includes('has not been used in project') || errMsg.includes('disabled')) {
+            throw new Error('API_NOT_ENABLED: La "Generative Language API" no está habilitada en tu proyecto de Google Cloud. Por favor genera una clave gratuita directa en https://aistudio.google.com/app/apikey');
+          }
+          if (errMsg.toLowerCase().includes('api key') || errMsg.toLowerCase().includes('api_key')) {
+            throw new Error(`INVALID_API_KEY: ${errMsg}`);
+          }
+        }
+      } catch (listErr: any) {
+        if (
+          listErr.message?.startsWith('API_NOT_ENABLED') ||
+          listErr.message?.startsWith('INVALID_API_KEY')
+        ) {
+          throw listErr;
+        }
+      }
     }
 
     const promptText = systemInstruction
@@ -84,13 +127,11 @@ export class AiConfigService {
     const candidateUrls = this.detectedEndpoint
       ? [this.detectedEndpoint]
       : [
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`,
           `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`,
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${key}`,
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
-          `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${key}`,
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${key}`
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${key}`
         ];
 
     let lastError: Error | null = null;
@@ -107,7 +148,6 @@ export class AiConfigService {
           const data = await response.json();
           const textPart = data.candidates?.[0]?.content?.parts?.[0]?.text;
           if (textPart) {
-            // Guardamos el endpoint funcional para optimizar llamadas siguientes
             this.detectedEndpoint = url;
             return textPart.trim();
           }
@@ -116,7 +156,6 @@ export class AiConfigService {
         const errJson = await response.json().catch(() => null);
         const errMsg = errJson?.error?.message || `HTTP ${response.status}: ${response.statusText}`;
 
-        // Si es un error de clave inválida (API key expired / invalid / unauthorized), detener fallback
         if (
           (response.status === 400 || response.status === 403 || response.status === 401) &&
           (errMsg.toLowerCase().includes('api key') || errMsg.toLowerCase().includes('api_key'))
@@ -126,11 +165,15 @@ export class AiConfigService {
 
         lastError = new Error(errMsg);
       } catch (e: any) {
-        if (e.message?.startsWith('INVALID_API_KEY')) {
+        if (e.message?.startsWith('INVALID_API_KEY') || e.message?.startsWith('API_NOT_ENABLED')) {
           throw e;
         }
         lastError = e;
       }
+    }
+
+    if (lastError && lastError.message.includes('is not found for API version')) {
+      throw new Error('API_NOT_ENABLED: Tu clave de API no tiene habilitada la Generative Language API en Google Cloud. Para usar Gemini gratis, obtén una clave directa en https://aistudio.google.com/app/apikey');
     }
 
     throw lastError || new Error('No se pudo obtener respuesta de los modelos de Gemini.');
