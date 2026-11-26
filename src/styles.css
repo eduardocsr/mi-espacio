@@ -172,6 +172,10 @@ html.dark {
   background-color: color-mix(in srgb, var(--app-accent) 10%, transparent) !important;
 }
 
+.text-\[\#5B447A\] {
+  color: var(--app-accent) !important;
+}
+
 .hover\:bg-\[\#74566E\]\/20:hover {
   background-color: color-mix(in srgb, var(--app-accent) 20%, transparent) !important;
 }
@@ -236,6 +240,14 @@ html.dark .dark\:bg-\[\#9D7B96\]\/20 {
 html.dark .dark\:ring-\[\#9D7B96\],
 html.dark .dark\:ring-\[\#9D7B96\]\/30 {
   --tw-ring-color: var(--app-accent-dark) !important;
+}
+
+html.dark .text-\[\#5B447A\] {
+  color: var(--app-accent-dark) !important;
+}
+
+html.dark .dark\:hover\:border-\[\#9D7B96\]:hover {
+  border-color: var(--app-accent-dark) !important;
 }
 
 html, body {
@@ -531,7 +543,7 @@ html.dark .ProseMirror code:not(pre code) {
   border-radius: 1rem;
   overflow-x: auto;
   margin: 1.25rem 0;
-  border: 1px solid #E6DFD9;
+  border: 1px solid #E6DFDA;
   font-size: 0.85rem;
   line-height: 1.7;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03);

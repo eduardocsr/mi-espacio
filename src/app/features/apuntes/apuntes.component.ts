@@ -93,10 +93,10 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
   addNodeView() {
     return ({ node }) => {
       const dom = document.createElement('div');
-      dom.className = 'code-card-wrapper my-3 relative rounded-2xl border border-[#E6DFD9] dark:border-[#2A2832] bg-[#F7F5F3] dark:bg-[#19181E] shadow-2xs overflow-hidden group';
+      dom.className = 'code-card-wrapper my-3 relative rounded-2xl border border-[#E6DFDA] dark:border-[#2A2832] bg-[#F7F5F3] dark:bg-[#19181E] shadow-2xs overflow-hidden group';
 
       const header = document.createElement('div');
-      header.className = 'code-card-header flex items-center justify-between px-4 py-2 bg-[#EFECE8]/80 dark:bg-[#201E27]/80 border-b border-[#E6DFD9] dark:border-[#2A2832] text-xs font-mono select-none';
+      header.className = 'code-card-header flex items-center justify-between px-4 py-2 bg-[#EFECE8]/80 dark:bg-[#201E27]/80 border-b border-[#E6DFDA] dark:border-[#2A2832] text-xs font-mono select-none';
       header.contentEditable = 'false';
 
       const langSpan = document.createElement('span');
@@ -105,7 +105,7 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
 
       const copyBtn = document.createElement('button');
       copyBtn.type = 'button';
-      copyBtn.className = 'copy-code-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-[#19181E] border border-[#E6DFD9] dark:border-[#2A2832] hover:bg-[#FAF7F5] dark:hover:bg-[#121115] text-[#635B5E] hover:text-[#231F20] dark:text-neutral-300 text-[11px] font-semibold transition-all shadow-2xs cursor-pointer select-none';
+      copyBtn.className = 'copy-code-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-[#19181E] border border-[#E6DFDA] dark:border-[#2A2832] hover:bg-[#FAF7F5] dark:hover:bg-[#121115] text-[#635B5E] hover:text-[#231F20] dark:text-neutral-300 text-[11px] font-semibold transition-all shadow-2xs cursor-pointer select-none';
 
       const copyIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
       const checkIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#246A49" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;

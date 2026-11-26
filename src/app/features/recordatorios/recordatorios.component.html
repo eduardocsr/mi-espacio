@@ -146,6 +146,8 @@
                   <h4 
                     class="text-sm font-bold truncate max-w-[200px] sm:max-w-none"
                     [class.line-through]="reminder.completed"
+                    [class.text-[#8A8285]]="reminder.completed"
+                    [class.dark:text-neutral-500]="reminder.completed"
                     [class.text-[#231F20]]="!reminder.completed"
                     [class.dark:text-[#F3EFEA]]="!reminder.completed">
                     {{ reminder.title }}
@@ -372,19 +374,19 @@
         </h4>
         <div class="grid grid-cols-3 gap-2.5">
           <div class="p-3 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] text-center">
-            <div class="text-xs text-[#635B5E]">Total</div>
+            <div class="text-xs text-[#635B5E] dark:text-neutral-400">Total</div>
             <div class="text-xl font-bold tabular-nums text-[#231F20] dark:text-[#F3EFEA] mt-1">
               {{ metrics().total }}
             </div>
           </div>
           <div class="p-3 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] text-center">
-            <div class="text-xs text-[#635B5E]">Pendientes</div>
+            <div class="text-xs text-[#635B5E] dark:text-neutral-400">Pendientes</div>
             <div class="text-xl font-bold tabular-nums text-[#8C4A19] mt-1">
               {{ metrics().pending }}
             </div>
           </div>
           <div class="p-3 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] text-center">
-            <div class="text-xs text-[#635B5E]">Hechos</div>
+            <div class="text-xs text-[#635B5E] dark:text-neutral-400">Hechos</div>
             <div class="text-xl font-bold tabular-nums text-[#246A49] mt-1">
               {{ metrics().completed }}
             </div>

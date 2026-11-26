@@ -535,6 +535,7 @@
                   <span
                     [class.line-through]="isTaskDone(task)"
                     [class.text-[#8A8285]]="isTaskDone(task)"
+                    [class.dark:text-neutral-500]="isTaskDone(task)"
                     [class.text-[#231F20]]="!isTaskDone(task)"
                     [class.dark:text-[#F3EFEA]]="!isTaskDone(task)"
                     class="truncate font-medium">
@@ -585,6 +586,9 @@
                   <span
                     [class.line-through]="reminder.completed"
                     [class.text-[#8A8285]]="reminder.completed"
+                    [class.dark:text-neutral-500]="reminder.completed"
+                    [class.text-[#231F20]]="!reminder.completed"
+                    [class.dark:text-[#F3EFEA]]="!reminder.completed"
                     class="truncate font-medium">
                     {{ reminder.title }}
                   </span>
@@ -624,6 +628,7 @@
                   [class.bg-white]="quickAddType() !== 'task'"
                   [class.dark:bg-[#1E1D24]]="quickAddType() !== 'task'"
                   [class.text-[#635B5E]]="quickAddType() !== 'task'"
+                  [class.dark:text-neutral-300]="quickAddType() !== 'task'"
                   class="px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer">
                   Tarea
                 </button>
@@ -635,6 +640,7 @@
                   [class.bg-white]="quickAddType() !== 'reminder'"
                   [class.dark:bg-[#1E1D24]]="quickAddType() !== 'reminder'"
                   [class.text-[#635B5E]]="quickAddType() !== 'reminder'"
+                  [class.dark:text-neutral-300]="quickAddType() !== 'reminder'"
                   class="px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer">
                   Recordatorio
                 </button>
@@ -658,7 +664,7 @@
                 <button
                   type="button"
                   (click)="closeQuickAdd()"
-                  class="px-2 py-1.5 text-xs text-[#635B5E] hover:text-[#231F20] cursor-pointer flex items-center justify-center"
+                  class="px-2 py-1.5 text-xs text-[#635B5E] dark:text-neutral-400 hover:text-[#231F20] dark:hover:text-[#F3EFEA] transition-colors cursor-pointer flex items-center justify-center"
                   title="Cancelar">
                   <lucide-icon [img]="XIcon" [size]="12" [strokeWidth]="2" class="w-3 h-3 text-current"></lucide-icon>
                 </button>
@@ -834,7 +840,7 @@
             <button
               type="button"
               (click)="closeEventModal()"
-              class="px-4 py-2 text-xs font-semibold text-[#635B5E] hover:text-[#231F20] cursor-pointer">
+              class="px-4 py-2 text-xs font-semibold text-[#635B5E] dark:text-neutral-400 hover:text-[#231F20] dark:hover:text-[#F3EFEA] transition-colors cursor-pointer">
               Cancelar
             </button>
             <button
