@@ -190,7 +190,7 @@
             } @else {
               <div 
                 class="w-8 h-8 rounded-full text-white text-xs font-bold flex items-center justify-center shrink-0 shadow-2xs"
-                [style.background-color]="user.color">
+                [style.background-color]="user.color === '#74566E' ? 'var(--app-accent, #74566E)' : user.color">
                 {{ user.initials }}
               </div>
             }

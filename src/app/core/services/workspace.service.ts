@@ -501,6 +501,7 @@ export class WorkspaceService {
       this.applySnapshot(cached);
       this.isInitialized.set(true);
     }
+    this.checkOnboardingEligibility(cached, userId);
   }
 
   private systemMediaListener: ((e: MediaQueryListEvent) => void) | null = null;
@@ -523,6 +524,14 @@ export class WorkspaceService {
 
     if (persist) {
       localStorage.setItem('mi_espacio_theme_pref', pref);
+      const user = this.authSession.currentUser();
+      if (user) {
+        const cached = this.loadFromLocalStorage(user.id);
+        if (cached) {
+          cached.theme = pref;
+          this.saveToLocalStorage(cached, user.id);
+        }
+      }
     }
 
     const mql = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
@@ -564,7 +573,7 @@ export class WorkspaceService {
     }
 
     if (persist && this.isInitialized()) {
-      this.scheduleDebouncedSave(300);
+      this.saveImmediately();
     }
   }
 
@@ -589,12 +598,20 @@ export class WorkspaceService {
 
     if (persist) {
       localStorage.setItem('mi_espacio_accent_color', accent);
+      const user = this.authSession.currentUser();
+      if (user) {
+        const cached = this.loadFromLocalStorage(user.id);
+        if (cached) {
+          cached.accentColor = accent;
+          this.saveToLocalStorage(cached, user.id);
+        }
+      }
     }
 
     this.applyAccentToDom(accent);
 
     if (persist && this.isInitialized()) {
-      this.scheduleDebouncedSave(300);
+      this.saveImmediately();
     }
   }
 
@@ -803,6 +820,9 @@ export class WorkspaceService {
     }
     if (saved.accentColor) {
       this.setAccentColor(saved.accentColor, false);
+    } else if (typeof window !== 'undefined') {
+      const localAccent = (localStorage.getItem('mi_espacio_accent_color') as AccentColor) || 'warm-purple';
+      this.setAccentColor(localAccent, false);
     }
   }
 
@@ -829,15 +849,16 @@ export class WorkspaceService {
       ? localStorage.getItem(`mi_espacio_onboarding_${currentUid}`) === 'true'
       : false;
     const snapshotFlag = !!snapshot?.onboardingCompleted;
-    const alreadyCompleted = this.onboardingCompleted() || localFlag || snapshotFlag;
-    const hasHistory = this.hasExistingWorkspaceData(snapshot);
 
-    if (!alreadyCompleted && !hasHistory) {
-      this.showOnboardingModal.set(true);
-    } else {
+    // Si ya completó explícitamente el onboarding, no volvemos a abrir el modal
+    if (localFlag || snapshotFlag) {
       this.onboardingCompleted.set(true);
       this.showOnboardingModal.set(false);
+      return;
     }
+
+    // Si el usuario no ha completado el onboarding, se muestra el modal de configuración inicial
+    this.showOnboardingModal.set(true);
   }
 
   createOnboardingSampleData(): void {

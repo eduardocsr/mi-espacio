@@ -277,10 +277,9 @@ describe('WorkspaceService', () => {
       expect(service.showOnboardingModal()).toBeTrue();
     });
 
-    it('should not show onboarding if workspace already has existing notes or tasks', () => {
+    it('should not show onboarding if already marked completed in snapshot or localStorage', () => {
       service.clearInMemoryWorkspace();
-      service.addNote('Nota preexistente');
-      service.onboardingCompleted.set(false);
+      localStorage.setItem('mi_espacio_onboarding_test-user-2', 'true');
 
       service.checkOnboardingEligibility(null, 'test-user-2');
       expect(service.showOnboardingModal()).toBeFalse();

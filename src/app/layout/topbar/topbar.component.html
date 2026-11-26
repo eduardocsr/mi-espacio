@@ -80,7 +80,7 @@
         type="button"
         (click)="toggleUserMenu()"
         class="relative w-8 h-8 rounded-full ring-2 ring-[#74566E]/20 overflow-hidden text-white flex items-center justify-center font-bold text-xs select-none cursor-pointer hover:ring-[#74566E] transition-all"
-        [style.backgroundColor]="authSession.currentUser()?.color || '#74566E'"
+        [style.backgroundColor]="authSession.currentUser()?.avatarUrl ? 'transparent' : 'var(--app-accent, #74566E)'"
         title="Opciones de cuenta y sincronización">
         @if (authSession.currentUser(); as user) {
           @if (user.avatarUrl) {
@@ -106,7 +106,7 @@
               @if (user.avatarUrl) {
                 <img [src]="user.avatarUrl" class="w-10 h-10 rounded-full ring-2 ring-[#74566E]/30 object-cover" />
               } @else {
-                <div class="w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-sm shrink-0" [style.backgroundColor]="user.color || '#74566E'">
+                <div class="w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-sm shrink-0" [style.backgroundColor]="user.color === '#74566E' ? 'var(--app-accent, #74566E)' : (user.color || 'var(--app-accent, #74566E)')">
                   {{ user.initials || user.name.charAt(0) }}
                 </div>
               }

@@ -72,6 +72,172 @@ html.dark {
   --app-accent-dark: #E58B9E;
 }
 
+/* ==========================================================================
+   Sobrescritura dinámica de la paleta editorial según el color de acento
+   ========================================================================== */
+.bg-\[\#74566E\] {
+  background-color: var(--app-accent) !important;
+}
+
+.hover\:bg-\[\#5E4359\]:hover {
+  background-color: var(--app-accent-hover) !important;
+}
+
+.text-\[\#74566E\] {
+  color: var(--app-accent) !important;
+}
+
+.hover\:text-\[\#74566E\]:hover {
+  color: var(--app-accent) !important;
+}
+
+.hover\:text-\[\#5E4359\]:hover {
+  color: var(--app-accent-hover) !important;
+}
+
+.group:hover .group-hover\:text-\[\#74566E\] {
+  color: var(--app-accent) !important;
+}
+
+.border-\[\#74566E\] {
+  border-color: var(--app-accent) !important;
+}
+
+.border-\[\#74566E\]\/20 {
+  border-color: color-mix(in srgb, var(--app-accent) 20%, transparent) !important;
+}
+
+.border-\[\#74566E\]\/30 {
+  border-color: color-mix(in srgb, var(--app-accent) 30%, transparent) !important;
+}
+
+.border-\[\#74566E\]\/40 {
+  border-color: color-mix(in srgb, var(--app-accent) 40%, transparent) !important;
+}
+
+.hover\:border-\[\#74566E\]:hover {
+  border-color: var(--app-accent) !important;
+}
+
+.hover\:border-\[\#74566E\]\/30:hover {
+  border-color: color-mix(in srgb, var(--app-accent) 30%, transparent) !important;
+}
+
+.hover\:border-\[\#74566E\]\/40:hover {
+  border-color: color-mix(in srgb, var(--app-accent) 40%, transparent) !important;
+}
+
+.hover\:border-\[\#74566E\]\/50:hover {
+  border-color: color-mix(in srgb, var(--app-accent) 50%, transparent) !important;
+}
+
+.focus\:border-\[\#74566E\]:focus,
+.focus-within\:border-\[\#74566E\]:focus-within {
+  border-color: var(--app-accent) !important;
+}
+
+.ring-\[\#74566E\] {
+  --tw-ring-color: var(--app-accent) !important;
+}
+
+.ring-\[\#74566E\]\/20 {
+  --tw-ring-color: color-mix(in srgb, var(--app-accent) 20%, transparent) !important;
+}
+
+.ring-\[\#74566E\]\/30 {
+  --tw-ring-color: color-mix(in srgb, var(--app-accent) 30%, transparent) !important;
+}
+
+.hover\:ring-\[\#74566E\]:hover {
+  --tw-ring-color: var(--app-accent) !important;
+}
+
+.focus\:ring-\[\#74566E\]:focus {
+  --tw-ring-color: var(--app-accent) !important;
+}
+
+.accent-\[\#74566E\] {
+  accent-color: var(--app-accent) !important;
+}
+
+.bg-\[\#EFEAF6\] {
+  background-color: var(--app-accent-light) !important;
+}
+
+.hover\:bg-\[\#EFEAF6\]:hover {
+  background-color: var(--app-accent-light) !important;
+}
+
+.bg-\[\#74566E\]\/10 {
+  background-color: color-mix(in srgb, var(--app-accent) 10%, transparent) !important;
+}
+
+.hover\:bg-\[\#74566E\]\/20:hover {
+  background-color: color-mix(in srgb, var(--app-accent) 20%, transparent) !important;
+}
+
+.hover\:bg-\[\#74566E\]\/30:hover {
+  background-color: color-mix(in srgb, var(--app-accent) 30%, transparent) !important;
+}
+
+.peer:checked ~ .peer-checked\:bg-\[\#74566E\] {
+  background-color: var(--app-accent) !important;
+}
+
+.decoration-\[\#74566E\] {
+  text-decoration-color: var(--app-accent) !important;
+}
+
+/* Modo oscuro: sobrescrituras dinámicas */
+html.dark .dark\:text-\[\#9D7B96\] {
+  color: var(--app-accent-dark) !important;
+}
+
+html.dark .dark\:hover\:text-\[\#9D7B96\]:hover {
+  color: var(--app-accent-dark) !important;
+}
+
+html.dark .group:hover .dark\:group-hover\:text-\[\#9D7B96\] {
+  color: var(--app-accent-dark) !important;
+}
+
+html.dark .dark\:bg-\[\#9D7B96\] {
+  background-color: var(--app-accent-dark) !important;
+}
+
+html.dark .dark\:hover\:bg-\[\#85637E\]:hover,
+html.dark .dark\:hover\:bg-\[\#9D7B96\]\/30:hover {
+  background-color: var(--app-accent-hover) !important;
+}
+
+html.dark .dark\:border-\[\#9D7B96\] {
+  border-color: var(--app-accent-dark) !important;
+}
+
+html.dark .dark\:border-\[\#9D7B96\]\/30 {
+  border-color: color-mix(in srgb, var(--app-accent-dark) 30%, transparent) !important;
+}
+
+html.dark .dark\:border-\[\#9D7B96\]\/40 {
+  border-color: color-mix(in srgb, var(--app-accent-dark) 40%, transparent) !important;
+}
+
+html.dark .dark\:focus\:border-\[\#9D7B96\]:focus,
+html.dark .dark\:focus-within\:border-\[\#9D7B96\]:focus-within {
+  border-color: var(--app-accent-dark) !important;
+}
+
+html.dark .dark\:bg-\[\#74566E\]\/20,
+html.dark .dark\:bg-\[\#74566E\]\/25,
+html.dark .dark\:bg-\[\#9D7B96\]\/20 {
+  background-color: color-mix(in srgb, var(--app-accent) 20%, transparent) !important;
+}
+
+html.dark .dark\:ring-\[\#9D7B96\],
+html.dark .dark\:ring-\[\#9D7B96\]\/30 {
+  --tw-ring-color: var(--app-accent-dark) !important;
+}
+
 html, body {
   height: 100%;
   margin: 0;
