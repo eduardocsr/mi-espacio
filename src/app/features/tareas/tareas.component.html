@@ -491,19 +491,29 @@
 
                 <!-- Due Date & Subtasks -->
                 <div class="pt-2 border-t border-[#EAE2DE]/60 dark:border-[#2A2832]/60 flex items-center justify-between text-[11px] text-[#635B5E] dark:text-neutral-400">
-                  @if (task.dueDate) {
-                    <span 
-                      class="inline-flex items-center gap-1 font-mono text-[10px] tabular-nums px-1.5 py-0.5 rounded"
-                      [ngClass]="{
-                        'bg-[#FDECEC] text-[#9B2C2C] font-bold': isOverdue(task),
-                        'text-[#635B5E] dark:text-neutral-400': !isOverdue(task)
-                      }">
-                      <lucide-icon [img]="CalendarIcon" [size]="11" [strokeWidth]="1.75"></lucide-icon>
-                      <span>{{ task.dueDate }}</span>
-                    </span>
-                  } @else {
-                    <span></span>
-                  }
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    @if (task.dueDate) {
+                      <span 
+                        class="inline-flex items-center gap-1 font-mono text-[10px] tabular-nums px-1.5 py-0.5 rounded"
+                        [ngClass]="{
+                          'bg-[#FDECEC] text-[#9B2C2C] font-bold': isOverdue(task),
+                          'text-[#635B5E] dark:text-neutral-400': !isOverdue(task)
+                        }">
+                        <lucide-icon [img]="CalendarIcon" [size]="11" [strokeWidth]="1.75"></lucide-icon>
+                        <span>{{ task.dueDate }}</span>
+                      </span>
+                    }
+                    @if (task.linkedNoteId) {
+                      <button
+                        type="button"
+                        (click)="openLinkedNote(task.linkedNoteId, $event)"
+                        class="inline-flex items-center gap-1 text-[10px] font-semibold text-[#74566E] dark:text-[#9D7B96] bg-[#EFEAF6] dark:bg-[#74566E]/20 hover:bg-[#74566E]/30 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                        title="Ver apunte de origen en Apuntes">
+                        <lucide-icon [img]="FileTextIcon" [size]="10" [strokeWidth]="2"></lucide-icon>
+                        <span>Nota</span>
+                      </button>
+                    }
+                  </div>
 
                   @if (task.subtasks && task.subtasks.length > 0) {
                     <span class="tabular-nums font-mono text-[11px] font-semibold text-[#635B5E]">
@@ -870,20 +880,23 @@
 
             <!-- Linked Note Bridge (if any) -->
             @if (task.linkedNoteId) {
-              <div class="p-3.5 rounded-xl border border-[#74566E]/20 bg-[#FAF7F5] dark:bg-[#16151B] flex items-center justify-between">
-                <div class="flex items-center gap-2.5">
-                  <div class="w-7 h-7 rounded-lg bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] flex items-center justify-center text-[#74566E]">
-                    <lucide-icon [img]="ExternalLinkIcon" [size]="14"></lucide-icon>
+              @let linkedNote = getLinkedNote(task.linkedNoteId);
+              <div class="p-3.5 rounded-xl border border-[#74566E]/20 bg-[#FAF7F5] dark:bg-[#16151B] flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <div class="w-8 h-8 rounded-lg bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] flex items-center justify-center text-[#74566E] dark:text-[#9D7B96] shrink-0">
+                    <lucide-icon [img]="FileTextIcon" [size]="15" [strokeWidth]="2"></lucide-icon>
                   </div>
-                  <div>
-                    <div class="text-[11px] font-semibold text-[#635B5E] dark:text-neutral-400">Apunte vinculado</div>
-                    <div class="text-xs font-bold text-[#231F20] dark:text-[#F3EFEA]">Nota asociada en Mi Espacio</div>
+                  <div class="min-w-0">
+                    <div class="text-[11px] font-semibold text-[#635B5E] dark:text-neutral-400">Apunte de origen</div>
+                    <div class="text-xs font-bold text-[#231F20] dark:text-[#F3EFEA] truncate" [title]="linkedNote?.title || 'Nota vinculada'">
+                      {{ linkedNote?.title || 'Nota asociada en Mi Espacio' }}
+                    </div>
                   </div>
                 </div>
                 <button
                   type="button"
                   (click)="openLinkedNote(task.linkedNoteId)"
-                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#74566E] text-white text-xs font-semibold hover:bg-[#5E4359] cursor-pointer">
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#74566E] text-white text-xs font-semibold hover:bg-[#5E4359] transition-colors cursor-pointer shrink-0 shadow-xs">
                   <span>Abrir apunte</span>
                   <lucide-icon [img]="ArrowRightIcon" [size]="12"></lucide-icon>
                 </button>

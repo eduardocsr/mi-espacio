@@ -29,6 +29,7 @@ export interface Note {
   reminderAt?: string;
   comments: string[];
   attachments?: NoteAttachment[];
+  linkedTaskId?: string;
   createdAt: string;
   updatedAt: string;
   updatedByDevice?: string;

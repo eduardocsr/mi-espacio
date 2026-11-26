@@ -1,7 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   DragDropModule,
   CdkDragDrop,
@@ -40,7 +40,8 @@ import {
   ArrowLeft,
   Layers,
   Pencil,
-  RotateCcw
+  RotateCcw,
+  FileText
 } from 'lucide-angular';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
@@ -48,6 +49,7 @@ import {
   IssueType,
   KanbanColumn,
   KanbanColumnIcon,
+  Note,
   SubTask,
   TaskItem,
   TaskPriority,
@@ -60,10 +62,11 @@ import {
   imports: [CommonModule, FormsModule, DragDropModule, LucideAngularModule],
   templateUrl: './tareas.component.html'
 })
-export class TareasComponent {
+export class TareasComponent implements OnInit {
   readonly workspace = inject(WorkspaceService);
   readonly feedback = inject(UiFeedbackService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   // Icons
   readonly CheckCircle2Icon = CheckCircle2;
@@ -73,6 +76,7 @@ export class TareasComponent {
   readonly SearchIcon = Search;
   readonly FilterIcon = Filter;
   readonly MoreVerticalIcon = MoreVertical;
+  readonly FileTextIcon = FileText;
   readonly CalendarIcon = Calendar;
   readonly CheckIcon = Check;
   readonly ChevronDownIcon = ChevronDown;
@@ -433,7 +437,28 @@ export class TareasComponent {
     });
   }
 
-  openLinkedNote(noteId: string): void {
+  ngOnInit(): void {
+    this.route.queryParams.subscribe(params => {
+      const taskId = params['taskId'] || params['id'];
+      if (taskId) {
+        queueMicrotask(() => {
+          const found = this.workspace.tasks().find(t => t.id === taskId || t.issueKey === taskId);
+          if (found) {
+            this.openDetail(found);
+          }
+        });
+      }
+    });
+  }
+
+  getLinkedNote(noteId: string): Note | undefined {
+    return this.workspace.notes().find(n => n.id === noteId);
+  }
+
+  openLinkedNote(noteId: string, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
     this.closeDetail();
     this.router.navigate(['/apuntes'], { queryParams: { id: noteId } });
   }

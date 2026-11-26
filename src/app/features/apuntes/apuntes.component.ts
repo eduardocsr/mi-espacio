@@ -63,7 +63,8 @@ import {
   Calendar,
   Sparkles,
   WandSparkles,
-  Printer
+  Printer,
+  ArrowRight
 } from 'lucide-angular';
 
 import { Editor } from '@tiptap/core';
@@ -82,7 +83,7 @@ import { common, createLowlight } from 'lowlight';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { AiConfigService } from '../../core/services/ai-config.service';
-import { Note, NoteFolder, NoteStatus, NoteAttachment } from '../../core/models/workspace.models';
+import { Note, NoteFolder, NoteStatus, NoteAttachment, TaskItem as WorkspaceTaskItem } from '../../core/models/workspace.models';
 import { compressImageToDataUrl } from '../../core/utils/image-compressor';
 
 const lowlight = createLowlight(common);
@@ -271,6 +272,7 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   readonly SparklesIcon = Sparkles;
   readonly WandSparklesIcon = WandSparkles;
   readonly PrinterIcon = Printer;
+  readonly ArrowRightIcon = ArrowRight;
 
   // Toolbar dropdown menus
   showHeadingMenu = signal<boolean>(false);
@@ -395,6 +397,13 @@ export class ApuntesComponent implements OnInit, OnDestroy {
     const note = this.currentNote();
     if (!note) return null;
     return this.workspace.folders().find(f => f.id === note.folderId) || null;
+  });
+
+  // Tarea vinculada en Kanban (enlace bidireccional)
+  readonly currentLinkedTask = computed<WorkspaceTaskItem | null>(() => {
+    const note = this.currentNote();
+    if (!note) return null;
+    return this.workspace.tasks().find(t => t.linkedNoteId === note.id || t.id === note.linkedTaskId) || null;
   });
 
   // Filtered Notes
@@ -1474,12 +1483,22 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
     const note = this.currentNote();
     if (!note) return;
 
+    // Si ya existe una tarea vinculada, avisar y ofrecer ir a verla directamente
+    const existing = this.currentLinkedTask();
+    if (existing) {
+      this.feedback.info(`Este apunte ya está vinculado con la tarea ${existing.issueKey} (${this.getColumnLabel(existing.status)})`, 'Tarea existente', {
+        actionLabel: 'Ver en Kanban →',
+        onAction: () => this.navigateToLinkedTask(existing.id)
+      });
+      return;
+    }
+
     const folder = this.currentFolder();
     const tag = folder ? folder.name : 'Trabajo';
 
-    this.workspace.addTask({
-      title: note.title,
-      description: note.plainText ? note.plainText.slice(0, 150) + '...' : undefined,
+    const newTask = this.workspace.addTask({
+      title: note.title || 'Nueva tarea desde apunte',
+      description: note.plainText ? note.plainText.slice(0, 200) + '...' : undefined,
       projectTag: tag,
       priority: 'Media',
       status: 'todo',
@@ -1487,10 +1506,21 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
       subtasks: []
     });
 
-    this.feedback.success('Tarea agregada exitosamente al tablero Kanban', 'Tarea creada', {
-      actionLabel: 'Ir a Tareas →',
-      onAction: () => this.router.navigate(['/tareas'])
+    // Guardar la referencia bidireccional en la nota
+    this.workspace.updateNote(note.id, { linkedTaskId: newTask.id });
+
+    this.feedback.success(`Tarea ${newTask.issueKey} creada y vinculada con este apunte`, 'Tarea en Kanban', {
+      actionLabel: 'Ver en Kanban →',
+      onAction: () => this.navigateToLinkedTask(newTask.id)
     });
+  }
+
+  navigateToLinkedTask(taskId: string): void {
+    this.router.navigate(['/tareas'], { queryParams: { taskId } });
+  }
+
+  getColumnLabel(status: string): string {
+    return this.workspace.columns().find(c => c.id === status)?.label || status;
   }
 
   showToast(msg: string): void {
