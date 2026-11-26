@@ -1170,10 +1170,10 @@
   <!-- COLUMNA 3: Panel Lateral Derecho (~280px)  -->
   <!-- ========================================== -->
   <aside
-    class="w-full lg:w-72 border-l border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#16151B] flex-col shrink-0 overflow-y-auto select-none transition-all duration-200 print:hidden"
+    class="w-full lg:w-72 border-l border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#16151B] flex-col shrink-0 overflow-y-auto select-none transition-all duration-200 print:hidden details-panel"
     [ngClass]="{
       'flex flex-1': activeMobileTab() === 'details',
-      'hidden lg:flex fixed lg:absolute right-0 top-0 bottom-0 z-30 w-72 lg:w-80 shadow-2xl lg:shadow-xl bg-white dark:bg-[#19181E] border-l border-[#EAE2DE] dark:border-[#2A2832] 2xl:relative 2xl:shadow-none 2xl:w-72': showDetailsPanel(),
+      'hidden lg:flex relative w-72 lg:w-80 bg-white dark:bg-[#19181E] border-l border-[#EAE2DE] dark:border-[#2A2832]': showDetailsPanel(),
       'hidden': activeMobileTab() !== 'details' && !showDetailsPanel()
     }">
     @if (currentNote()) {

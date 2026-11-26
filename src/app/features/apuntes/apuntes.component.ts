@@ -1951,11 +1951,13 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
     if (!note) return;
     this.showExportMenu.set(false);
     this.showAiMenu.set(false);
+    this.showDetailsPanel.set(false);
+    this.activeMobileTab.set('editor');
 
-    // Pequeño timeout para permitir que Angular cierre los desplegables antes del diálogo del navegador
+    // Pequeño timeout para permitir que Angular cierre los desplegables y el panel de detalles antes de abrir el diálogo de impresión
     setTimeout(() => {
       window.print();
-    }, 50);
+    }, 120);
   }
 
   private buildNoteMarkdown(note: any): string {
