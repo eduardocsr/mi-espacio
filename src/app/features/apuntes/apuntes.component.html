@@ -488,12 +488,12 @@
             <button
               type="button"
               (click)="navigateToLinkedTask(task.id)"
-              class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#EFEAF6] text-[#74566E] dark:bg-[#74566E]/20 dark:text-[#9D7B96] border border-[#74566E]/20 hover:bg-[#74566E]/30 transition-colors cursor-pointer shrink-0"
+              class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#EFEAF6] text-[#74566E] dark:bg-[#74566E]/20 dark:text-[#9D7B96] border border-[#74566E]/20 hover:bg-[#74566E]/30 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
               title="Tarea en Kanban: {{ task.title }} ({{ getColumnLabel(task.status) }})">
               <lucide-icon [img]="CheckCircle2Icon" [size]="11" [strokeWidth]="2"></lucide-icon>
               <span class="font-mono font-bold">{{ task.issueKey }}</span>
               <span class="opacity-40">·</span>
-              <span class="truncate max-w-[80px]">{{ getColumnLabel(task.status) }}</span>
+              <span class="hidden sm:inline">{{ getColumnLabel(task.status) }}</span>
             </button>
           }
         </div>
