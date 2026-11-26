@@ -95,6 +95,14 @@ export interface CalendarEvent {
 
 export type ReminderRecurrence = 'none' | 'daily' | 'weekly' | 'monthly';
 
+export type AppTheme = 'light' | 'dark' | 'system';
+export type AccentColor = 'warm-purple' | 'ocean' | 'emerald' | 'amber' | 'rose';
+
+export interface WorkspaceThemeConfig {
+  theme: AppTheme;
+  accentColor: AccentColor;
+}
+
 export interface Reminder {
   id: string;
   title: string;
@@ -115,6 +123,9 @@ export interface WorkspaceExportData {
   isSeeded?: boolean;
   updatedAt?: number | string;
   updatedByDevice?: string;
+  onboardingCompleted?: boolean;
+  theme?: AppTheme;
+  accentColor?: AccentColor;
   folders: NoteFolder[];
   notes: Note[];
   tasks: TaskItem[];

@@ -39,4 +39,9 @@
 
   <!-- Global Active Reminder Toast (AudioContext + Notification API) -->
   <app-reminder-toast></app-reminder-toast>
+
+  <!-- Global Onboarding Modal ("Configuración inicial del espacio de trabajo") -->
+  @if (workspace.showOnboardingModal()) {
+    <app-onboarding-modal></app-onboarding-modal>
+  }
 </div>

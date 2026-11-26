@@ -267,4 +267,73 @@ describe('WorkspaceService', () => {
       expect(noteAfter?.linkedEventId).toBeUndefined();
     });
   });
+
+  describe('Onboarding & Appearance Customization', () => {
+    it('should determine onboarding eligibility safely for new empty workspaces', () => {
+      service.clearInMemoryWorkspace();
+      service.onboardingCompleted.set(false);
+
+      service.checkOnboardingEligibility(null, 'test-user-1');
+      expect(service.showOnboardingModal()).toBeTrue();
+    });
+
+    it('should not show onboarding if workspace already has existing notes or tasks', () => {
+      service.clearInMemoryWorkspace();
+      service.addNote('Nota preexistente');
+      service.onboardingCompleted.set(false);
+
+      service.checkOnboardingEligibility(null, 'test-user-2');
+      expect(service.showOnboardingModal()).toBeFalse();
+      expect(service.onboardingCompleted()).toBeTrue();
+    });
+
+    it('should complete onboarding with chosen theme, accent, and sample data', async () => {
+      service.clearInMemoryWorkspace();
+      service.onboardingCompleted.set(false);
+
+      await service.completeOnboarding({
+        theme: 'dark',
+        accentColor: 'emerald',
+        loadSampleData: true
+      });
+
+      expect(service.themePreference()).toBe('dark');
+      expect(service.accentColor()).toBe('emerald');
+      expect(service.onboardingCompleted()).toBeTrue();
+      expect(service.showOnboardingModal()).toBeFalse();
+      expect(service.tasks().length).toBeGreaterThan(0);
+      expect(service.calendarEvents().length).toBeGreaterThan(0);
+      expect(service.reminders().length).toBeGreaterThan(0);
+    });
+
+    it('should restore previous theme and accent on cancelOnboarding without marking completed', () => {
+      service.setThemePreference('light', false);
+      service.setAccentColor('warm-purple', false);
+      service.showOnboardingModal.set(true);
+
+      // User previewed dark and ocean
+      service.previewTheme('dark');
+      service.previewAccentColor('ocean');
+
+      // Cancels via Escape
+      service.cancelOnboarding('light', 'warm-purple');
+
+      expect(service.themePreference()).toBe('light');
+      expect(service.accentColor()).toBe('warm-purple');
+      expect(service.showOnboardingModal()).toBeFalse();
+      expect(service.onboardingCompleted()).toBeFalse();
+    });
+
+    it('should use default config when skipOnboardingDefault is invoked', async () => {
+      service.clearInMemoryWorkspace();
+      service.onboardingCompleted.set(false);
+
+      await service.skipOnboardingDefault();
+
+      expect(service.themePreference()).toBe('light');
+      expect(service.accentColor()).toBe('warm-purple');
+      expect(service.onboardingCompleted()).toBeTrue();
+      expect(service.showOnboardingModal()).toBeFalse();
+    });
+  });
 });

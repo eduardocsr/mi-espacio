@@ -153,6 +153,64 @@
             </div>
           }
 
+          <!-- Sección de Personalización / Apariencia -->
+          <div class="p-2.5 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] space-y-2.5">
+            <div class="flex items-center justify-between text-xs font-bold text-[#231F20] dark:text-[#F3EFEA]">
+              <div class="flex items-center gap-1.5">
+                <lucide-icon [img]="PaletteIcon" [size]="13" [strokeWidth]="2" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
+                <span>Apariencia y Tema</span>
+              </div>
+              <button
+                type="button"
+                (click)="reopenOnboarding()"
+                class="text-[10px] text-[#74566E] dark:text-[#9D7B96] hover:underline flex items-center gap-1 cursor-pointer font-semibold"
+                title="Reabrir asistente de configuración inicial">
+                <lucide-icon [img]="SparklesIcon" [size]="10"></lucide-icon>
+                <span>Asistente</span>
+              </button>
+            </div>
+
+            <!-- Selector de Tema (Claro / Oscuro / Sistema) -->
+            <div class="grid grid-cols-3 gap-1 p-0.5 bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] rounded-lg">
+              @for (t of themeOptions; track t.id) {
+                <button
+                  type="button"
+                  (click)="changeTheme(t.id)"
+                  class="flex items-center justify-center gap-1 py-1 px-1.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer"
+                  [ngClass]="workspace.themePreference() === t.id
+                    ? 'bg-[#EFEAF6] text-[#74566E] dark:bg-[#74566E]/20 dark:text-[#9D7B96] shadow-2xs'
+                    : 'text-[#635B5E] dark:text-neutral-400 hover:text-[#231F20] dark:hover:text-white'">
+                  <lucide-icon [img]="t.icon" [size]="12" [strokeWidth]="2"></lucide-icon>
+                  <span>{{ t.label }}</span>
+                </button>
+              }
+            </div>
+
+            <!-- Selector de Color de Acento -->
+            <div class="space-y-1">
+              <div class="text-[10px] text-[#635B5E] dark:text-neutral-400 font-semibold">
+                Color de acento
+              </div>
+              <div class="flex items-center justify-between px-0.5">
+                @for (c of accentOptions; track c.id) {
+                  <button
+                    type="button"
+                    (click)="changeAccent(c.id)"
+                    class="relative w-6 h-6 rounded-full flex items-center justify-center transition-transform hover:scale-115 cursor-pointer"
+                    [style.backgroundColor]="c.color"
+                    [title]="c.label"
+                    [ngClass]="workspace.accentColor() === c.id
+                      ? 'ring-2 ring-offset-2 ring-[#74566E] dark:ring-[#9D7B96] dark:ring-offset-[#121115]'
+                      : ''">
+                    @if (workspace.accentColor() === c.id) {
+                      <lucide-icon [img]="CheckIcon" [size]="10" [strokeWidth]="3" class="text-white drop-shadow-xs"></lucide-icon>
+                    }
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+
           <!-- Sync & Backup Actions -->
           <div class="space-y-1 text-xs">
             @if (workspace.firebaseSync.currentUser()) {

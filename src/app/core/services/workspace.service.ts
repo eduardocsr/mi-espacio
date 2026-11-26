@@ -1,6 +1,8 @@
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
+  AccentColor,
+  AppTheme,
   CalendarEvent,
   KanbanColumn,
   Note,
@@ -26,6 +28,44 @@ export const DEFAULT_COLUMNS: KanbanColumn[] = [
   { id: 'done', label: 'Hecho', color: '#246A49', icon: 'check', order: 3, isDoneColumn: true }
 ];
 
+export const ACCENT_PALETTES: Record<AccentColor, { primary: string; hover: string; light: string; dark: string; label: string }> = {
+  'warm-purple': {
+    primary: '#74566E',
+    hover: '#5E4359',
+    light: '#EFEAF6',
+    dark: '#9D7B96',
+    label: 'Ciruela Editorial'
+  },
+  'ocean': {
+    primary: '#265B8A',
+    hover: '#1E486D',
+    light: '#E8F1FA',
+    dark: '#7EB3E0',
+    label: 'Azul Océano'
+  },
+  'emerald': {
+    primary: '#246A49',
+    hover: '#1B5238',
+    light: '#E6F3EC',
+    dark: '#52B788',
+    label: 'Verde Esmeralda'
+  },
+  'amber': {
+    primary: '#8C4A19',
+    hover: '#703A14',
+    light: '#FEF5EC',
+    dark: '#E9B949',
+    label: 'Ámbar Cálido'
+  },
+  'rose': {
+    primary: '#9C3D54',
+    hover: '#7E3043',
+    light: '#FCEEF2',
+    dark: '#E58B9E',
+    label: 'Rosa Terracota'
+  }
+};
+
 @Injectable({
   providedIn: 'root'
 })
@@ -47,6 +87,10 @@ export class WorkspaceService {
   // UI State Signals
   readonly searchQuery = signal<string>('');
   readonly theme = signal<'light' | 'dark'>('light');
+  readonly themePreference = signal<AppTheme>('light');
+  readonly accentColor = signal<AccentColor>('warm-purple');
+  readonly onboardingCompleted = signal<boolean>(false);
+  readonly showOnboardingModal = signal<boolean>(false);
   readonly soundEnabled = signal<boolean>(true);
   readonly isInitialized = signal<boolean>(false);
   readonly isSearchOpen = signal<boolean>(false);
@@ -211,10 +255,12 @@ export class WorkspaceService {
         await this.storage.saveSnapshot(cloudSnapshot, uid).catch(console.error);
         this.saveStatus.set('Google Cloud Activo');
         this.lastSavedAt.set(new Date());
+        this.checkOnboardingEligibility(cloudSnapshot, uid);
       } else if (localSnapshot && this.isValidSnapshot(localSnapshot)) {
         // Primera sincronización del usuario: la nube estaba vacía pero este equipo ya tenía datos locales
         await this.firebaseSync.syncToCloud(localSnapshot, uid);
         this.saveStatus.set('Google Cloud Activo');
+        this.checkOnboardingEligibility(localSnapshot, uid);
       } else {
         // Ni la nube ni local tenían datos previos: crear espacio limpio inicial
         const cleanSnapshot: WorkspaceSnapshot = {
@@ -236,6 +282,7 @@ export class WorkspaceService {
         await this.firebaseSync.syncToCloud(cleanSnapshot, uid);
         this.saveStatus.set('Google Cloud Activo');
         this.lastSavedAt.set(new Date());
+        this.checkOnboardingEligibility(cleanSnapshot, uid);
       }
 
       this.isInitialized.set(true);
@@ -330,6 +377,8 @@ export class WorkspaceService {
     this.columns.set(DEFAULT_COLUMNS);
     this.calendarEvents.set([]);
     this.reminders.set([]);
+    this.onboardingCompleted.set(false);
+    this.showOnboardingModal.set(false);
     this.isInitialized.set(false);
     this.saveStatus.set('Guardado en IndexedDB');
   }
@@ -366,6 +415,7 @@ export class WorkspaceService {
 
       // 3. Si no es cuenta de Google pero tenía datos locales válidos, ya están aplicados
       if (localSnapshot && this.isValidSnapshot(localSnapshot)) {
+        this.checkOnboardingEligibility(localSnapshot, user.id);
         return;
       }
 
@@ -390,6 +440,7 @@ export class WorkspaceService {
       await this.storage.saveSnapshot(cleanEmptySnapshot, user.id).catch(console.error);
       this.saveStatus.set('Guardado en IndexedDB');
       this.lastSavedAt.set(new Date());
+      this.checkOnboardingEligibility(cleanEmptySnapshot, user.id);
     } catch (err) {
       console.error('Error al cargar datos del usuario:', err);
       this.isInitialized.set(true);
@@ -452,12 +503,114 @@ export class WorkspaceService {
     }
   }
 
+  private systemMediaListener: ((e: MediaQueryListEvent) => void) | null = null;
+
   private initTheme(): void {
     if (typeof window === 'undefined') return;
-    const savedTheme = localStorage.getItem('mi_espacio_theme') as 'light' | 'dark' | null;
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const initialTheme = savedTheme || (prefersDark ? 'dark' : 'light');
-    this.setTheme(initialTheme);
+    const savedPref = localStorage.getItem('mi_espacio_theme_pref') as AppTheme | null;
+    const legacyTheme = localStorage.getItem('mi_espacio_theme') as 'light' | 'dark' | null;
+    const initialPref: AppTheme = savedPref || (legacyTheme === 'dark' ? 'dark' : 'light');
+    this.setThemePreference(initialPref, false);
+
+    const savedAccent = localStorage.getItem('mi_espacio_accent_color') as AccentColor | null;
+    const initialAccent: AccentColor = savedAccent || 'warm-purple';
+    this.setAccentColor(initialAccent, false);
+  }
+
+  setThemePreference(pref: AppTheme, persist: boolean = true): void {
+    this.themePreference.set(pref);
+    if (typeof window === 'undefined') return;
+
+    if (persist) {
+      localStorage.setItem('mi_espacio_theme_pref', pref);
+    }
+
+    const mql = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
+    if (pref === 'system' && mql) {
+      const applySystemTheme = (matchesDark: boolean) => {
+        const effective: 'light' | 'dark' = matchesDark ? 'dark' : 'light';
+        this.theme.set(effective);
+        localStorage.setItem('mi_espacio_theme', effective);
+        if (effective === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      };
+
+      applySystemTheme(mql.matches);
+
+      if (this.systemMediaListener && mql.removeEventListener) {
+        mql.removeEventListener('change', this.systemMediaListener);
+      }
+      this.systemMediaListener = (e: MediaQueryListEvent) => applySystemTheme(e.matches);
+      if (mql.addEventListener) {
+        mql.addEventListener('change', this.systemMediaListener);
+      }
+    } else {
+      if (this.systemMediaListener && mql && mql.removeEventListener) {
+        mql.removeEventListener('change', this.systemMediaListener);
+        this.systemMediaListener = null;
+      }
+      const effective: 'light' | 'dark' = pref === 'dark' ? 'dark' : 'light';
+      this.theme.set(effective);
+      localStorage.setItem('mi_espacio_theme', effective);
+      if (effective === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+
+    if (persist && this.isInitialized()) {
+      this.scheduleDebouncedSave(300);
+    }
+  }
+
+  previewTheme(pref: AppTheme): void {
+    if (typeof window === 'undefined') return;
+    let isDark = false;
+    if (pref === 'system') {
+      isDark = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)').matches : false;
+    } else {
+      isDark = pref === 'dark';
+    }
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }
+
+  setAccentColor(accent: AccentColor, persist: boolean = true): void {
+    this.accentColor.set(accent);
+    if (typeof window === 'undefined') return;
+
+    if (persist) {
+      localStorage.setItem('mi_espacio_accent_color', accent);
+    }
+
+    this.applyAccentToDom(accent);
+
+    if (persist && this.isInitialized()) {
+      this.scheduleDebouncedSave(300);
+    }
+  }
+
+  previewAccentColor(accent: AccentColor): void {
+    this.applyAccentToDom(accent);
+  }
+
+  private applyAccentToDom(accent: AccentColor): void {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    root.setAttribute('data-accent', accent);
+    const palette = ACCENT_PALETTES[accent] || ACCENT_PALETTES['warm-purple'];
+    root.style.setProperty('--app-accent', palette.primary);
+    root.style.setProperty('--app-accent-hover', palette.hover);
+    root.style.setProperty('--app-accent-light', palette.light);
+    root.style.setProperty('--app-accent-dark', palette.dark);
   }
 
   private initSound(): void {
@@ -484,20 +637,11 @@ export class WorkspaceService {
   }
 
   setTheme(newTheme: 'light' | 'dark'): void {
-    this.theme.set(newTheme);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('mi_espacio_theme', newTheme);
-      const root = document.documentElement;
-      if (newTheme === 'dark') {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
-    }
+    this.setThemePreference(newTheme);
   }
 
   toggleTheme(): void {
-    this.setTheme(this.theme() === 'light' ? 'dark' : 'light');
+    this.setThemePreference(this.theme() === 'light' ? 'dark' : 'light');
   }
 
   toggleSound(): void {
@@ -516,6 +660,11 @@ export class WorkspaceService {
     return {
       version: '1.0.0',
       exportedAt: new Date().toISOString(),
+      updatedAt: Date.now(),
+      updatedByDevice: this.deviceId,
+      onboardingCompleted: this.onboardingCompleted(),
+      theme: this.themePreference(),
+      accentColor: this.accentColor(),
       isSeeded: true,
       folders: this.folders(),
       notes: this.notes(),
@@ -642,6 +791,212 @@ export class WorkspaceService {
 
     this.calendarEvents.set(saved.calendarEvents || []);
     this.reminders.set(saved.reminders || []);
+
+    if (saved.onboardingCompleted !== undefined) {
+      this.onboardingCompleted.set(saved.onboardingCompleted);
+      if (saved.onboardingCompleted) {
+        this.showOnboardingModal.set(false);
+      }
+    }
+    if (saved.theme) {
+      this.setThemePreference(saved.theme, false);
+    }
+    if (saved.accentColor) {
+      this.setAccentColor(saved.accentColor, false);
+    }
+  }
+
+  hasExistingWorkspaceData(snapshot?: WorkspaceSnapshot | null): boolean {
+    if (snapshot) {
+      return (
+        (Array.isArray(snapshot.notes) && snapshot.notes.length > 0) ||
+        (Array.isArray(snapshot.tasks) && snapshot.tasks.length > 0) ||
+        (Array.isArray(snapshot.calendarEvents) && snapshot.calendarEvents.length > 0) ||
+        (Array.isArray(snapshot.reminders) && snapshot.reminders.length > 0)
+      );
+    }
+    return (
+      this.notes().length > 0 ||
+      this.tasks().length > 0 ||
+      this.calendarEvents().length > 0 ||
+      this.reminders().length > 0
+    );
+  }
+
+  checkOnboardingEligibility(snapshot?: WorkspaceSnapshot | null, uid?: string): void {
+    const currentUid = uid || this.authSession.currentUser()?.id;
+    const localFlag = currentUid && typeof window !== 'undefined'
+      ? localStorage.getItem(`mi_espacio_onboarding_${currentUid}`) === 'true'
+      : false;
+    const snapshotFlag = !!snapshot?.onboardingCompleted;
+    const alreadyCompleted = this.onboardingCompleted() || localFlag || snapshotFlag;
+    const hasHistory = this.hasExistingWorkspaceData(snapshot);
+
+    if (!alreadyCompleted && !hasHistory) {
+      this.showOnboardingModal.set(true);
+    } else {
+      this.onboardingCompleted.set(true);
+      this.showOnboardingModal.set(false);
+    }
+  }
+
+  createOnboardingSampleData(): void {
+    const today = new Date().toISOString().split('T')[0];
+    let defaultFolder = this.folders()[0];
+    if (!defaultFolder) {
+      defaultFolder = { id: 'f-' + Date.now(), name: 'General', color: '#74566E', icon: 'folder' };
+      this.folders.set([defaultFolder]);
+    }
+
+    // 1. Evento de bienvenida para la fecha actual
+    const sampleEvent: CalendarEvent = {
+      id: 'e-onb-' + Date.now(),
+      title: 'Sesión de bienvenida a Mi Espacio',
+      category: 'Reunión',
+      date: today,
+      startTime: '10:00',
+      endTime: '10:30',
+      allDay: false,
+      notes: 'Exploración inicial de las funciones de Mi Espacio: notas editoriales, tablero Kanban y recordatorios.'
+    };
+
+    // 2. Tarea pendiente
+    const sampleTask: TaskItem = {
+      id: 't-onb-' + Date.now(),
+      issueKey: 'ESP-1',
+      issueType: 'Tarea',
+      title: 'Explorar las funciones de Mi Espacio',
+      description: 'Descubre el editor de apuntes, organiza tus tareas en el tablero Kanban y programa recordatorios diarios.',
+      projectTag: 'Personal',
+      priority: 'Media',
+      status: 'todo',
+      order: 0,
+      dueDate: today,
+      dueTime: '18:00',
+      subtasks: [
+        { id: 'st-1', title: 'Explorar editor con tipografía editorial', completed: false },
+        { id: 'st-2', title: 'Mover tarjetas en el tablero Kanban', completed: false },
+        { id: 'st-3', title: 'Probar notificaciones de recordatorio', completed: false }
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      updatedByDevice: this.deviceId
+    };
+
+    // 3. Recordatorio activo para hoy
+    const sampleReminder: Reminder = {
+      id: 'r-onb-' + Date.now(),
+      title: 'Revisar objetivos y pendientes del día',
+      description: 'Un breve momento para organizar tus prioridades diarias.',
+      category: 'Personal',
+      date: today,
+      time: '09:00',
+      recurrence: 'daily',
+      active: true,
+      completed: false
+    };
+
+    // 4. Nota editorial de bienvenida
+    const sampleNote: Note = {
+      id: 'n-onb-' + Date.now(),
+      title: 'Primeros pasos en Mi Espacio',
+      folderId: defaultFolder.id,
+      contentJson: {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: 'Te damos la bienvenida a tu nuevo espacio de trabajo personal. Aquí podrás capturar ideas, organizar proyectos en Kanban y sincronizar tu día con el calendario.'
+              }
+            ]
+          },
+          {
+            type: 'heading',
+            attrs: { level: 2 },
+            content: [{ type: 'text', text: 'Atajos y funciones destacadas' }]
+          },
+          {
+            type: 'bulletList',
+            content: [
+              {
+                type: 'listItem',
+                content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Presiona Ctrl+K en cualquier momento para abrir la paleta de comandos rápida.' }] }]
+              },
+              {
+                type: 'listItem',
+                content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Convierte notas en tareas Kanban con enlace bidireccional automático.' }] }]
+              },
+              {
+                type: 'listItem',
+                content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Exporta a Markdown o PDF con maquetación limpia sin interfaz.' }] }]
+              }
+            ]
+          }
+        ]
+      },
+      plainText: 'Te damos la bienvenida a tu nuevo espacio de trabajo personal...',
+      tags: ['Bienvenida', 'Guía'],
+      favorite: true,
+      status: 'Borrador',
+      comments: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      updatedByDevice: this.deviceId
+    };
+
+    this.calendarEvents.set([sampleEvent]);
+    this.tasks.set([sampleTask]);
+    this.reminders.set([sampleReminder]);
+    this.notes.set([sampleNote]);
+  }
+
+  async completeOnboarding(options: {
+    theme: AppTheme;
+    accentColor: AccentColor;
+    loadSampleData: boolean;
+  }): Promise<void> {
+    this.setThemePreference(options.theme, true);
+    this.setAccentColor(options.accentColor, true);
+
+    if (options.loadSampleData && !this.hasExistingWorkspaceData()) {
+      this.createOnboardingSampleData();
+    }
+
+    this.onboardingCompleted.set(true);
+    const user = this.authSession.currentUser();
+    const uid = user?.id;
+    if (uid && typeof window !== 'undefined') {
+      localStorage.setItem(`mi_espacio_onboarding_${uid}`, 'true');
+    }
+
+    this.showOnboardingModal.set(false);
+    this.saveImmediately();
+
+    this.feedback.success(
+      '¡Tu espacio de trabajo está listo y configurado!',
+      'Configuración completada'
+    );
+  }
+
+  async skipOnboardingDefault(): Promise<void> {
+    await this.completeOnboarding({
+      theme: 'light',
+      accentColor: 'warm-purple',
+      loadSampleData: false
+    });
+  }
+
+  cancelOnboarding(restoreTheme: AppTheme, restoreAccent: AccentColor): void {
+    this.setThemePreference(restoreTheme, false);
+    this.setAccentColor(restoreAccent, false);
+    this.showOnboardingModal.set(false);
+  }
+
+  openOnboardingModal(): void {
+    this.showOnboardingModal.set(true);
   }
 
   // Restablece las tareas de ejemplo (manual)

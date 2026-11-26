@@ -23,13 +23,19 @@ import {
   EyeOff,
   X,
   ShieldCheck,
-  RotateCcw
+  RotateCcw,
+  Sun,
+  Moon,
+  Monitor,
+  Palette,
+  Sparkles
 } from 'lucide-angular';
-import { WorkspaceService } from '../../core/services/workspace.service';
+import { WorkspaceService, ACCENT_PALETTES } from '../../core/services/workspace.service';
 import { AuthSessionService } from '../../core/services/auth-session.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { AiConfigService } from '../../core/services/ai-config.service';
 import { ResetWorkspaceModalComponent } from './reset-workspace-modal.component';
+import { AccentColor, AppTheme } from '../../core/models/workspace.models';
 
 @Component({
   selector: 'app-topbar',
@@ -77,6 +83,38 @@ export class TopbarComponent {
   readonly EyeOffIcon = EyeOff;
   readonly XIcon = X;
   readonly ShieldCheckIcon = ShieldCheck;
+  readonly SunIcon = Sun;
+  readonly MoonIcon = Moon;
+  readonly MonitorIcon = Monitor;
+  readonly PaletteIcon = Palette;
+  readonly SparklesIcon = Sparkles;
+
+  readonly themeOptions: { id: AppTheme; label: string; icon: any }[] = [
+    { id: 'light', label: 'Claro', icon: Sun },
+    { id: 'dark', label: 'Oscuro', icon: Moon },
+    { id: 'system', label: 'Sistema', icon: Monitor }
+  ];
+
+  readonly accentOptions: { id: AccentColor; label: string; color: string }[] = [
+    { id: 'warm-purple', label: 'Ciruela', color: ACCENT_PALETTES['warm-purple'].primary },
+    { id: 'ocean', label: 'Océano', color: ACCENT_PALETTES['ocean'].primary },
+    { id: 'emerald', label: 'Esmeralda', color: ACCENT_PALETTES['emerald'].primary },
+    { id: 'amber', label: 'Ámbar', color: ACCENT_PALETTES['amber'].primary },
+    { id: 'rose', label: 'Rosa', color: ACCENT_PALETTES['rose'].primary }
+  ];
+
+  changeTheme(theme: AppTheme): void {
+    this.workspace.setThemePreference(theme, true);
+  }
+
+  changeAccent(accent: AccentColor): void {
+    this.workspace.setAccentColor(accent, true);
+  }
+
+  reopenOnboarding(): void {
+    this.closeUserMenu();
+    this.workspace.openOnboardingModal();
+  }
 
   toggleMobileMenu(): void {
     this.workspace.isMobileMenuOpen.update(v => !v);
