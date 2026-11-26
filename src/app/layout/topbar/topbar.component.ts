@@ -22,17 +22,19 @@ import {
   Eye,
   EyeOff,
   X,
-  ShieldCheck
+  ShieldCheck,
+  RotateCcw
 } from 'lucide-angular';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { AuthSessionService } from '../../core/services/auth-session.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { AiConfigService } from '../../core/services/ai-config.service';
+import { ResetWorkspaceModalComponent } from './reset-workspace-modal.component';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, ResetWorkspaceModalComponent],
   templateUrl: './topbar.component.html'
 })
 export class TopbarComponent {
@@ -45,6 +47,9 @@ export class TopbarComponent {
   // User menu state
   readonly isUserMenuOpen = signal<boolean>(false);
   readonly isActionInProgress = signal<boolean>(false);
+
+  // Puesta a cero modal state
+  readonly showResetModal = signal<boolean>(false);
 
   // Gemini API Key modal state
   readonly showApiKeyModal = signal<boolean>(false);
@@ -66,6 +71,7 @@ export class TopbarComponent {
   readonly UserIcon = UserIcon;
   readonly RefreshCwIcon = RefreshCw;
   readonly Trash2Icon = Trash2;
+  readonly RotateCcwIcon = RotateCcw;
   readonly KeyIcon = Key;
   readonly EyeIcon = Eye;
   readonly EyeOffIcon = EyeOff;
@@ -197,6 +203,15 @@ export class TopbarComponent {
     } finally {
       this.isActionInProgress.set(false);
     }
+  }
+
+  openResetWorkspaceModal(): void {
+    this.closeUserMenu();
+    this.showResetModal.set(true);
+  }
+
+  closeResetWorkspaceModal(): void {
+    this.showResetModal.set(false);
   }
 
   openApiKeyModal(): void {

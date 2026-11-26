@@ -107,6 +107,8 @@ export interface WorkspaceExportData {
   version: string;
   exportedAt: string;
   isSeeded?: boolean;
+  updatedAt?: number | string;
+  updatedByDevice?: string;
   folders: NoteFolder[];
   notes: Note[];
   tasks: TaskItem[];

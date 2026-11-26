@@ -150,7 +150,10 @@ export class FirebaseSyncService {
       
       // Sanitizar snapshot para Firestore (evitar clases complejas o undefined)
       const cleanSnapshot = JSON.parse(JSON.stringify(snapshot));
-      cleanSnapshot.updatedAt = new Date().toISOString();
+      cleanSnapshot.updatedAt = snapshot.updatedAt || new Date().toISOString();
+      if (snapshot.updatedByDevice) {
+        cleanSnapshot.updatedByDevice = snapshot.updatedByDevice;
+      }
       cleanSnapshot.userId = uid;
 
       await setDoc(userDocRef, cleanSnapshot);

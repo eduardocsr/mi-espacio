@@ -16,6 +16,7 @@ import {
 import { IndexedStorageService } from './indexed-storage.service';
 import { FirebaseSyncService } from './firebase-sync.service';
 import { AuthSessionService } from './auth-session.service';
+import { UiFeedbackService } from './ui-feedback.service';
 import { generateSeedData } from './seed-data';
 
 export const DEFAULT_COLUMNS: KanbanColumn[] = [
@@ -32,6 +33,7 @@ export class WorkspaceService {
   private readonly storage = inject(IndexedStorageService);
   readonly firebaseSync = inject(FirebaseSyncService);
   readonly authSession = inject(AuthSessionService);
+  private readonly feedback = inject(UiFeedbackService);
   private readonly router = inject(Router);
 
   // Core State Signals
@@ -1102,6 +1104,84 @@ export class WorkspaceService {
     } catch (err) {
       console.error('Error al importar respaldo:', err);
       return false;
+    }
+  }
+
+  /**
+   * Puesta a cero: reinicia el espacio del usuario a estado limpio.
+   * 1. Si backupBeforeReset es true, descarga automáticamente un respaldo mi-espacio-respaldo-YYYY-MM-DD.json.
+   * 2. Reinicia notas, tareas, eventos, recordatorios y carpetas a estado limpio sin datos semilla.
+   * 3. Persiste en IndexedDB y sincroniza de inmediato con Cloud Firestore (updatedAt: Date.now(), updatedByDevice: this.deviceId)
+   *    para que todos los dispositivos conectados reflejen el estado en cero sin restaurar datos antiguos.
+   * 4. Notifica el resultado mediante UiFeedbackService.success(...).
+   */
+  async resetWorkspaceToZero(backupBeforeReset: boolean = true): Promise<void> {
+    // 1. Respaldo automático JSON si está activado
+    if (backupBeforeReset) {
+      this.exportBackup();
+    }
+
+    const cleanTimestamp = Date.now();
+    const cleanFolder: NoteFolder = {
+      id: 'f-' + cleanTimestamp,
+      name: 'General',
+      color: '#74566E',
+      icon: 'folder'
+    };
+
+    const cleanSnapshot: WorkspaceSnapshot = {
+      version: '1.0.0',
+      exportedAt: new Date(cleanTimestamp).toISOString(),
+      isSeeded: true, // Marcado para no inyectar datos de demostración
+      updatedAt: cleanTimestamp,
+      updatedByDevice: this.deviceId,
+      folders: [cleanFolder],
+      notes: [],
+      tasks: [],
+      columns: DEFAULT_COLUMNS,
+      calendarEvents: [],
+      reminders: []
+    };
+
+    // 2. Aplicar estado en memoria reactivo
+    this.applySnapshot(cleanSnapshot);
+    this.lastSavedAt.set(new Date());
+
+    // 3. Persistir en almacenamiento local (localStorage + IndexedDB)
+    const user = this.authSession.currentUser();
+    const userId = user?.id || 'default_user';
+    this.saveToLocalStorage(cleanSnapshot, userId);
+
+    try {
+      await this.storage.saveSnapshot(cleanSnapshot, userId);
+      this.saveStatus.set('Guardado en IndexedDB');
+    } catch (err) {
+      console.error('Error al guardar snapshot limpio en IndexedDB:', err);
+    }
+
+    // 4. Sincronizar inmediatamente con Cloud Firestore si hay sesión activa
+    const googleUser = this.firebaseSync.currentUser();
+    const cloudUid = googleUser?.uid || user?.googleUid || (user?.cloudLinked ? user.id : null);
+    if (cloudUid) {
+      try {
+        await this.firebaseSync.syncToCloud(cleanSnapshot, cloudUid);
+        this.saveStatus.set('Google Cloud Activo');
+      } catch (err) {
+        console.error('Error al sincronizar puesta a cero con Firestore:', err);
+      }
+    }
+
+    // 5. Notificación toast de éxito mediante UiFeedbackService
+    if (backupBeforeReset) {
+      this.feedback.success(
+        'Se descargó el archivo de respaldo y tu espacio se reinició desde cero con éxito.',
+        'Puesta a cero completada'
+      );
+    } else {
+      this.feedback.success(
+        'Tu espacio se ha reiniciado desde cero con éxito.',
+        'Puesta a cero completada'
+      );
     }
   }
 }
