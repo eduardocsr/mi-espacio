@@ -631,6 +631,82 @@ html.dark .ProseMirror table code {
   border-color: rgba(157, 123, 150, 0.3);
 }
 
+/* ==========================================================================
+   Tiptap Media, Figures, Drawing & Embeds
+   ========================================================================== */
+.editorial-figure {
+  margin: 1.5rem 0;
+}
+
+.editorial-figure figcaption {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  letter-spacing: 0.01em;
+}
+
+.editorial-iframe-wrapper {
+  margin: 1.5rem 0;
+}
+
+.editorial-drawing-block {
+  margin: 1.5rem 0;
+}
+
+.embedded-task-block {
+  margin: 1rem 0;
+}
+
+/* Mention Chips */
+.mention-chip {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  letter-spacing: -0.01em;
+  vertical-align: baseline;
+}
+
+/* Editorial Floating Bubble Menu */
+.editorial-bubble-menu {
+  display: flex !important;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease-out, visibility 0.12s ease-out;
+}
+
+.editorial-bubble-menu[style*="visibility: visible"] {
+  pointer-events: auto;
+}
+
+/* Text Alignments */
+.ProseMirror [style*="text-align: right"],
+.ProseMirror .text-right {
+  text-align: right;
+}
+
+.ProseMirror [style*="text-align: center"],
+.ProseMirror .text-center {
+  text-align: center;
+}
+
+.ProseMirror [style*="text-align: justify"],
+.ProseMirror .text-justify {
+  text-align: justify;
+}
+
+.ProseMirror [style*="text-align: left"],
+.ProseMirror .text-left {
+  text-align: left;
+}
+
+/* RTL Support */
+.ProseMirror [dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+.ProseMirror [dir="ltr"] {
+  direction: ltr;
+  text-align: left;
+}
+
 /* Code & Pre */
 .ProseMirror code:not(pre code) {
   font-family: 'JetBrains Mono', monospace;

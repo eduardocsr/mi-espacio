@@ -65,7 +65,19 @@ import {
   WandSparkles,
   Printer,
   ArrowRight,
-  Table as TableIcon
+  Table as TableIcon,
+  TextAlignCenter,
+  TextAlignJustify,
+  TextAlignStart,
+  TextAlignEnd,
+  LayoutTemplate,
+  AtSign,
+  Globe,
+  PenTool,
+  Columns,
+  Rows,
+  CheckCheck,
+  AlertTriangle
 } from 'lucide-angular';
 
 import { Editor } from '@tiptap/core';
@@ -80,7 +92,19 @@ import TaskItem from '@tiptap/extension-task-item';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Image from '@tiptap/extension-image';
 import { Table as TiptapTable, TableRow, TableHeader, TableCell } from '@tiptap/extension-table';
+import { TextAlign } from '@tiptap/extension-text-align';
+import { BubbleMenu as TiptapBubbleMenu } from '@tiptap/extension-bubble-menu';
 import { common, createLowlight } from 'lowlight';
+
+import { SlashCommandsExtension, SlashCommandItem } from './extensions/slash-commands.extension';
+import { CleverRulesExtension } from './extensions/clever-rules.extension';
+import { FigureExtension } from './extensions/figure.extension';
+import { IframeExtension, sanitizeEmbedUrl } from './extensions/iframe.extension';
+import { DrawingExtension } from './extensions/drawing.extension';
+import { EmbeddedTaskExtension } from './extensions/embedded-task.extension';
+import { CustomMentionExtension, MentionItem } from './extensions/mention.extension';
+import { LinterExtension, LinterIssue } from './extensions/linter.extension';
+import { NOTE_TEMPLATES, NoteTemplate } from './extensions/templates.data';
 
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
@@ -215,6 +239,7 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   private readonly sanitizer = inject(DomSanitizer);
 
   readonly editorHost = viewChild<ElementRef<HTMLDivElement>>('editorHost');
+  readonly bubbleMenuEl = viewChild<ElementRef<HTMLDivElement>>('bubbleMenuEl');
   private loadedNoteId: string | null = null;
   private isInternalUpdate = false;
   private lastLocalKeystrokeAt = 0;
@@ -276,6 +301,66 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   readonly PrinterIcon = Printer;
   readonly ArrowRightIcon = ArrowRight;
   readonly TableIcon = TableIcon;
+  readonly TextAlignCenterIcon = TextAlignCenter;
+  readonly TextAlignJustifyIcon = TextAlignJustify;
+  readonly TextAlignStartIcon = TextAlignStart;
+  readonly TextAlignEndIcon = TextAlignEnd;
+  readonly LayoutTemplateIcon = LayoutTemplate;
+  readonly AtSignIcon = AtSign;
+  readonly GlobeIcon = Globe;
+  readonly PenToolIcon = PenTool;
+  readonly ColumnsIcon = Columns;
+  readonly RowsIcon = Rows;
+  readonly CheckCheckIcon = CheckCheck;
+  readonly AlertTriangleIcon = AlertTriangle;
+
+  // New Tiptap Suite States
+  readonly noteTemplates = NOTE_TEMPLATES;
+  showTemplateModal = signal<boolean>(false);
+  showIframeModal = signal<boolean>(false);
+  showFigureModal = signal<boolean>(false);
+  showTaskPickerModal = signal<boolean>(false);
+  showLinterPopover = signal<boolean>(false);
+  currentTextDirection = signal<'ltr' | 'rtl' | 'auto'>('ltr');
+  currentAlign = signal<'left' | 'center' | 'right' | 'justify'>('left');
+
+  figureForm = signal<{ src: string; caption: string; alt: string }>({ src: '', caption: '', alt: '' });
+  iframeForm = signal<{ url: string; title: string }>({ url: '', title: '' });
+  linterIssues = signal<LinterIssue[]>([]);
+
+  // Slash commands state
+  slashCommandState = signal<{
+    isOpen: boolean;
+    items: SlashCommandItem[];
+    selectedIndex: number;
+    x: number;
+    y: number;
+    command: ((item: SlashCommandItem) => void) | null;
+  }>({
+    isOpen: false,
+    items: [],
+    selectedIndex: 0,
+    x: 0,
+    y: 0,
+    command: null
+  });
+
+  // Mentions state
+  mentionState = signal<{
+    isOpen: boolean;
+    items: MentionItem[];
+    selectedIndex: number;
+    x: number;
+    y: number;
+    command: ((item: MentionItem) => void) | null;
+  }>({
+    isOpen: false,
+    items: [],
+    selectedIndex: 0,
+    x: 0,
+    y: 0,
+    command: null
+  });
 
   // Toolbar dropdown menus
   showHeadingMenu = signal<boolean>(false);
@@ -611,6 +696,8 @@ export class ApuntesComponent implements OnInit, OnDestroy {
         content: [{ type: 'paragraph' }]
       });
 
+    const bubbleEl = this.bubbleMenuEl()?.nativeElement || (typeof document !== 'undefined' ? document.getElementById('editorial-bubble-menu') : null);
+
     this.editor = new Editor({
       element,
       extensions: [
@@ -650,7 +737,94 @@ export class ApuntesComponent implements OnInit, OnDestroy {
         }),
         TableRow,
         TableHeader,
-        TableCell
+        TableCell,
+        TextAlign.configure({
+          types: ['heading', 'paragraph']
+        }),
+        CleverRulesExtension,
+        FigureExtension,
+        IframeExtension,
+        DrawingExtension,
+        EmbeddedTaskExtension.configure({
+          onNavigateToTask: (taskId: string) => this.navigateToLinkedTask(taskId)
+        }),
+        CustomMentionExtension.configure({
+          itemsSource: () => this.getMentionItems(),
+          callbacks: {
+            onOpen: ({ items, rect, command }) => {
+              const winH = typeof window !== 'undefined' ? window.innerHeight : 800;
+              const y = rect.bottom + 280 > winH && rect.top > 290 ? Math.max(16, rect.top - 288) : rect.bottom + 8;
+              this.mentionState.set({
+                isOpen: true,
+                items,
+                selectedIndex: 0,
+                x: Math.min(Math.max(rect.left, 16), (typeof window !== 'undefined' ? window.innerWidth : 800) - 300),
+                y,
+                command
+              });
+            },
+            onUpdate: ({ items, rect }) => {
+              const winH = typeof window !== 'undefined' ? window.innerHeight : 800;
+              const y = rect.bottom + 280 > winH && rect.top > 290 ? Math.max(16, rect.top - 288) : rect.bottom + 8;
+              this.mentionState.update(s => ({
+                ...s,
+                items,
+                selectedIndex: Math.min(s.selectedIndex, Math.max(0, items.length - 1)),
+                x: Math.min(Math.max(rect.left, 16), (typeof window !== 'undefined' ? window.innerWidth : 800) - 300),
+                y
+              }));
+            },
+            onClose: () => {
+              this.mentionState.update(s => ({ ...s, isOpen: false }));
+            },
+            onKeyDown: (props) => this.handleMentionKeyDown(props)
+          }
+        }),
+        SlashCommandsExtension.configure({
+          items: this.buildSlashCommandItems(),
+          callbacks: {
+            onOpen: ({ items, rect, command }) => {
+              const winH = typeof window !== 'undefined' ? window.innerHeight : 800;
+              const y = rect.bottom + 320 > winH && rect.top > 330 ? Math.max(16, rect.top - 328) : rect.bottom + 8;
+              this.slashCommandState.set({
+                isOpen: true,
+                items,
+                selectedIndex: 0,
+                x: Math.min(Math.max(rect.left, 16), (typeof window !== 'undefined' ? window.innerWidth : 800) - 320),
+                y,
+                command
+              });
+            },
+            onUpdate: ({ items, rect }) => {
+              const winH = typeof window !== 'undefined' ? window.innerHeight : 800;
+              const y = rect.bottom + 320 > winH && rect.top > 330 ? Math.max(16, rect.top - 328) : rect.bottom + 8;
+              this.slashCommandState.update(s => ({
+                ...s,
+                items,
+                selectedIndex: Math.min(s.selectedIndex, Math.max(0, items.length - 1)),
+                x: Math.min(Math.max(rect.left, 16), (typeof window !== 'undefined' ? window.innerWidth : 800) - 320),
+                y
+              }));
+            },
+            onClose: () => {
+              this.slashCommandState.update(s => ({ ...s, isOpen: false }));
+            },
+            onKeyDown: (props) => this.handleSlashKeyDown(props)
+          }
+        }),
+        LinterExtension.configure({
+          onIssuesUpdated: (issues) => {
+            this.linterIssues.set(issues);
+          }
+        }),
+        ...(bubbleEl
+          ? [
+              TiptapBubbleMenu.configure({
+                element: bubbleEl as HTMLElement,
+                updateDelay: 50
+              })
+            ]
+          : [])
       ],
       content: initialContent,
       editorProps: {
@@ -1796,6 +1970,466 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
     this.feedback.info('Tabla insertada. Puedes escribir en cada celda.');
   }
 
+  addTableRowBefore(): void {
+    this.editor?.chain().focus().addRowBefore().run();
+  }
+
+  addTableRowAfter(): void {
+    this.editor?.chain().focus().addRowAfter().run();
+  }
+
+  deleteTableRow(): void {
+    this.editor?.chain().focus().deleteRow().run();
+  }
+
+  addTableColBefore(): void {
+    this.editor?.chain().focus().addColumnBefore().run();
+  }
+
+  addTableColAfter(): void {
+    this.editor?.chain().focus().addColumnAfter().run();
+  }
+
+  deleteTableCol(): void {
+    this.editor?.chain().focus().deleteColumn().run();
+  }
+
+  deleteTable(): void {
+    this.editor?.chain().focus().deleteTable().run();
+    this.feedback.info('Tabla eliminada.');
+  }
+
+  toggleTableHeaderRow(): void {
+    this.editor?.chain().focus().toggleHeaderRow().run();
+  }
+
+  setTextAlign(align: 'left' | 'center' | 'right' | 'justify'): void {
+    this.currentAlign.set(align);
+    this.editor?.chain().focus().setTextAlign(align).run();
+  }
+
+  toggleTextDirection(): void {
+    const next = this.currentTextDirection() === 'rtl' ? 'ltr' : 'rtl';
+    this.currentTextDirection.set(next);
+    this.feedback.info(`Dirección de texto: ${next === 'rtl' ? 'Derecha a Izquierda (RTL)' : 'Izquierda a Derecha (LTR)'}`);
+  }
+
+  buildSlashCommandItems(): SlashCommandItem[] {
+    return [
+      {
+        id: 'h1',
+        title: 'Título 1',
+        description: 'Encabezado grande para secciones principales',
+        category: 'Texto',
+        icon: 'heading-1',
+        command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setHeading({ level: 1 }).run()
+      },
+      {
+        id: 'h2',
+        title: 'Título 2',
+        description: 'Subtítulo mediano para subsecciones',
+        category: 'Texto',
+        icon: 'heading-2',
+        command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setHeading({ level: 2 }).run()
+      },
+      {
+        id: 'h3',
+        title: 'Título 3',
+        description: 'Encabezado pequeño para apartados',
+        category: 'Texto',
+        icon: 'heading-3',
+        command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setHeading({ level: 3 }).run()
+      },
+      {
+        id: 'bullet-list',
+        title: 'Lista con viñetas',
+        description: 'Lista simple con viñetas redondas',
+        category: 'Listas',
+        icon: 'list',
+        command: ({ editor, range }) => editor.chain().focus().deleteRange(range).toggleBulletList().run()
+      },
+      {
+        id: 'ordered-list',
+        title: 'Lista numerada',
+        description: 'Secuencia ordenada paso a paso',
+        category: 'Listas',
+        icon: 'list-ordered',
+        command: ({ editor, range }) => editor.chain().focus().deleteRange(range).toggleOrderedList().run()
+      },
+      {
+        id: 'task-list',
+        title: 'Lista de verificación',
+        description: 'Casillas de verificación interactivas',
+        category: 'Listas',
+        icon: 'list-todo',
+        command: ({ editor, range }) => editor.chain().focus().deleteRange(range).toggleTaskList().run()
+      },
+      {
+        id: 'table',
+        title: 'Tabla editorial',
+        description: 'Tabla de 3 filas y 2 columnas con bordes',
+        category: 'Estructura',
+        icon: 'table',
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 2, withHeaderRow: true }).run();
+        }
+      },
+      {
+        id: 'code-block',
+        title: 'Bloque de código',
+        description: 'Fragmento con resaltado y botón copiar',
+        category: 'Estructura',
+        icon: 'code',
+        command: ({ editor, range }) => editor.chain().focus().deleteRange(range).toggleCodeBlock().run()
+      },
+      {
+        id: 'quote',
+        title: 'Cita editorial',
+        description: 'Párrafo destacado con borde cálido',
+        category: 'Texto',
+        icon: 'quote',
+        command: ({ editor, range }) => editor.chain().focus().deleteRange(range).toggleBlockquote().run()
+      },
+      {
+        id: 'divider',
+        title: 'Separador horizontal',
+        description: 'Línea divisoria sutil',
+        category: 'Estructura',
+        icon: 'minus',
+        command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setHorizontalRule().run()
+      },
+      {
+        id: 'figure',
+        title: 'Figura con pie de foto',
+        description: 'Imagen centrada con epígrafe descriptivo',
+        category: 'Multimedia',
+        icon: 'image',
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).run();
+          this.openFigureModal();
+        }
+      },
+      {
+        id: 'drawing',
+        title: 'Dibujo a mano alzada',
+        description: 'Lienzo vectorial SVG interactivo',
+        category: 'Multimedia',
+        icon: 'pen-tool',
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).insertContent({ type: 'drawing', attrs: { lines: [] } }).run();
+        }
+      },
+      {
+        id: 'iframe',
+        title: 'Incrustar web (iFrame seguro)',
+        description: 'Figma, YouTube, Google Docs o Vimeo',
+        category: 'Multimedia',
+        icon: 'globe',
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).run();
+          this.openIframeModal();
+        }
+      },
+      {
+        id: 'template',
+        title: 'Plantilla estructurada',
+        description: 'Acta de reunión, especificación o proyecto',
+        category: 'Avanzado',
+        icon: 'layout-template',
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).run();
+          this.showTemplateModal.set(true);
+        }
+      }
+    ];
+  }
+
+  getSlashItemIcon(iconName: string): any {
+    switch (iconName) {
+      case 'heading-1':
+      case 'heading-2':
+      case 'heading-3':
+        return this.FileTextIcon;
+      case 'list':
+        return this.ListIcon;
+      case 'list-ordered':
+        return this.ListOrderedIcon;
+      case 'list-todo':
+        return this.ListTodoIcon;
+      case 'table':
+        return this.TableIcon;
+      case 'code':
+        return this.Code2Icon;
+      case 'quote':
+        return this.QuoteIcon;
+      case 'minus':
+        return this.MoreVerticalIcon;
+      case 'image':
+        return this.ImageIcon;
+      case 'pen-tool':
+        return this.PenToolIcon;
+      case 'globe':
+        return this.GlobeIcon;
+      case 'layout-template':
+        return this.LayoutTemplateIcon;
+      default:
+        return this.SparklesIcon;
+    }
+  }
+
+  getMentionItems(): MentionItem[] {
+    const items: MentionItem[] = [];
+    const currentId = this.currentNote()?.id;
+
+    // Notas del usuario
+    this.workspace.notes().forEach(n => {
+      if (n.id !== currentId) {
+        items.push({
+          id: n.id,
+          label: n.title || 'Nota sin título',
+          type: 'nota',
+          info: 'Apunte'
+        });
+      }
+    });
+
+    // Tareas del tablero Kanban
+    this.workspace.tasks().forEach(t => {
+      items.push({
+        id: t.id,
+        label: `${t.issueKey}: ${t.title}`,
+        type: 'tarea',
+        info: `Tarea (${this.getColumnLabel(t.status)})`
+      });
+    });
+
+    // Carpetas
+    this.workspace.folders().forEach(f => {
+      items.push({
+        id: f.id,
+        label: f.name,
+        type: 'carpeta',
+        info: 'Carpeta'
+      });
+    });
+
+    return items;
+  }
+
+  handleSlashKeyDown(props: { event: KeyboardEvent }): boolean {
+    const { event } = props;
+    const state = this.slashCommandState();
+    if (!state.isOpen || state.items.length === 0) return false;
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      const newIdx = (state.selectedIndex + state.items.length - 1) % state.items.length;
+      this.slashCommandState.update(s => ({ ...s, selectedIndex: newIdx }));
+      return true;
+    }
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      const newIdx = (state.selectedIndex + 1) % state.items.length;
+      this.slashCommandState.update(s => ({ ...s, selectedIndex: newIdx }));
+      return true;
+    }
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const item = state.items[state.selectedIndex];
+      if (item && state.command) {
+        state.command(item);
+      }
+      return true;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.slashCommandState.update(s => ({ ...s, isOpen: false }));
+      return true;
+    }
+    return false;
+  }
+
+  handleMentionKeyDown(props: { event: KeyboardEvent }): boolean {
+    const { event } = props;
+    const state = this.mentionState();
+    if (!state.isOpen || state.items.length === 0) return false;
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      const newIdx = (state.selectedIndex + state.items.length - 1) % state.items.length;
+      this.mentionState.update(s => ({ ...s, selectedIndex: newIdx }));
+      return true;
+    }
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      const newIdx = (state.selectedIndex + 1) % state.items.length;
+      this.mentionState.update(s => ({ ...s, selectedIndex: newIdx }));
+      return true;
+    }
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const item = state.items[state.selectedIndex];
+      if (item && state.command) {
+        state.command(item);
+      }
+      return true;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.mentionState.update(s => ({ ...s, isOpen: false }));
+      return true;
+    }
+    return false;
+  }
+
+  selectSlashItem(item: SlashCommandItem): void {
+    const state = this.slashCommandState();
+    if (state.command) {
+      state.command(item);
+    }
+    this.slashCommandState.update(s => ({ ...s, isOpen: false }));
+  }
+
+  selectMentionItem(item: MentionItem): void {
+    const state = this.mentionState();
+    if (state.command) {
+      state.command(item);
+    }
+    this.mentionState.update(s => ({ ...s, isOpen: false }));
+  }
+
+  convertSelectionToTask(): void {
+    if (!this.editor) return;
+    const { from, to } = this.editor.state.selection;
+    const selectedText = this.editor.state.doc.textBetween(from, to, ' ').trim();
+    if (!selectedText) {
+      this.feedback.warning('Selecciona texto en el editor para convertirlo en tarea.');
+      return;
+    }
+
+    const folder = this.currentFolder();
+    const title = selectedText.length > 90 ? selectedText.slice(0, 87) + '...' : selectedText;
+    const newTask = this.workspace.addTask({
+      title,
+      description: selectedText,
+      projectTag: folder ? folder.name : 'General',
+      priority: 'Media',
+      status: 'todo',
+      linkedNoteId: this.currentNote()?.id,
+      subtasks: []
+    });
+
+    this.editor.chain().focus().deleteRange({ from, to }).insertContent({
+      type: 'embeddedTask',
+      attrs: {
+        taskId: newTask.id,
+        issueKey: newTask.issueKey,
+        title: newTask.title,
+        status: newTask.status,
+        priority: newTask.priority
+      }
+    }).run();
+
+    this.feedback.success(`Tarea ${newTask.issueKey} creada e insertada en el apunte`, 'Tarea en Kanban', {
+      actionLabel: 'Ver en Kanban →',
+      onAction: () => this.navigateToLinkedTask(newTask.id)
+    });
+  }
+
+  closeSlashCommands(): void {
+    this.slashCommandState.update(s => ({ ...s, isOpen: false }));
+  }
+
+  closeMentions(): void {
+    this.mentionState.update(s => ({ ...s, isOpen: false }));
+  }
+
+  updateFigureSrc(src: string): void {
+    this.figureForm.update(f => ({ ...f, src }));
+  }
+
+  updateFigureCaption(caption: string): void {
+    this.figureForm.update(f => ({ ...f, caption }));
+  }
+
+  updateFigureAlt(alt: string): void {
+    this.figureForm.update(f => ({ ...f, alt }));
+  }
+
+  updateIframeUrl(url: string): void {
+    this.iframeForm.update(f => ({ ...f, url }));
+  }
+
+  updateIframeTitle(title: string): void {
+    this.iframeForm.update(f => ({ ...f, title }));
+  }
+
+  openFigureModal(): void {
+    this.figureForm.set({ src: '', caption: '', alt: '' });
+    this.showFigureModal.set(true);
+  }
+
+  insertFigure(): void {
+    const form = this.figureForm();
+    if (!form.src.trim()) return;
+    this.editor?.chain().focus().insertContent({
+      type: 'figure',
+      attrs: {
+        src: form.src.trim(),
+        alt: form.alt.trim() || 'Imagen editorial',
+        caption: form.caption.trim() || 'Pie de foto descriptivo'
+      }
+    }).run();
+    this.showFigureModal.set(false);
+    this.feedback.success('Figura con pie de foto insertada.');
+  }
+
+  openIframeModal(): void {
+    this.iframeForm.set({ url: '', title: '' });
+    this.showIframeModal.set(true);
+  }
+
+  insertIframe(): void {
+    const form = this.iframeForm();
+    if (!form.url.trim()) return;
+    const safeSrc = sanitizeEmbedUrl(form.url.trim());
+    if (!safeSrc) {
+      this.feedback.warning('El enlace debe ser de un proveedor compatible (YouTube, Vimeo, Figma, Google Docs o CodePen).');
+      return;
+    }
+    this.editor?.chain().focus().insertContent({
+      type: 'iframeNode',
+      attrs: {
+        src: safeSrc,
+        title: form.title.trim() || 'Contenido incrustado'
+      }
+    }).run();
+    this.showIframeModal.set(false);
+    this.feedback.success('Incrustación multimedia insertada.');
+  }
+
+  insertDrawing(): void {
+    this.editor?.chain().focus().insertContent({
+      type: 'drawing',
+      attrs: { lines: [] }
+    }).run();
+    this.feedback.info('Lienzo de dibujo vectorial interactivo insertado.');
+  }
+
+  applyTemplate(template: NoteTemplate): void {
+    if (!this.editor) return;
+    this.editor.chain().focus().insertContent(template.contentHtml).run();
+    this.showTemplateModal.set(false);
+    this.feedback.success(`Plantilla "${template.name}" insertada en el apunte.`);
+  }
+
+  jumpToIssue(issue: LinterIssue): void {
+    if (!this.editor) return;
+    this.editor.commands.setTextSelection({ from: issue.from, to: issue.to });
+    this.editor.commands.focus();
+    this.showLinterPopover.set(false);
+  }
+
   async runAiStructureNote(): Promise<void> {
     const note = this.currentNote();
     if (!note) return;
@@ -2074,6 +2708,40 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
       case 'a': {
         const href = el.getAttribute('href') || '';
         return `[${getChildrenMd()}](${href})`;
+      }
+      case 'figure': {
+        const img = el.querySelector('img');
+        const caption = el.querySelector('figcaption');
+        const src = img?.getAttribute('src') || '';
+        const alt = img?.getAttribute('alt') || 'figura';
+        const capText = caption ? this.domNodeToMarkdown(caption).trim() : '';
+        return `\n\n![${alt}](${src})${capText ? `\n*${capText}*` : ''}\n\n`;
+      }
+      case 'figcaption': return getChildrenMd().trim();
+      case 'iframe':
+      case 'iframe-node': {
+        const src = el.getAttribute('src') || '';
+        const title = el.getAttribute('title') || 'Contenido incrustado';
+        return `\n\n[Incrustación: ${title}](${src})\n\n`;
+      }
+      case 'div': {
+        const dataType = el.getAttribute('data-type');
+        if (dataType === 'embedded-task') {
+          const key = el.getAttribute('data-issue-key') || 'TASK';
+          const title = el.getAttribute('data-title') || '';
+          const priority = el.getAttribute('data-priority') || '';
+          return `\n\n> [Tarea ${key}: **${title}** (${priority})]\n\n`;
+        }
+        if (dataType === 'editorial-drawing') {
+          return `\n\n> [Dibujo vectorial SVG]\n\n`;
+        }
+        return getChildrenMd();
+      }
+      case 'span': {
+        if (el.classList.contains('mention-chip') || el.hasAttribute('data-mention-type')) {
+          return `@${el.textContent?.replace(/^@/, '').trim()}`;
+        }
+        return getChildrenMd();
       }
       case 'img': {
         const src = el.getAttribute('src') || '';
