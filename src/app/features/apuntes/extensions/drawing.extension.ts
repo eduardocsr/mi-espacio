@@ -1,4 +1,5 @@
 import { Node, mergeAttributes } from '@tiptap/core';
+import { NodeSelection } from '@tiptap/pm/state';
 
 export interface DrawingLine {
   color: string;
@@ -22,7 +23,7 @@ export const DrawingExtension = Node.create<DrawingOptions>({
   name: 'drawing',
   group: 'block',
   atom: true,
-  draggable: true,
+  draggable: false,
   isolating: true,
 
   addOptions() {
@@ -86,7 +87,6 @@ export const DrawingExtension = Node.create<DrawingOptions>({
   addNodeView() {
     return (props: any) => {
       const { node, editor } = props;
-      const updateAttributes = props.updateAttributes || ((attrs: any) => editor.commands.updateAttributes('drawing', attrs));
       let lines: DrawingLine[] = [...(node.attrs['lines'] || [])];
       let currentColor = '#74566E';
       let currentSize = 3;
@@ -94,9 +94,85 @@ export const DrawingExtension = Node.create<DrawingOptions>({
       let isDrawing = false;
       let currentPoints: { x: number; y: number }[] = [];
 
+      const selectThisNode = () => {
+        if (typeof props.getPos === 'function') {
+          try {
+            const pos = props.getPos();
+            if (pos !== undefined && editor?.view) {
+              const { state } = editor;
+              if (!state.selection || state.selection.from !== pos) {
+                const tr = state.tr.setSelection(NodeSelection.create(state.doc, pos));
+                editor.view.dispatch(tr);
+              }
+            }
+          } catch {}
+        }
+      };
+
+      const safeUpdateAttributes = (attrs: Record<string, any>) => {
+        // Capturar la posición exacta de scroll de todos los ancestros scrollables y de la ventana
+        const scrollAncestors: { el: HTMLElement; top: number; left: number }[] = [];
+        let curr: HTMLElement | null = container;
+        while (curr) {
+          if (curr.scrollHeight > curr.clientHeight || curr.scrollWidth > curr.clientWidth) {
+            scrollAncestors.push({ el: curr, top: curr.scrollTop, left: curr.scrollLeft });
+          }
+          curr = curr.parentElement;
+        }
+        const winTop = typeof window !== 'undefined' ? window.scrollY : 0;
+        const winLeft = typeof window !== 'undefined' ? window.scrollX : 0;
+
+        const restoreScroll = () => {
+          for (const item of scrollAncestors) {
+            if (item.el.scrollTop !== item.top) item.el.scrollTop = item.top;
+            if (item.el.scrollLeft !== item.left) item.el.scrollLeft = item.left;
+          }
+          if (typeof window !== 'undefined' && window.scrollY !== winTop) {
+            window.scrollTo(winLeft, winTop);
+          }
+        };
+
+        if (typeof props.getPos === 'function') {
+          const pos = props.getPos();
+          if (pos !== undefined && editor?.view) {
+            let tr = editor.state.tr.setNodeMarkup(pos, undefined, {
+              ...node.attrs,
+              ...attrs
+            });
+            // Mantener la selección en este nodo para que ProseMirror y el navegador NO salten al final del documento
+            try {
+              tr = tr.setSelection(NodeSelection.create(tr.doc, pos));
+            } catch {}
+            tr.setMeta('addToHistory', true);
+            editor.view.dispatch(tr);
+
+            restoreScroll();
+            requestAnimationFrame(restoreScroll);
+            setTimeout(restoreScroll, 25);
+            return;
+          }
+        }
+
+        if (typeof props.updateAttributes === 'function') {
+          props.updateAttributes(attrs);
+          restoreScroll();
+          requestAnimationFrame(restoreScroll);
+          setTimeout(restoreScroll, 25);
+        }
+      };
+
       const container = document.createElement('div');
       container.className =
         'editorial-drawing-block my-6 p-3 rounded-2xl bg-[#FAF7F5] dark:bg-[#16151B] border border-[#EAE2DE] dark:border-[#2A2832] shadow-xs select-none';
+      container.contentEditable = 'false';
+      container.setAttribute('draggable', 'false');
+      container.onpointerdown = () => {
+        selectThisNode();
+      };
+      container.ondragstart = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      };
 
       // Header Toolbar
       const toolbar = document.createElement('div');
@@ -137,6 +213,8 @@ export const DrawingExtension = Node.create<DrawingOptions>({
         btn.style.backgroundColor = c.value;
         btn.onclick = (e) => {
           e.preventDefault();
+          e.stopPropagation();
+          selectThisNode();
           isErasing = false;
           currentColor = c.value;
           updateActiveTools();
@@ -162,6 +240,8 @@ export const DrawingExtension = Node.create<DrawingOptions>({
         btn.textContent = `${s.val}px`;
         btn.onclick = (e) => {
           e.preventDefault();
+          e.stopPropagation();
+          selectThisNode();
           currentSize = s.val;
           updateActiveTools();
         };
@@ -178,6 +258,8 @@ export const DrawingExtension = Node.create<DrawingOptions>({
       `;
       eraserBtn.onclick = (e) => {
         e.preventDefault();
+        e.stopPropagation();
+        selectThisNode();
         isErasing = !isErasing;
         updateActiveTools();
       };
@@ -189,10 +271,12 @@ export const DrawingExtension = Node.create<DrawingOptions>({
       undoBtn.textContent = 'Deshacer';
       undoBtn.onclick = (e) => {
         e.preventDefault();
+        e.stopPropagation();
+        selectThisNode();
         if (lines.length > 0) {
           lines.pop();
           renderPaths();
-          updateAttributes({ lines });
+          safeUpdateAttributes({ lines });
         }
       };
 
@@ -203,9 +287,11 @@ export const DrawingExtension = Node.create<DrawingOptions>({
       clearBtn.textContent = 'Limpiar';
       clearBtn.onclick = (e) => {
         e.preventDefault();
+        e.stopPropagation();
+        selectThisNode();
         lines = [];
         renderPaths();
-        updateAttributes({ lines });
+        safeUpdateAttributes({ lines });
       };
 
       function updateActiveTools() {
@@ -228,8 +314,20 @@ export const DrawingExtension = Node.create<DrawingOptions>({
       // SVG Canvas
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.setAttribute('viewBox', '0 0 700 320');
-      svg.setAttribute('class', 'w-full rounded-xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] cursor-crosshair touch-none');
+      svg.setAttribute('class', 'w-full rounded-xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] cursor-crosshair');
+      svg.setAttribute('draggable', 'false');
       svg.style.height = '280px';
+      svg.style.touchAction = 'none';
+      svg.style.userSelect = 'none';
+      (svg.style as any).webkitUserSelect = 'none';
+
+      svg.ondragstart = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      };
+      svg.onmousedown = (e) => {
+        e.stopPropagation();
+      };
 
       const pathsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       svg.appendChild(pathsGroup);
@@ -276,10 +374,17 @@ export const DrawingExtension = Node.create<DrawingOptions>({
 
       svg.onpointerdown = (e) => {
         if (!editor.isEditable) return;
+        e.preventDefault();
+        e.stopPropagation();
+        selectThisNode();
         isDrawing = true;
-        svg.setPointerCapture(e.pointerId);
+        try {
+          svg.setPointerCapture(e.pointerId);
+        } catch {}
         currentPoints = [getPoint(e)];
-        const strokeColor = isErasing ? '#FFFFFF' : currentColor;
+        const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+        const eraseColor = isDark ? '#19181E' : '#FFFFFF';
+        const strokeColor = isErasing ? eraseColor : currentColor;
         const strokeSize = isErasing ? currentSize * 3 : currentSize;
 
         livePath.setAttribute('stroke', strokeColor);
@@ -289,22 +394,33 @@ export const DrawingExtension = Node.create<DrawingOptions>({
 
       svg.onpointermove = (e) => {
         if (!isDrawing) return;
+        e.preventDefault();
+        e.stopPropagation();
         currentPoints.push(getPoint(e));
         livePath.setAttribute('d', pointsToSvgPath(currentPoints));
       };
 
-      const finishStroke = () => {
+      const finishStroke = (e?: PointerEvent) => {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          try {
+            svg.releasePointerCapture(e.pointerId);
+          } catch {}
+        }
         if (!isDrawing) return;
         isDrawing = false;
         if (currentPoints.length > 0) {
-          const strokeColor = isErasing ? '#FFFFFF' : currentColor;
+          const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+          const eraseColor = isDark ? '#19181E' : '#FFFFFF';
+          const strokeColor = isErasing ? eraseColor : currentColor;
           const strokeSize = isErasing ? currentSize * 3 : currentSize;
           const d = pointsToSvgPath(currentPoints);
           lines.push({ color: strokeColor, size: strokeSize, d });
           currentPoints = [];
           livePath.setAttribute('d', '');
           renderPaths();
-          updateAttributes({ lines });
+          safeUpdateAttributes({ lines });
         }
       };
 
@@ -323,7 +439,9 @@ export const DrawingExtension = Node.create<DrawingOptions>({
           lines = [...(updatedNode.attrs['lines'] || [])];
           renderPaths();
           return true;
-        }
+        },
+        ignoreMutation: () => true,
+        stopEvent: () => true
       };
     };
   },

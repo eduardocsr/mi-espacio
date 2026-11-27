@@ -94,12 +94,13 @@ import Image from '@tiptap/extension-image';
 import { Table as TiptapTable, TableRow, TableHeader, TableCell } from '@tiptap/extension-table';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { BubbleMenu as TiptapBubbleMenu } from '@tiptap/extension-bubble-menu';
+import { NodeSelection } from '@tiptap/pm/state';
 import { common, createLowlight } from 'lowlight';
 
 import { SlashCommandsExtension, SlashCommandItem } from './extensions/slash-commands.extension';
 import { CleverRulesExtension } from './extensions/clever-rules.extension';
 import { FigureExtension } from './extensions/figure.extension';
-import { IframeExtension, sanitizeEmbedUrl } from './extensions/iframe.extension';
+import { IframeExtension, IframeNodeExtension, sanitizeEmbedUrl } from './extensions/iframe.extension';
 import { DrawingExtension } from './extensions/drawing.extension';
 import { EmbeddedTaskExtension } from './extensions/embedded-task.extension';
 import { CustomMentionExtension, MentionItem } from './extensions/mention.extension';
@@ -744,6 +745,7 @@ export class ApuntesComponent implements OnInit, OnDestroy {
         CleverRulesExtension,
         FigureExtension,
         IframeExtension,
+        IframeNodeExtension,
         DrawingExtension,
         EmbeddedTaskExtension.configure({
           onNavigateToTask: (taskId: string) => this.navigateToLinkedTask(taskId)
@@ -2391,28 +2393,69 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
 
   insertIframe(): void {
     const form = this.iframeForm();
-    if (!form.url.trim()) return;
-    const safeSrc = sanitizeEmbedUrl(form.url.trim());
-    if (!safeSrc) {
+    const rawUrl = form.url.trim();
+    if (!rawUrl) return;
+
+    const { safeUrl, service } = sanitizeEmbedUrl(rawUrl);
+    if (!safeUrl) {
       this.feedback.warning('El enlace debe ser de un proveedor compatible (YouTube, Vimeo, Figma, Google Docs o CodePen).');
       return;
     }
-    this.editor?.chain().focus().insertContent({
-      type: 'iframeNode',
-      attrs: {
-        src: safeSrc,
-        title: form.title.trim() || 'Contenido incrustado'
+
+    const title = form.title.trim() || `Contenido de ${service}`;
+    if (this.editor) {
+      const sel = this.editor.state.selection;
+      if (sel instanceof NodeSelection) {
+        this.editor.chain().focus().setTextSelection(sel.to).insertContent([
+          {
+            type: 'iframe',
+            attrs: { src: safeUrl, title, service }
+          },
+          {
+            type: 'paragraph'
+          }
+        ]).run();
+      } else {
+        this.editor.chain().focus().insertContent([
+          {
+            type: 'iframe',
+            attrs: { src: safeUrl, title, service }
+          },
+          {
+            type: 'paragraph'
+          }
+        ]).run();
       }
-    }).run();
+    }
+
     this.showIframeModal.set(false);
-    this.feedback.success('Incrustación multimedia insertada.');
+    this.feedback.success(`Incrustación de ${service} insertada.`);
   }
 
   insertDrawing(): void {
-    this.editor?.chain().focus().insertContent({
-      type: 'drawing',
-      attrs: { lines: [] }
-    }).run();
+    if (!this.editor) return;
+    const sel = this.editor.state.selection;
+    if (sel instanceof NodeSelection) {
+      this.editor.chain().focus().setTextSelection(sel.to).insertContent([
+        {
+          type: 'drawing',
+          attrs: { lines: [] }
+        },
+        {
+          type: 'paragraph'
+        }
+      ]).run();
+    } else {
+      this.editor.chain().focus().insertContent([
+        {
+          type: 'drawing',
+          attrs: { lines: [] }
+        },
+        {
+          type: 'paragraph'
+        }
+      ]).run();
+    }
     this.feedback.info('Lienzo de dibujo vectorial interactivo insertado.');
   }
 
