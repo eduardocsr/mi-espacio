@@ -209,35 +209,65 @@ export class AiConfigService {
    */
   async improveWriting(title: string, content: string): Promise<string> {
     const systemPrompt =
-      'Eres un editor editorial profesional para "Mi Espacio". Reescribe y pule el texto para maximizar la claridad, coherencia, gramática y elegancia, respetando el tono original del autor. Devuelve directamente el texto formateado en HTML estándar (<p>, <h2>, <h3>, <ul><li>, etc.) sin explicaciones, sin saludos ni delimitadores de código markdown.';
+      'Eres un editor editorial profesional para "Mi Espacio" (estilo Notion editorial). Reescribe y pule el texto para maximizar la claridad, coherencia, gramática y elegancia, respetando el tono original del autor. Si el texto incluye tablas o datos estructurados, mantén y optimiza su formato en <table> o listas según corresponda. Devuelve directamente el texto formateado en HTML estándar (<p>, <h2>, <h3>, <table>, <thead>, <tbody>, <tr>, <th>, <td>, <code>, <ul><li>, etc.) sin explicaciones, sin saludos ni delimitadores de código markdown.';
     const userPrompt = `Título: "${title}"\n\nTexto original a mejorar:\n${content}`;
     const raw = await this.generateText(userPrompt, systemPrompt);
     return this.cleanHtmlOutput(raw);
   }
 
   /**
-   * Analiza un apunte desordenado, lluvia de ideas o borrador caótico y lo estructura impecablemente:
-   * crea títulos de sección (h2, h3), párrafos limpios, viñetas de puntos clave y checklist de tareas.
+   * Analiza un apunte desordenado, lluvia de ideas, borrador caótico o datos crudos y lo estructura impecablemente:
+   * detecta automáticamente si la información es tabular (roles/códigos, credenciales, matrices) para crear tablas estilo Notion
+   * o si es narrativa para organizar títulos de sección (h2, h3), párrafos limpios, viñetas y tareas.
    */
   async structureMessyNote(title: string, content: string): Promise<string> {
-    const systemPrompt = `Eres un arquitecto de información y editor editorial de élite para la aplicación "Mi Espacio".
-Tu misión es transformar notas desordenadas, transcripciones caóticas, notas rápidas de reunión o lluvias de ideas en un documento perfectamente estructurado, visualmente atractivo y fácil de leer.
+    const systemPrompt = `Eres un arquitecto de información y editor editorial de élite para la aplicación "Mi Espacio" (diseñada con la sofisticación visual y estructural de Notion y Obsidian).
+Tu misión es transformar notas desordenadas, transcripciones caóticas, datos crudos, listas de roles y códigos, o lluvias de ideas en un documento perfectamente estructurado, visualmente atractivo, profesional y fácil de leer.
 
-Reglas de estructuración:
-1. Extrae y agrupa las ideas afines en secciones temáticas con jerarquía clara.
-2. Utiliza <h2> para los títulos de cada sección (por ejemplo: "Contexto y Objetivos", "Puntos Principales", "Decisiones Tomadas", "Tareas y Pendientes", "Próximos Pasos").
-3. Utiliza <h3> para subsecciones si el contenido lo requiere.
-4. Redacta explicaciones en párrafos <p> fluidos, claros y bien puntuados.
-5. Emplea listas con viñetas (<ul><li>...</li></ul>) para listar ideas, detalles o acuerdos.
-6. Si detectas compromisos, acciones o tareas por realizar en el texto desordenado, agrúpalos bajo una sección <h2>Tareas y Pendientes</h2> utilizando el formato de lista de verificación de Tiptap:
-   <ul data-type="taskList">
-     <li data-type="taskItem" data-checked="false"><label><input type="checkbox"></label><div><p>Descripción concreta de la acción</p></div></li>
-   </ul>
-7. Conserva todos los datos, nombres, fechas, cifras e información relevante presente en el texto original; no inventes datos inexistentes.
-8. Devuelve exclusivamente fragmentos HTML válidos y limpios (<p>, <h2>, <h3>, <ul>, <li>, <strong>, <em>, <ul data-type="taskList">).
-9. NO incluyas <html>, <head>, <body>, ni bloques de código markdown como \`\`\`html.`;
+Reglas clave de estructuración inteligente:
 
-    const userPrompt = `Título actual: "${title}"\n\nContenido desordenado a transformar y estructurar:\n${content}`;
+1. DETECCIÓN AUTOMÁTICA DE DATOS TABULARES / CLAVE-VALOR (Estilo Notion):
+   - Si el contenido proporcionado consiste en datos tabulares, columnas separadas por tabulaciones, espacios o saltos de línea (por ejemplo: encabezados como "Perfil / Rol" y "Usuario / Código", roles con identificadores, credenciales, usuarios del sistema, inventarios, catálogos o matrices comparativas):
+     DEBES CONSTRUIR OBLIGATORIAMENTE UNA TABLA HTML SEMÁNTICA:
+     <table>
+       <thead>
+         <tr>
+           <th>Encabezado 1</th>
+           <th>Encabezado 2</th>
+         </tr>
+       </thead>
+       <tbody>
+         <tr>
+           <td>Nombre del Rol o Entidad</td>
+           <td><code>CODIGO_IDENTIFICADOR</code></td>
+         </tr>
+       </tbody>
+     </table>
+   - IDENTIFICADORES TÉCNICOS: En las celdas de códigos de usuario, nombres técnicos de sistema, identificadores, números de serie o credenciales (ej. ADMIN_SISGOE_1_3050, 45454545, SISGOE_JODPE_PUERTO_INCA), envuelve SIEMPRE cada código dentro de etiquetas <code>...</code> para que se visualicen como tokens técnicos destacados con estilo Notion.
+   - AGRUPACIÓN INTELIGENTE DE FILAS: Si un perfil, rol o categoría posee múltiples usuarios o códigos subordinados (por ejemplo, "ENCUESTAS" con varios analistas/supervisores, o "PERFIL GOECOR" con supervisor y coordinador), colócalos dentro de la misma fila correspondiente, asignando cada código a su propia etiqueta <code>...</code> en párrafos separados (<p><code>CODIGO_1</code></p><p><code>CODIGO_2</code></p>).
+   - LIMPIEZA DE ETIQUETAS: Presenta los nombres de roles de forma limpia, clara y legible.
+
+2. CONTENIDO NARRATIVO, REUNIONES O PROYECTOS:
+   - Si el contenido es descriptivo o una mezcla de texto y datos:
+     a) Extrae y agrupa las ideas en secciones temáticas con jerarquía clara utilizando <h2> para títulos principales y <h3> para subsecciones.
+     b) Redacta párrafos <p> fluidos, profesionales y bien redactados.
+     c) Utiliza listas con viñetas (<ul><li>...</li></ul>) para enumerar puntos clave, detalles o notas secundarias.
+     d) Si hay datos relacionales dentro del texto narrativo, integra una <table> dentro de la sección correspondiente.
+
+3. LISTA DE TAREAS Y ACCIONES PENDIENTES:
+   - Si detectas compromisos o tareas a realizar, agrúpalos bajo una sección <h2>Tareas y Pendientes</h2> utilizando el formato de checklist de Tiptap:
+     <ul data-type="taskList">
+       <li data-type="taskItem" data-checked="false"><label><input type="checkbox"></label><div><p>Acción concreta a realizar</p></div></li>
+     </ul>
+
+4. FIDELIDAD TOTAL DE LA INFORMACIÓN:
+   - Conserva absolutamente todos los nombres, códigos, cifras, fechas e información del texto original; no descartes ningún dato ni inventes información no presente en la nota.
+
+5. FORMATO DE SALIDA ESTRICTO:
+   - Devuelve EXCLUSIVAMENTE fragmentos HTML limpios y válidos (<table>, <thead>, <tbody>, <tr>, <th>, <td>, <code>, <p>, <h2>, <h3>, <ul>, <li>, <strong>, <em>, <mark>, <ul data-type="taskList">).
+   - NO incluyas <html>, <head>, <body>, ni bloques de código envolventes markdown como \`\`\`html.`;
+
+    const userPrompt = `Título actual del apunte: "${title}"\n\nContenido desordenado a transformar y estructurar:\n${content}`;
     const raw = await this.generateText(userPrompt, systemPrompt);
     return this.cleanHtmlOutput(raw);
   }

@@ -64,7 +64,8 @@ import {
   Sparkles,
   WandSparkles,
   Printer,
-  ArrowRight
+  ArrowRight,
+  Table as TableIcon
 } from 'lucide-angular';
 
 import { Editor } from '@tiptap/core';
@@ -78,6 +79,7 @@ import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Image from '@tiptap/extension-image';
+import { Table as TiptapTable, TableRow, TableHeader, TableCell } from '@tiptap/extension-table';
 import { common, createLowlight } from 'lowlight';
 
 import { WorkspaceService } from '../../core/services/workspace.service';
@@ -273,6 +275,7 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   readonly WandSparklesIcon = WandSparkles;
   readonly PrinterIcon = Printer;
   readonly ArrowRightIcon = ArrowRight;
+  readonly TableIcon = TableIcon;
 
   // Toolbar dropdown menus
   showHeadingMenu = signal<boolean>(false);
@@ -641,7 +644,13 @@ export class ApuntesComponent implements OnInit, OnDestroy {
           HTMLAttributes: {
             class: 'text-[#74566E] dark:text-[#9D7B96] underline font-semibold hover:opacity-80 transition-opacity'
           }
-        })
+        }),
+        TiptapTable.configure({
+          resizable: true
+        }),
+        TableRow,
+        TableHeader,
+        TableCell
       ],
       content: initialContent,
       editorProps: {
@@ -1781,11 +1790,17 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
     }
   }
 
+  insertTable(): void {
+    if (!this.editor) return;
+    this.editor.chain().focus().insertTable({ rows: 3, cols: 2, withHeaderRow: true }).run();
+    this.feedback.info('Tabla insertada. Puedes escribir en cada celda.');
+  }
+
   async runAiStructureNote(): Promise<void> {
     const note = this.currentNote();
     if (!note) return;
-    const text = note.plainText || '';
-    if (text.trim().length < 20) {
+    const text = this.editor?.getText() || note.plainText || '';
+    if (text.trim().length < 10) {
       this.feedback.warning('El apunte debe tener más contenido para poder analizarlo y estructurarlo.');
       return;
     }
@@ -1803,7 +1818,7 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
       this.feedback.toast({
         type: 'success',
         title: 'Apunte estructurado con Gemini',
-        message: 'Se organizaron y ordenaron todas las ideas en secciones limpias.',
+        message: 'Se organizaron y estructuraron los datos en formato editorial (tablas y secciones).',
         durationMs: 8000,
         actionLabel: 'Deshacer cambios',
         onAction: () => {
@@ -2039,6 +2054,20 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
         const inner = getChildrenMd().trim();
         const lines = inner.split('\n').map(l => `> ${l}`).join('\n');
         return `\n\n${lines}\n\n`;
+      }
+      case 'table': {
+        const rows = Array.from(el.querySelectorAll('tr'));
+        if (rows.length === 0) return '';
+        const mdRows: string[] = [];
+        rows.forEach((row, rowIndex) => {
+          const cells = Array.from(row.querySelectorAll('th, td'));
+          const cellTexts = cells.map(cell => this.domNodeToMarkdown(cell).replace(/\n/g, ' ').trim());
+          mdRows.push(`| ${cellTexts.join(' | ')} |`);
+          if (rowIndex === 0) {
+            mdRows.push(`| ${cells.map(() => '---').join(' | ')} |`);
+          }
+        });
+        return `\n\n${mdRows.join('\n')}\n\n`;
       }
       case 'hr': return `\n\n---\n\n`;
       case 'br': return `\n`;
