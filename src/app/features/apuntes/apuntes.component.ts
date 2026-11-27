@@ -17,6 +17,8 @@ import {
   LucideAngularModule,
   FileText,
   Folder,
+  FolderInput,
+  MoreHorizontal,
   Plus,
   Search,
   Star,
@@ -250,6 +252,8 @@ export class ApuntesComponent implements OnInit, OnDestroy {
   // Lucide Icons
   readonly FileTextIcon = FileText;
   readonly FolderIcon = Folder;
+  readonly FolderInputIcon = FolderInput;
+  readonly MoreHorizontalIcon = MoreHorizontal;
   readonly PlusIcon = Plus;
   readonly SearchIcon = Search;
   readonly StarIcon = Star;
@@ -441,6 +445,30 @@ export class ApuntesComponent implements OnInit, OnDestroy {
 
   // Folders collapse state
   collapsedFolders = signal<Record<string, boolean>>({});
+
+  // Drag and Drop between Folders
+  draggedNote = signal<Note | null>(null);
+  dragOverFolderId = signal<string | null>(null);
+  private hoverExpandTimeout: any = null;
+
+  // Single note move modal/popover
+  noteToMove = signal<Note | null>(null);
+  moveFolderSearch = signal<string>('');
+  batchMoveFolderSearch = signal<string>('');
+
+  readonly filteredFoldersForMove = computed<NoteFolder[]>(() => {
+    const q = this.moveFolderSearch().toLowerCase().trim();
+    const folders = this.workspace.folders();
+    if (!q) return folders;
+    return folders.filter(f => f.name.toLowerCase().includes(q));
+  });
+
+  readonly filteredFoldersForBatchMove = computed<NoteFolder[]>(() => {
+    const q = this.batchMoveFolderSearch().toLowerCase().trim();
+    const folders = this.workspace.folders();
+    if (!q) return folders;
+    return folders.filter(f => f.name.toLowerCase().includes(q));
+  });
 
   // New Folder creation modal/state
   showNewFolderModal = signal<boolean>(false);
@@ -1122,18 +1150,176 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
   clearBatchSelection(): void {
     this.selectedNoteIds.set(new Set());
     this.showBatchMoveModal.set(false);
+    this.batchMoveFolderSearch.set('');
   }
 
   batchMoveToFolder(targetFolderId: string): void {
     const ids = Array.from(this.selectedNoteIds());
     if (ids.length === 0) return;
     const targetFolder = this.workspace.folders().find(f => f.id === targetFolderId);
-    ids.forEach(id => {
-      this.workspace.updateNote(id, { folderId: targetFolderId });
-    });
+    if (!targetFolder) return;
+
+    this.workspace.moveNotes(ids, targetFolderId);
+    if (this.isFolderCollapsed(targetFolderId)) {
+      this.toggleFolderCollapse(targetFolderId);
+    }
     this.showBatchMoveModal.set(false);
+    this.batchMoveFolderSearch.set('');
     this.clearBatchSelection();
-    this.feedback.success(`${ids.length} notas movidas a "${targetFolder?.name || 'carpeta'}"`);
+    this.feedback.success(`${ids.length} ${ids.length === 1 ? 'nota movida' : 'notas movidas'} a "${targetFolder.name}"`);
+  }
+
+  // --- Drag and Drop between Folders ---
+  onNoteDragStart(event: DragEvent, note: Note): void {
+    if (this.isBatchSelectMode()) {
+      if (!this.selectedNoteIds().has(note.id)) {
+        this.selectedNoteIds.update(set => new Set([...set, note.id]));
+      }
+    }
+    this.draggedNote.set(note);
+    if (event.dataTransfer) {
+      event.dataTransfer.setData('text/plain', note.id);
+      event.dataTransfer.setData('application/x-note-id', note.id);
+      event.dataTransfer.effectAllowed = 'move';
+    }
+  }
+
+  onNoteDragEnd(): void {
+    this.draggedNote.set(null);
+    this.dragOverFolderId.set(null);
+    if (this.hoverExpandTimeout) {
+      clearTimeout(this.hoverExpandTimeout);
+      this.hoverExpandTimeout = null;
+    }
+  }
+
+  onFolderDragOver(event: DragEvent, folderId: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+
+    const container = document.getElementById('notesSidebarContainer');
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      const edgeThreshold = 45;
+      if (event.clientY - rect.top < edgeThreshold) {
+        container.scrollTop -= 10;
+      } else if (rect.bottom - event.clientY < edgeThreshold) {
+        container.scrollTop += 10;
+      }
+    }
+  }
+
+  onFolderDragEnter(event: DragEvent, folderId: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const dragged = this.draggedNote();
+    if (dragged && dragged.folderId !== folderId) {
+      this.dragOverFolderId.set(folderId);
+
+      if (this.isFolderCollapsed(folderId)) {
+        if (this.hoverExpandTimeout) {
+          clearTimeout(this.hoverExpandTimeout);
+        }
+        this.hoverExpandTimeout = setTimeout(() => {
+          if (this.dragOverFolderId() === folderId && this.isFolderCollapsed(folderId)) {
+            this.toggleFolderCollapse(folderId);
+          }
+        }, 500);
+      }
+    }
+  }
+
+  onFolderDragLeave(event: DragEvent, folderId: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const currentTarget = event.currentTarget as HTMLElement;
+    if (!currentTarget.contains(event.relatedTarget as Node)) {
+      if (this.dragOverFolderId() === folderId) {
+        this.dragOverFolderId.set(null);
+      }
+      if (this.hoverExpandTimeout) {
+        clearTimeout(this.hoverExpandTimeout);
+        this.hoverExpandTimeout = null;
+      }
+    }
+  }
+
+  onFolderDrop(event: DragEvent, targetFolderId: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (this.hoverExpandTimeout) {
+      clearTimeout(this.hoverExpandTimeout);
+      this.hoverExpandTimeout = null;
+    }
+    this.dragOverFolderId.set(null);
+
+    const noteId =
+      event.dataTransfer?.getData('application/x-note-id') ||
+      event.dataTransfer?.getData('text/plain') ||
+      this.draggedNote()?.id;
+    this.draggedNote.set(null);
+
+    if (!noteId) return;
+
+    const targetFolder = this.workspace.folders().find(f => f.id === targetFolderId);
+    if (!targetFolder) return;
+
+    if (this.isBatchSelectMode() && this.selectedNoteIds().has(noteId)) {
+      const ids = Array.from(this.selectedNoteIds());
+      const notesToMove = ids.filter(id => {
+        const n = this.workspace.notes().find(item => item.id === id);
+        return n && n.folderId !== targetFolderId;
+      });
+      if (notesToMove.length === 0) return;
+
+      this.workspace.moveNotes(notesToMove, targetFolderId);
+      if (this.isFolderCollapsed(targetFolderId)) {
+        this.toggleFolderCollapse(targetFolderId);
+      }
+      this.clearBatchSelection();
+      this.feedback.success(`${notesToMove.length} ${notesToMove.length === 1 ? 'nota movida' : 'notas movidas'} a "${targetFolder.name}"`);
+      return;
+    }
+
+    const note = this.workspace.notes().find(n => n.id === noteId);
+    if (!note || note.folderId === targetFolderId) return;
+
+    this.workspace.updateNote(note.id, { folderId: targetFolderId });
+    if (this.isFolderCollapsed(targetFolderId)) {
+      this.toggleFolderCollapse(targetFolderId);
+    }
+    this.feedback.success(`Nota "${note.title || 'Sin título'}" movida a "${targetFolder.name}"`);
+  }
+
+  // --- 1-Click Move Modal ---
+  openMoveNoteModal(note: Note, event?: Event): void {
+    event?.stopPropagation();
+    this.noteToMove.set(note);
+    this.moveFolderSearch.set('');
+  }
+
+  closeMoveNoteModal(): void {
+    this.noteToMove.set(null);
+    this.moveFolderSearch.set('');
+  }
+
+  moveNoteToFolder(note: Note, targetFolderId: string): void {
+    if (note.folderId === targetFolderId) {
+      this.closeMoveNoteModal();
+      return;
+    }
+    const targetFolder = this.workspace.folders().find(f => f.id === targetFolderId);
+    if (!targetFolder) return;
+
+    this.workspace.updateNote(note.id, { folderId: targetFolderId });
+    if (this.isFolderCollapsed(targetFolderId)) {
+      this.toggleFolderCollapse(targetFolderId);
+    }
+    this.closeMoveNoteModal();
+    this.feedback.success(`Nota "${note.title || 'Sin título'}" movida a "${targetFolder.name}"`);
   }
 
   async batchDeleteSelectedNotes(): Promise<void> {
@@ -1181,11 +1367,13 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
   setNoteFolder(folderId: string): void {
     const note = this.currentNote();
     if (!note || note.folderId === folderId) return;
-    this.workspace.updateNote(note.id, { folderId });
     const targetFolder = this.workspace.folders().find(f => f.id === folderId);
-    if (targetFolder) {
-      this.showToast(`Nota movida a la carpeta "${targetFolder.name}"`);
+    if (!targetFolder) return;
+    this.workspace.updateNote(note.id, { folderId });
+    if (this.isFolderCollapsed(folderId)) {
+      this.toggleFolderCollapse(folderId);
     }
+    this.feedback.success(`Nota movida a "${targetFolder.name}"`);
   }
 
   updateNoteTitle(newTitle: string): void {

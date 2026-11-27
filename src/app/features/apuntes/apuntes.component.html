@@ -36,6 +36,7 @@
   <!-- COLUMNA 1: Carpetas, Notas y Buscador (~260px) -->
   <!-- ========================================== -->
   <aside 
+    id="notesSidebarContainer"
     class="w-full lg:w-64 border-r border-[#EAE2DE] dark:border-[#2A2832] bg-[#FAF7F5] dark:bg-[#16151B] flex-col justify-between shrink-0 select-none overflow-y-auto p-3.5 space-y-4 print:hidden"
     [class.lg:hidden]="isFocusMode()"
     [ngClass]="activeMobileTab() === 'pages' ? 'flex flex-1 lg:flex-initial' : 'hidden lg:flex'">
@@ -154,9 +155,21 @@
           @let notesInFolder = getNotesByFolder(folder.id);
           @let isCollapsed = isFolderCollapsed(folder.id);
 
-          <div class="space-y-0.5">
+          <div
+            (dragover)="onFolderDragOver($event, folder.id)"
+            (dragenter)="onFolderDragEnter($event, folder.id)"
+            (dragleave)="onFolderDragLeave($event, folder.id)"
+            (drop)="onFolderDrop($event, folder.id)"
+            class="space-y-0.5 rounded-xl transition-all"
+            [ngClass]="{
+              'ring-2 ring-[var(--app-accent,#74566E)] bg-[#EFEAF6]/60 dark:bg-[#74566E]/20 p-1': dragOverFolderId() === folder.id && draggedNote()?.folderId !== folder.id
+            }">
             <!-- Folder row (Sticky Header) -->
-            <div class="group/folder sticky top-0 z-10 flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-medium text-[#231F20] dark:text-[#F3EFEA] bg-[#F4EFEA] dark:bg-[#19171E] hover:bg-[#EAE2DE] dark:hover:bg-[#201E27] transition-colors shadow-2xs">
+            <div 
+              class="group/folder sticky top-0 z-10 flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-medium text-[#231F20] dark:text-[#F3EFEA] bg-[#F4EFEA] dark:bg-[#19171E] hover:bg-[#EAE2DE] dark:hover:bg-[#201E27] transition-all shadow-2xs"
+              [ngClass]="{
+                'bg-[#EFEAF6] dark:bg-[#74566E]/30 text-[#74566E] dark:text-[#9D7B96] border border-[#74566E]/40': dragOverFolderId() === folder.id && draggedNote()?.folderId !== folder.id
+              }">
               <div class="flex items-center gap-1.5 min-w-0 flex-1">
                 @if (isBatchSelectMode() && notesInFolder.length > 0) {
                   <input
@@ -180,6 +193,14 @@
                   <div class="w-2.5 h-2.5 rounded-sm shrink-0" [style.background-color]="folder.color"></div>
                   <span class="truncate font-semibold">{{ folder.name }}</span>
                 </button>
+
+                <!-- Feedback visual: Mover aquí al arrastrar nota -->
+                @if (dragOverFolderId() === folder.id && draggedNote()?.folderId !== folder.id) {
+                  <span class="inline-flex items-center gap-1 text-[10px] font-bold text-[#74566E] dark:text-[#9D7B96] bg-white dark:bg-[#19181E] px-1.5 py-0.5 rounded-md shadow-2xs border border-[#74566E]/40 shrink-0 animate-pulse">
+                    <lucide-icon [img]="FolderInputIcon" [size]="10" [strokeWidth]="2.5"></lucide-icon>
+                    <span>Mover aquí</span>
+                  </span>
+                }
               </div>
               
               <div class="flex items-center gap-1 shrink-0">
@@ -227,12 +248,18 @@
                   @let excerpt = getNoteExcerpt(note);
 
                   <div
+                    [draggable]="!isBatchSelectMode()"
+                    (dragstart)="onNoteDragStart($event, note)"
+                    (dragend)="onNoteDragEnd()"
                     (click)="isBatchSelectMode() ? toggleNoteSelect(note.id, $event) : selectNote(note)"
-                    class="group/note w-full flex items-start justify-between px-2 py-1.5 rounded-lg text-xs transition-colors text-left cursor-pointer select-none"
+                    class="group/note w-full flex items-start justify-between px-2 py-1.5 rounded-lg text-xs transition-all text-left select-none"
                     [ngClass]="{
-                      'bg-[#EAE2DE] dark:bg-[#25232D] text-[#74566E] dark:text-[#9D7B96]': currentNote()?.id === note.id && !isBatchSelectMode(),
+                      'opacity-40 border border-dashed border-[#74566E] cursor-grabbing': draggedNote()?.id === note.id,
+                      'cursor-grab': !isBatchSelectMode() && draggedNote()?.id !== note.id,
+                      'cursor-pointer': isBatchSelectMode(),
+                      'bg-[#EAE2DE] dark:bg-[#25232D] text-[#74566E] dark:text-[#9D7B96]': currentNote()?.id === note.id && !isBatchSelectMode() && draggedNote()?.id !== note.id,
                       'bg-[#74566E]/10 dark:bg-[#9D7B96]/20 border border-[#74566E]/30': isBatchSelectMode() && isSelectedInBatch,
-                      'text-[#635B5E] dark:text-neutral-400 hover:bg-[#EAE2DE]/40 dark:hover:bg-[#201E27]': currentNote()?.id !== note.id && !isSelectedInBatch
+                      'text-[#635B5E] dark:text-neutral-400 hover:bg-[#EAE2DE]/40 dark:hover:bg-[#201E27]': currentNote()?.id !== note.id && !isSelectedInBatch && draggedNote()?.id !== note.id
                     }">
                     <div class="flex items-start gap-2 min-w-0 flex-1">
                       @if (isBatchSelectMode()) {
@@ -257,9 +284,16 @@
                       </div>
                     </div>
 
-                    <!-- Quick Hover Actions (Duplicate & Delete) when not in batch mode -->
+                    <!-- Quick Hover / Mobile Actions (Move, Duplicate, Delete) when not in batch mode -->
                     @if (!isBatchSelectMode()) {
-                      <div class="opacity-0 group-hover/note:opacity-100 flex items-center gap-1 shrink-0 ml-1 transition-opacity">
+                      <div class="opacity-100 sm:opacity-0 sm:group-hover/note:opacity-100 flex items-center gap-0.5 shrink-0 ml-1 transition-opacity">
+                        <button
+                          type="button"
+                          (click)="openMoveNoteModal(note, $event)"
+                          class="p-1 rounded hover:bg-[#74566E]/20 text-[#635B5E] hover:text-[#74566E] dark:text-neutral-400 dark:hover:text-[#9D7B96] transition-colors cursor-pointer"
+                          title="Mover a otra carpeta...">
+                          <lucide-icon [img]="FolderInputIcon" [size]="12" [strokeWidth]="2"></lucide-icon>
+                        </button>
                         <button
                           type="button"
                           (click)="$event.stopPropagation(); duplicateNote(note)"
@@ -302,12 +336,18 @@
           @let excerpt = getNoteExcerpt(note);
 
           <div
+            [draggable]="!isBatchSelectMode()"
+            (dragstart)="onNoteDragStart($event, note)"
+            (dragend)="onNoteDragEnd()"
             (click)="isBatchSelectMode() ? toggleNoteSelect(note.id, $event) : selectNote(note)"
-            class="group/note w-full flex items-start justify-between px-2 py-1.5 rounded-lg text-xs transition-colors text-left cursor-pointer select-none"
+            class="group/note w-full flex items-start justify-between px-2 py-1.5 rounded-lg text-xs transition-all text-left select-none"
             [ngClass]="{
-              'bg-[#EAE2DE] dark:bg-[#25232D] text-[#74566E] dark:text-[#9D7B96]': currentNote()?.id === note.id && !isBatchSelectMode(),
+              'opacity-40 border border-dashed border-[#74566E] cursor-grabbing': draggedNote()?.id === note.id,
+              'cursor-grab': !isBatchSelectMode() && draggedNote()?.id !== note.id,
+              'cursor-pointer': isBatchSelectMode(),
+              'bg-[#EAE2DE] dark:bg-[#25232D] text-[#74566E] dark:text-[#9D7B96]': currentNote()?.id === note.id && !isBatchSelectMode() && draggedNote()?.id !== note.id,
               'bg-[#74566E]/10 dark:bg-[#9D7B96]/20 border border-[#74566E]/30': isBatchSelectMode() && isSelectedInBatch,
-              'text-[#635B5E] dark:text-neutral-400 hover:bg-[#EAE2DE]/40 dark:hover:bg-[#201E27]': currentNote()?.id !== note.id && !isSelectedInBatch
+              'text-[#635B5E] dark:text-neutral-400 hover:bg-[#EAE2DE]/40 dark:hover:bg-[#201E27]': currentNote()?.id !== note.id && !isSelectedInBatch && draggedNote()?.id !== note.id
             }">
             <div class="flex items-start gap-2 min-w-0 flex-1">
               @if (isBatchSelectMode()) {
@@ -333,7 +373,14 @@
             </div>
 
             @if (!isBatchSelectMode()) {
-              <div class="opacity-0 group-hover/note:opacity-100 flex items-center gap-1 shrink-0 ml-1 transition-opacity">
+              <div class="opacity-100 sm:opacity-0 sm:group-hover/note:opacity-100 flex items-center gap-0.5 shrink-0 ml-1 transition-opacity">
+                <button
+                  type="button"
+                  (click)="openMoveNoteModal(note, $event)"
+                  class="p-1 rounded hover:bg-[#74566E]/20 text-[#635B5E] hover:text-[#74566E] dark:text-neutral-400 dark:hover:text-[#9D7B96] transition-colors cursor-pointer"
+                  title="Mover a otra carpeta...">
+                  <lucide-icon [img]="FolderInputIcon" [size]="12" [strokeWidth]="2"></lucide-icon>
+                </button>
                 <button
                   type="button"
                   (click)="$event.stopPropagation(); duplicateNote(note)"
@@ -1707,29 +1754,155 @@
   @if (showBatchMoveModal()) {
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
       <div class="bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] rounded-2xl p-5 w-full max-w-sm space-y-4 shadow-xl">
-        <h3 class="text-base font-bold text-[#231F20] dark:text-[#F3EFEA]">
-          Mover {{ selectedNoteIds().size }} notas
-        </h3>
-        <p class="text-xs text-[#635B5E] dark:text-neutral-400">
-          Selecciona la carpeta de destino para las notas seleccionadas:
-        </p>
-        <div class="space-y-1.5 max-h-60 overflow-y-auto">
-          @for (f of workspace.folders(); track f.id) {
-            <button
-              type="button"
-              (click)="batchMoveToFolder(f.id)"
-              class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#231F20] dark:text-[#F3EFEA] hover:bg-[#FAF7F5] dark:hover:bg-[#201E27] border border-[#EAE2DE] dark:border-[#2A2832] transition-colors text-left cursor-pointer">
-              <div class="w-3 h-3 rounded-sm shrink-0" [style.background-color]="f.color"></div>
-              <span class="truncate flex-1">{{ f.name }}</span>
-            </button>
-          }
-        </div>
-        <div class="flex justify-end pt-2">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h3 class="text-sm font-bold text-[#231F20] dark:text-[#F3EFEA] flex items-center gap-2">
+              <lucide-icon [img]="FolderInputIcon" [size]="16" [strokeWidth]="2" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
+              <span>Mover notas seleccionadas</span>
+            </h3>
+            <p class="text-xs text-[#635B5E] dark:text-neutral-400 mt-0.5">
+              Trasladar <span class="font-bold text-[#74566E] dark:text-[#9D7B96] tabular-nums">{{ selectedNoteIds().size }}</span> {{ selectedNoteIds().size === 1 ? 'nota' : 'notas' }} a otra carpeta:
+            </p>
+          </div>
           <button
             type="button"
             (click)="showBatchMoveModal.set(false)"
-            class="px-3 py-1.5 text-xs text-[#635B5E] hover:text-[#231F20] dark:text-neutral-400 dark:hover:text-white cursor-pointer">
+            class="p-1 rounded-lg text-[#635B5E] hover:text-[#231F20] dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer">
+            <lucide-icon [img]="XIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+          </button>
+        </div>
+
+        <!-- Buscador de carpeta en lote -->
+        <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] focus-within:border-[#74566E]">
+          <lucide-icon [img]="SearchIcon" [size]="13" class="text-[#635B5E] shrink-0"></lucide-icon>
+          <input
+            type="text"
+            [ngModel]="batchMoveFolderSearch()"
+            (ngModelChange)="batchMoveFolderSearch.set($event)"
+            placeholder="Filtrar carpetas..."
+            class="w-full bg-transparent text-xs text-[#231F20] dark:text-[#F3EFEA] focus:outline-none placeholder-[#635B5E]/60"
+          />
+        </div>
+
+        <div class="space-y-1 max-h-56 overflow-y-auto">
+          @for (f of filteredFoldersForBatchMove(); track f.id) {
+            @let count = getNotesByFolder(f.id).length;
+            <button
+              type="button"
+              (click)="batchMoveToFolder(f.id)"
+              class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-[#231F20] dark:text-[#F3EFEA] hover:bg-[#FAF7F5] dark:hover:bg-[#201E27] border border-[#EAE2DE] dark:border-[#2A2832] transition-colors text-left cursor-pointer">
+              <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                <div class="w-3 h-3 rounded-sm shrink-0" [style.background-color]="f.color"></div>
+                <span class="truncate">{{ f.name }}</span>
+              </div>
+              <span class="text-[11px] tabular-nums text-[#635B5E] dark:text-neutral-400 font-normal shrink-0 ml-2">
+                {{ count }} {{ count === 1 ? 'nota' : 'notas' }}
+              </span>
+            </button>
+          }
+          @if (filteredFoldersForBatchMove().length === 0) {
+            <div class="p-3 text-center text-xs text-[#635B5E] dark:text-neutral-400 italic">
+              No se encontraron carpetas con ese nombre.
+            </div>
+          }
+        </div>
+
+        <div class="flex justify-end pt-2 border-t border-[#EAE2DE] dark:border-[#2A2832]">
+          <button
+            type="button"
+            (click)="showBatchMoveModal.set(false)"
+            class="px-3 py-1.5 text-xs text-[#635B5E] hover:text-[#231F20] dark:text-neutral-400 dark:hover:text-white cursor-pointer font-medium">
             Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================== -->
+  <!-- MODAL: Mover Nota Individual               -->
+  <!-- ========================================== -->
+  @if (noteToMove(); as note) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+      <div class="bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] rounded-2xl p-5 w-full max-w-sm space-y-4 shadow-xl">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h3 class="text-sm font-bold text-[#231F20] dark:text-[#F3EFEA] flex items-center gap-2">
+              <lucide-icon [img]="FolderInputIcon" [size]="16" [strokeWidth]="2" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
+              <span>Mover apunte</span>
+            </h3>
+            <p class="text-xs text-[#635B5E] dark:text-neutral-400 truncate max-w-[240px] mt-0.5 font-medium">
+              "{{ note.title || 'Sin título' }}"
+            </p>
+          </div>
+          <button
+            type="button"
+            (click)="closeMoveNoteModal()"
+            class="p-1 rounded-lg text-[#635B5E] hover:text-[#231F20] dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer">
+            <lucide-icon [img]="XIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+          </button>
+        </div>
+
+        <!-- Buscador rápido de carpetas -->
+        <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] focus-within:border-[#74566E]">
+          <lucide-icon [img]="SearchIcon" [size]="13" class="text-[#635B5E] shrink-0"></lucide-icon>
+          <input
+            type="text"
+            [ngModel]="moveFolderSearch()"
+            (ngModelChange)="moveFolderSearch.set($event)"
+            placeholder="Filtrar carpetas..."
+            class="w-full bg-transparent text-xs text-[#231F20] dark:text-[#F3EFEA] focus:outline-none placeholder-[#635B5E]/60"
+          />
+        </div>
+
+        <!-- Lista de carpetas con estado actual -->
+        <div class="space-y-1 max-h-56 overflow-y-auto">
+          @for (f of filteredFoldersForMove(); track f.id) {
+            @let isCurrent = note.folderId === f.id;
+            @let count = getNotesByFolder(f.id).length;
+
+            <button
+              type="button"
+              (click)="moveNoteToFolder(note, f.id)"
+              [disabled]="isCurrent"
+              class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors text-left"
+              [ngClass]="{
+                'bg-[#EFEAF6]/60 dark:bg-[#74566E]/20 text-[#74566E] dark:text-[#9D7B96] border border-[#74566E]/30 cursor-default': isCurrent,
+                'text-[#231F20] dark:text-[#F3EFEA] hover:bg-[#FAF7F5] dark:hover:bg-[#201E27] border border-[#EAE2DE] dark:border-[#2A2832] cursor-pointer': !isCurrent
+              }">
+              <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                <div class="w-3 h-3 rounded-sm shrink-0" [style.background-color]="f.color"></div>
+                <span class="truncate">{{ f.name }}</span>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0 ml-2">
+                <span class="text-[11px] tabular-nums text-[#635B5E] dark:text-neutral-400 font-normal">
+                  {{ count }} {{ count === 1 ? 'nota' : 'notas' }}
+                </span>
+                @if (isCurrent) {
+                  <lucide-icon [img]="CheckIcon" [size]="14" [strokeWidth]="2.5" class="text-[#74566E] dark:text-[#9D7B96]"></lucide-icon>
+                }
+              </div>
+            </button>
+          }
+          @if (filteredFoldersForMove().length === 0) {
+            <div class="p-3 text-center text-xs text-[#635B5E] dark:text-neutral-400 italic">
+              No se encontraron carpetas con ese nombre.
+            </div>
+          }
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t border-[#EAE2DE] dark:border-[#2A2832]">
+          <button
+            type="button"
+            (click)="showNewFolderModal.set(true); closeMoveNoteModal()"
+            class="text-[11px] font-semibold text-[#74566E] dark:text-[#9D7B96] hover:underline cursor-pointer">
+            + Crear nueva carpeta
+          </button>
+          <button
+            type="button"
+            (click)="closeMoveNoteModal()"
+            class="px-3 py-1.5 text-xs text-[#635B5E] hover:text-[#231F20] dark:text-neutral-400 dark:hover:text-white cursor-pointer font-medium">
+            Cerrar
           </button>
         </div>
       </div>

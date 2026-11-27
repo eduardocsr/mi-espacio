@@ -1127,6 +1127,17 @@ export class WorkspaceService {
     }
   }
 
+  moveNotes(noteIds: string[], targetFolderId: string): void {
+    if (!noteIds || noteIds.length === 0) return;
+    const now = new Date().toISOString();
+    const updatedByDevice = this.deviceId;
+    const idsSet = new Set(noteIds);
+    this.notes.update(current =>
+      current.map(n => (idsSet.has(n.id) ? { ...n, folderId: targetFolderId, updatedAt: now, updatedByDevice } : n))
+    );
+    this.saveImmediately();
+  }
+
   deleteNote(id: string): void {
     const note = this.notes().find(n => n.id === id);
     if (note?.linkedTaskId) {
