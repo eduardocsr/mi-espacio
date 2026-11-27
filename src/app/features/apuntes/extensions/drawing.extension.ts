@@ -75,6 +75,7 @@ export const DrawingExtension = Node.create<DrawingOptions>({
         'svg',
         {
           viewBox: '0 0 700 320',
+          preserveAspectRatio: 'none',
           class: 'w-full h-auto rounded-xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832]',
           style: 'max-height: 340px;'
         },
@@ -314,6 +315,7 @@ export const DrawingExtension = Node.create<DrawingOptions>({
       // SVG Canvas
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.setAttribute('viewBox', '0 0 700 320');
+      svg.setAttribute('preserveAspectRatio', 'none');
       svg.setAttribute('class', 'w-full rounded-xl bg-white dark:bg-[#19181E] border border-[#EAE2DE] dark:border-[#2A2832] cursor-crosshair');
       svg.setAttribute('draggable', 'false');
       svg.style.height = '280px';
@@ -353,12 +355,26 @@ export const DrawingExtension = Node.create<DrawingOptions>({
       }
 
       function getPoint(e: PointerEvent): { x: number; y: number } {
+        try {
+          const ctm = svg.getScreenCTM();
+          if (ctm) {
+            const pt = svg.createSVGPoint();
+            pt.x = e.clientX;
+            pt.y = e.clientY;
+            const svgPoint = pt.matrixTransform(ctm.inverse());
+            return {
+              x: Math.round(svgPoint.x * 10) / 10,
+              y: Math.round(svgPoint.y * 10) / 10
+            };
+          }
+        } catch {}
+
         const rect = svg.getBoundingClientRect();
-        const scaleX = 700 / rect.width;
-        const scaleY = 320 / rect.height;
+        const scaleX = 700 / (rect.width || 700);
+        const scaleY = 320 / (rect.height || 320);
         return {
-          x: Math.round((e.clientX - rect.left) * scaleX),
-          y: Math.round((e.clientY - rect.top) * scaleY)
+          x: Math.round((e.clientX - rect.left) * scaleX * 10) / 10,
+          y: Math.round((e.clientY - rect.top) * scaleY * 10) / 10
         };
       }
 
