@@ -1138,8 +1138,40 @@ export class WorkspaceService {
     this.saveImmediately();
   }
 
+  extractStorageUrlsFromNote(note: Note): string[] {
+    const urls: string[] = [];
+    if (note.attachments && note.attachments.length > 0) {
+      for (const att of note.attachments) {
+        if (att.url && this.firebaseSync.isFirebaseStorageUrl(att.url)) {
+          urls.push(att.url);
+        }
+      }
+    }
+    if (note.contentJson) {
+      try {
+        const jsonStr = JSON.stringify(note.contentJson);
+        const matches = jsonStr.match(/https:\/\/(?:firebasestorage\.googleapis\.com|[a-zA-Z0-9.-]+\.firebasestorage\.app)[^"'\s\\]*/g);
+        if (matches) {
+          urls.push(...matches);
+        }
+      } catch (e) {
+        console.warn('Error al extraer URLs de Storage de la nota:', e);
+      }
+    }
+    return Array.from(new Set(urls));
+  }
+
   deleteNote(id: string): void {
     const note = this.notes().find(n => n.id === id);
+    if (note) {
+      // Recolección de basura automática en Firebase Storage (evita archivos huérfanos)
+      const storageUrls = this.extractStorageUrlsFromNote(note);
+      if (storageUrls.length > 0) {
+        this.firebaseSync.deleteFilesByUrls(storageUrls).catch(err => {
+          console.warn('Aviso en recolección de basura de Storage para nota:', id, err);
+        });
+      }
+    }
     if (note?.linkedTaskId) {
       this.tasks.update(current =>
         current.map(t => (t.id === note.linkedTaskId ? { ...t, linkedNoteId: undefined } : t))
@@ -1573,6 +1605,14 @@ export class WorkspaceService {
     // 1. Respaldo automático JSON si está activado
     if (backupBeforeReset) {
       this.exportBackup();
+    }
+
+    // Recolección de basura masiva en Firebase Storage al reiniciar a cero
+    const allStorageUrls = this.notes().flatMap(n => this.extractStorageUrlsFromNote(n));
+    if (allStorageUrls.length > 0) {
+      this.firebaseSync.deleteFilesByUrls(allStorageUrls).catch(err => {
+        console.warn('Aviso en limpieza masiva de Storage al resetear:', err);
+      });
     }
 
     const cleanTimestamp = Date.now();

@@ -1431,13 +1431,28 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
   async uploadAndInsertImageFile(file: File): Promise<void> {
     try {
       this.isUploadingMedia.set(true);
-      // Comprime y optimiza la imagen en 0ms en el navegador
-      // Evita bloqueos de CORS de Firebase Storage y sincroniza limpio en Firestore e IndexedDB
-      const dataUrl = await compressImageToDataUrl(file);
-      if (!dataUrl) return;
+      let imageSrc = '';
+      let isCloudUpload = false;
+
+      // 1. Si el usuario está autenticado en la nube, subir directamente a Firebase Storage (cuota 5 GB)
+      if (this.workspace.firebaseSync.currentUser()) {
+        try {
+          imageSrc = await this.workspace.firebaseSync.uploadImage(file);
+          isCloudUpload = true;
+        } catch (storageError) {
+          console.warn('Firebase Storage no disponible (CORS o desconexión). Usando compresión local para la imagen.', storageError);
+        }
+      }
+
+      // 2. Si no está en la nube o falló Storage, fallback a compresión ligera en el navegador (~80-150 KB)
+      if (!imageSrc) {
+        imageSrc = await compressImageToDataUrl(file);
+      }
+
+      if (!imageSrc) return;
 
       if (this.editor) {
-        this.editor.chain().focus().setImage({ src: dataUrl, alt: file.name }).run();
+        this.editor.chain().focus().setImage({ src: imageSrc, alt: file.name }).run();
 
         // Disparar persistencia inmediata de la nota con la imagen
         const json = this.editor.getJSON();
@@ -1449,9 +1464,16 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
             plainText: text
           });
         }
+
+        if (isCloudUpload) {
+          this.feedback.success(`Imagen "${file.name}" subida a la nube (Firebase Storage).`);
+        } else {
+          this.feedback.info(`Imagen "${file.name}" optimizada y guardada localmente.`);
+        }
       }
     } catch (err) {
       console.error('Error al insertar imagen:', err);
+      this.feedback.error('No se pudo insertar la imagen. Intenta nuevamente.');
     } finally {
       this.isUploadingMedia.set(false);
     }
@@ -1598,6 +1620,12 @@ LIMIT 50;</code></pre><h3>Consideraciones de rendimiento</h3><p>Verificar índic
       tone: 'danger'
     });
     if (confirmed) {
+      const attToDelete = note.attachments.find(a => a.id === attId);
+      if (attToDelete && attToDelete.url && this.workspace.firebaseSync.isFirebaseStorageUrl(attToDelete.url)) {
+        this.workspace.firebaseSync.deleteFileByUrl(attToDelete.url).catch(err => {
+          console.warn('Aviso al eliminar archivo físico de Firebase Storage:', err);
+        });
+      }
       const updated = note.attachments.filter(a => a.id !== attId);
       this.workspace.updateNote(note.id, { attachments: updated });
       this.feedback.info('Archivo adjunto eliminado');

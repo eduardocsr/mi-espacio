@@ -23,7 +23,8 @@ import {
   FirebaseStorage,
   ref,
   uploadBytes,
-  getDownloadURL
+  getDownloadURL,
+  deleteObject
 } from 'firebase/storage';
 import { firebaseConfig } from '../config/firebase.config';
 import { WorkspaceSnapshot } from '../models/workspace.models';
@@ -237,17 +238,25 @@ export class FirebaseSyncService {
 
   async uploadImage(file: File): Promise<string> {
     const user = this.currentUser();
-    const uid = user ? user.uid : 'public';
+    if (!user) {
+      throw new Error('AUTH_REQUIRED_FOR_STORAGE');
+    }
+    const uid = user.uid;
     const timestamp = Date.now();
-    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const sanitizedName = file.name ? file.name.replace(/[^a-zA-Z0-9.-]/g, '_') : `img_${timestamp}.jpg`;
     const storagePath = `users/${uid}/images/${timestamp}_${sanitizedName}`;
 
     this.isUploading.set(true);
     try {
       const fileRef = ref(this.storage, storagePath);
-      await uploadBytes(fileRef, file, {
-        contentType: file.type
+      const uploadPromise = uploadBytes(fileRef, file, {
+        contentType: file.type || 'image/jpeg'
       });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT_STORAGE_CORS')), 10000)
+      );
+
+      await Promise.race([uploadPromise, timeoutPromise]);
       const downloadUrl = await getDownloadURL(fileRef);
       return downloadUrl;
     } catch (error) {
@@ -298,5 +307,44 @@ export class FirebaseSyncService {
     } finally {
       this.isUploading.set(false);
     }
+  }
+
+  // =========================================================================
+  // AUTO-LIMPIEZA Y RECOLECCIÓN DE BASURA (GARBAGE COLLECTOR)
+  // =========================================================================
+
+  isFirebaseStorageUrl(url: string): boolean {
+    if (!url || typeof url !== 'string') return false;
+    return (
+      url.includes('firebasestorage.googleapis.com') ||
+      url.includes(firebaseConfig.storageBucket) ||
+      url.includes('firebasestorage.app')
+    );
+  }
+
+  async deleteFileByUrl(url: string): Promise<boolean> {
+    if (!this.isFirebaseStorageUrl(url)) {
+      return false;
+    }
+    try {
+      const fileRef = ref(this.storage, url);
+      await deleteObject(fileRef);
+      return true;
+    } catch (error: any) {
+      // Si el archivo ya no existe (404), se considera exitoso
+      if (error?.code === 'storage/object-not-found' || error?.status === 404) {
+        return true;
+      }
+      console.warn('Aviso al eliminar archivo de Firebase Storage:', url, error);
+      return false;
+    }
+  }
+
+  async deleteFilesByUrls(urls: string[]): Promise<number> {
+    const validUrls = Array.from(new Set(urls.filter(u => this.isFirebaseStorageUrl(u))));
+    if (validUrls.length === 0) return 0;
+
+    const results = await Promise.allSettled(validUrls.map(u => this.deleteFileByUrl(u)));
+    return results.filter(r => r.status === 'fulfilled' && (r as PromiseFulfilledResult<boolean>).value).length;
   }
 }
