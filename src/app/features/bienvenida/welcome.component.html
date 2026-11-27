@@ -1,21 +1,8 @@
 <div class="min-h-screen bg-[#FAF7F5] dark:bg-[#121115] text-[#231F20] dark:text-[#F3EFEA] flex flex-col justify-between selection:bg-[#74566E]/20 transition-colors">
 
   <!-- Top Navigation Header -->
-  <header class="px-6 sm:px-12 py-5 border-b border-[#EAE2DE] dark:border-[#2A2832] bg-white/70 dark:bg-[#16151B]/70 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="flex items-center gap-1">
-        <div class="w-2.5 h-6 rounded-full bg-[#C97D60]"></div>
-        <div class="w-2.5 h-7 rounded-full bg-[#74566E] dark:bg-[#9D7B96]"></div>
-      </div>
-      <div>
-        <span class="text-lg font-bold tracking-tight text-[#231F20] dark:text-[#F3EFEA] block leading-none">
-          Mi Espacio
-        </span>
-        <span class="text-[10px] font-mono uppercase tracking-wider text-[#635B5E] dark:text-neutral-400">
-          Productividad Editorial
-        </span>
-      </div>
-    </div>
+  <header class="px-6 sm:px-12 py-3.5 border-b border-[#EAE2DE] dark:border-[#2A2832] bg-white/70 dark:bg-[#16151B]/70 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between">
+    <app-brand-logo variant="full" [dynamicAccent]="false"></app-brand-logo>
 
     <div class="flex items-center gap-3">
       <!-- Dark/Light Mode Button -->

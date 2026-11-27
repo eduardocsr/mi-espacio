@@ -23,11 +23,12 @@ import { WorkspaceService } from '../../core/services/workspace.service';
 import { FirebaseSyncService } from '../../core/services/firebase-sync.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { UserProfile } from '../../core/models/workspace.models';
+import { BrandLogoComponent } from '../../shared/components/brand-logo/brand-logo.component';
 
 @Component({
   selector: 'app-welcome',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, BrandLogoComponent],
   templateUrl: './welcome.component.html'
 })
 export class WelcomeComponent {

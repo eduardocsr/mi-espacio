@@ -35,12 +35,13 @@ import { AuthSessionService } from '../../core/services/auth-session.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { AiConfigService } from '../../core/services/ai-config.service';
 import { ResetWorkspaceModalComponent } from './reset-workspace-modal.component';
+import { BrandLogoComponent } from '../../shared/components/brand-logo/brand-logo.component';
 import { AccentColor, AppTheme } from '../../core/models/workspace.models';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, ResetWorkspaceModalComponent],
+  imports: [CommonModule, FormsModule, LucideAngularModule, ResetWorkspaceModalComponent, BrandLogoComponent],
   templateUrl: './topbar.component.html'
 })
 export class TopbarComponent {

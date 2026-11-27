@@ -8,18 +8,21 @@
     (click)="$event.stopPropagation()">
     
     <!-- Encabezado con Saludo Personalizado -->
-    <div class="flex items-start justify-between gap-3 pb-2 border-b border-[#EAE2DE] dark:border-[#2A2832]">
-      <div class="space-y-1 min-w-0">
-        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] text-[11px] font-semibold text-[#74566E] dark:text-[#9D7B96]">
-          <lucide-icon [img]="SparklesIcon" [size]="13" [strokeWidth]="2"></lucide-icon>
-          <span>Primeros pasos</span>
+    <div class="flex items-start justify-between gap-3 pb-3 border-b border-[#EAE2DE] dark:border-[#2A2832]">
+      <div class="flex items-center gap-3.5 min-w-0">
+        <app-brand-logo variant="icon" class="shrink-0 w-11 h-11"></app-brand-logo>
+        <div class="space-y-1 min-w-0">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#FAF7F5] dark:bg-[#121115] border border-[#EAE2DE] dark:border-[#2A2832] text-[10px] font-semibold text-[#74566E] dark:text-[#9D7B96]">
+            <lucide-icon [img]="SparklesIcon" [size]="12" [strokeWidth]="2"></lucide-icon>
+            <span>Primeros pasos</span>
+          </div>
+          <h2 class="text-lg sm:text-xl font-bold text-[#231F20] dark:text-[#F3EFEA] tracking-tight leading-snug">
+            Bienvenido, {{ userFirstName }}
+          </h2>
+          <p class="text-xs text-[#635B5E] dark:text-neutral-400 leading-relaxed">
+            Personaliza tu espacio de trabajo en segundos. Podrás cambiar esto después en Ajustes.
+          </p>
         </div>
-        <h2 class="text-xl sm:text-2xl font-bold text-[#231F20] dark:text-[#F3EFEA] tracking-tight">
-          Bienvenido, {{ userFirstName }}
-        </h2>
-        <p class="text-xs text-[#635B5E] dark:text-neutral-400 leading-relaxed">
-          Personaliza tu espacio de trabajo en segundos. Podrás cambiar esto después en Ajustes.
-        </p>
       </div>
 
       <!-- Botón de salida rápida / cancelar (Escape) -->

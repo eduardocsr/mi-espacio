@@ -17,6 +17,7 @@ import {
 import { WorkspaceService, ACCENT_PALETTES } from '../../core/services/workspace.service';
 import { AuthSessionService } from '../../core/services/auth-session.service';
 import { AccentColor, AppTheme } from '../../core/models/workspace.models';
+import { BrandLogoComponent } from '../../shared/components/brand-logo/brand-logo.component';
 
 export interface AccentChoice {
   id: AccentColor;
@@ -31,7 +32,7 @@ export interface AccentChoice {
 @Component({
   selector: 'app-onboarding-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, BrandLogoComponent],
   templateUrl: './onboarding-modal.component.html'
 })
 export class OnboardingModalComponent {

@@ -23,11 +23,12 @@ import {
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { AuthSessionService } from '../../core/services/auth-session.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
+import { BrandLogoComponent } from '../../shared/components/brand-logo/brand-logo.component';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterModule, LucideAngularModule],
+  imports: [CommonModule, RouterModule, LucideAngularModule, BrandLogoComponent],
   templateUrl: './sidebar.component.html'
 })
 export class SidebarComponent {
